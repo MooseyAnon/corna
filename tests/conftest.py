@@ -3,10 +3,15 @@ from contextlib import contextmanager
 from pathlib import Path
 import platform
 import logging
+
+from flask import _app_ctx_stack, request as flask_request
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 import sqltap
 import testing.postgresql
+
+from corna.app import create_app
 from corna.db import models
 logger = logging.getLogger(__name__)
 
@@ -97,3 +102,40 @@ def _session(session_class):
 
     yield app_scoped_session
     app_scoped_session.rollback()  # pylint: disable=no-member
+
+
+@pytest.fixture(name='client')
+def _client(session, request):
+    """Provide access to the Flask app."""
+    app = create_app(session)
+    app.config['TESTING'] = True
+
+    # Profile the app if required
+    if request.config.getoption('sql_profile'):
+        profiler = FlaskSqlProfiler(request.node.name)
+        app.before_request(profiler.start)
+        app.after_request(profiler.end)
+
+    yield app.test_client()
+
+
+@pytest.fixture(name="user")
+def _create_user(client):
+    resp = client.post("/api/v1/register", json=single_user())
+    assert resp.status_code == 201
+    logger.debug("created user")
+
+
+@pytest.fixture(name="login")
+def _create_and_login_user(client, user):
+    user_deets = single_user()
+    email = user_deets["email_address"]
+    password = user_deets["password"]
+
+    resp = client.post("/api/v1/login", json={
+            "email_address": email,
+            "password": password,
+        }
+    )
+    assert resp.status_code == 200
+    logger.debug("logged in user")
