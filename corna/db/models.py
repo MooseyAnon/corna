@@ -1,15 +1,16 @@
 """Models for the Corna app."""
 
 # pylint: disable=too-few-public-methods
-import inspect
-
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 from werkzeug.security import check_password_hash, generate_password_hash
+
+
 class Base:
     """Declarative base class for SQLAlchemy models."""
     # This cannot be labelled as @classmethod as SQLAlchemy will fail to find
