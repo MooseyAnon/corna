@@ -1,0 +1,6 @@
+FROM nginx
+# copy over ssl
+# this is based on this answer: https://serverfault.com/questions/537343/nginx-startup-fails-ssl-no-such-file-or-directory
+COPY --chmod=600 .ssl/fullchain.pem /etc/nginx/cert.pem
+COPY --chmod=600 .ssl/privkey.pem /etc/nginx/key.pem
+COPY nginx.conf /etc/nginx/conf.d/corna.nginx.conf

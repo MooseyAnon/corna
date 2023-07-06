@@ -1,0 +1,45 @@
+FROM centos:7.5.1804
+
+# Print commands as they are executed
+SHELL ["bash", "-xc"]
+
+# Set runtime environment
+ENV \
+    # Don't check for new versions of Pip
+    PIP_DISABLE_PIP_VERSION_CHECK=true
+
+# Configure locale
+ARG LOCALE=en_GB.utf8
+RUN yum-config-manager \
+        --setopt override_install_langs=${LOCALE} \
+        --setopt skip_missing_names_on_install=False \
+        --save >/dev/null
+ENV LANG=${LOCALE} \
+    LC_ALL=${LOCALE}
+
+# Create unprivileged user
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} corna-user && \
+    useradd -u ${UID} -g ${GID} corna-user
+
+# Install system dependencies
+COPY yum-deps yum-repos ./
+RUN grep -v ^# yum-repos | xargs -rt yum install -y && \
+    grep -v ^# yum-deps | xargs -rt yum install -y && \
+    yum clean all
+
+RUN /usr/bin/python3.6 -m pip install pip==20.*
+
+# Run as unprivileged user
+USER corna-user
+
+# copy over source and set permissions
+COPY --chown=corna-user:corna-user . /home/corna-user/workspace
+WORKDIR /home/corna-user/workspace
+
+# install pip-tools globally
+# RUN /usr/bin/python3.6 -m pip install --user pip-tools
+
+COPY requirements.txt ./
+RUN /usr/bin/python3.6 -m pip install --user -r requirements.txt
