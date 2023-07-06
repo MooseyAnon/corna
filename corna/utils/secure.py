@@ -2,7 +2,7 @@
 import logging
 import secrets
 import time
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 from sqlalchemy import exists
 
@@ -38,11 +38,12 @@ def token_unique(session: Any, column: Any, token: str) -> bool:
 
 
 def generate_unique_token(
-    session: Any, column: Any, tries: int = 10
+    session: Any, column: Any, tries: int = 10, func: Callable = session_token
 ) -> str:
-    """Generate unique token.
+    """Generate unique token using a given function.
 
-    Generates cookie and session tokens.
+    Generates cookie and session tokens. Also used to generate
+    "unique-ish" url extensions for pictures.
 
     :param sqlalchemy.Session session: db session
     :param sqlalchemy.Table.column column: name of column to search on e.g.
@@ -55,7 +56,7 @@ def generate_unique_token(
     """
     i: int = 0
     while i < tries:
-        token: str = session_token()
+        token: str = func()
         if token_unique(session, column, token):
             return token
 
