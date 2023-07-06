@@ -13,6 +13,9 @@ import testing.postgresql
 
 from corna.app import create_app
 from corna.db import models
+from tests.shared_data import blog_info, single_user
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -139,3 +142,59 @@ def _create_and_login_user(client, user):
     )
     assert resp.status_code == 200
     logger.debug("logged in user")
+
+
+@pytest.fixture(name="blog")
+def _create_blog_for_logged_in_user(client, login):
+    resp = client.post(
+        f"/api/v1/corna/{blog_info['domain_name']}",
+        json={"title": blog_info["title"]},
+    )
+    assert resp.status_code == 201
+
+
+@pytest.fixture(name="sec_headers", autouse=True)
+def _secure_headers(mocker):
+    # mock out secure headers
+    mocker.patch("corna.utils.secure.secure_headers", return_value={})
+
+
+class FlaskSqlProfiler:
+    """Class to handle profiling of Flask SQL.
+
+    The `start` and `end` are expected to be used as Flask `before_request`
+    and `after_request` hooks.
+    """
+
+    def __init__(self, name):
+        """Constructor.
+
+        :param str name: A unique name for this profiling (e.g. the test name)
+        """
+        self.name = name
+        self.count = 0
+        self.sqltap = None
+        logging.debug("Running with SQL profiling")
+
+    def start(self):
+        """Start the profiler."""
+        self.sqltap = sqltap.start()
+
+    def end(self, flask_resp):
+        """Collect and output profiler stats.
+
+        Parameter is required by Flask and is passed through unmodified.
+
+        :param flask.Flask.response_class flask_resp: response from flask
+
+        :returns: Flask response
+        :rtype: flask.Flask.response_class
+        """
+        statistics = self.sqltap.collect()
+        output_filename = f"sql_profile__{self.name}__{self.count}.html"
+        self.count += 1
+        logging.info(
+            "Call to %s %s Generated SQL profile to %s",
+            flask_request.method, flask_request.path, output_filename)
+        sqltap.report(statistics, output_filename)
+        return flask_resp
