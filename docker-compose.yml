@@ -1,0 +1,57 @@
+
+name: corna
+services:
+  corna:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile-corna
+    image: corna:0.1.0
+    ports:
+      # postgresql port
+      # host-port:container-port
+      - "25060:25060"
+    expose:
+      - "5001"
+    deploy:
+      # this will create name-service_name-number
+      # if you dont give the compose file a name field it will use
+      # the directory name instead
+      # e.g. corna-corna-{1..3}
+      replicas: 1
+    environment:
+      - "DB_ADDRESS=${DB_ADDRESS}"
+      - "DB_USER=${DB_USER}"
+      - "DB_PASSWORD=${DB_PASSWORD}"
+      - DB_PORT=25060
+      - "DB_NAME=${DB_NAME}"
+      - SSL_MODE=require
+      - "CORNA_PORT=${CORNA_PORT}"
+      - PICTURE_DIR=/var/www/assets
+    command: /usr/bin/python3.6 -m gunicorn --worker-tmp-dir=/tmp --config=gunicorn_conf.py corna.wsgi:app
+    volumes:
+      - /var/www/assets:/var/www/assets:rw
+    networks:
+      - backend-network
+
+  nginx:
+    depends_on:
+      - corna
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile-nginx
+    image: nginx:0.1.0
+    ports:
+      # we only want ports for nginx and the rest of the containers
+      # will be private
+      # host-port:container-port
+      - "443:443"
+      - "80:80"
+    expose:
+      - "80"
+    networks:
+      - backend-network
+
+# this is not necessary but nice to explicitly declare
+networks:
+  backend-network:
+    driver: bridge
