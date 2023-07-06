@@ -1,4 +1,4 @@
-"""Shifts session configuration."""
+"""Corna session configuration."""
 
 from contextlib import contextmanager
 import logging
