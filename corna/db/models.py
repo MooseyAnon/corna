@@ -76,7 +76,7 @@ class UserTable(Base):
         doc="date of account creation",
     )
     email = relationship("EmailTable", back_populates="user")
-    # backrefs: blog
+    # backrefs: corna
 
 
 class EmailTable(Base):
@@ -122,3 +122,213 @@ class EmailTable(Base):
         :rtype: bool
         """
         return check_password_hash(self.password_hash, password)
+
+
+class SessionTable(Base):
+    """Session data for when a user logs in.
+
+    This is largely and ephemeral data. The whole row
+    gets deleted after a user session ends.
+
+    This table will currently have the session cookies
+    as well but this is only temporary.
+    Cookies will be saved/cached in a redis table.
+
+    --actually this whole table can be moved to redis
+    -- is it worth makeing the cookie_id PK?
+    """
+    __tablename__ = "sessions"
+    
+    session_id = Column(
+        Text,
+        primary_key=True,
+    )
+    cookie_id = Column(
+        Text,
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+    user_uuid = Column(
+        UUID,
+        ForeignKey("users.uuid"),
+        unique=True,
+    )
+    user = relationship(
+        "UserTable"
+    )
+
+
+class CornaTable(Base):
+    """Blog table."""
+    __tablename__ = "blogs"
+
+    blog_uuid = Column(
+        UUID,
+        primary_key=True,
+    )
+    domain_name = Column(
+        Text,
+        unique=True,
+        index=True,
+        doc="chosen domain name of blog"
+    )
+    title = Column(
+        Text,
+        doc="title of the blog",
+    )
+    date_created = Column(
+        DateTime,
+        doc="creation date of blog",
+    )
+    user_uuid = Column(
+        UUID,
+        ForeignKey("users.uuid"),
+        unique=True,
+    )
+    user = relationship(
+        "UserTable",
+        backref="corna",
+    )
+
+    # backrefs: posts
+
+
+class PostTable(Base):
+    """"Post Table."""
+
+    __tablename__ = "posts"
+
+    post_uuid = Column(
+        UUID,
+        primary_key=True,
+    )
+    created = Column(
+        DateTime,
+        doc="post creation timestamp",
+    )
+    type = Column(
+        Text,
+        doc="type of post",
+    )
+    deleted = Column(
+        Boolean,
+        doc="post has been deleted, do not show",
+    )
+    blog_uuid = Column(
+        UUID,
+        ForeignKey("blogs.blog_uuid"),
+    )
+    blog = relationship(
+        "CornaTable",
+        backref="posts",
+    )
+    mapper = relationship(
+        "PostObjectMap",
+        uselist=False,
+        back_populates="post",
+    )
+
+
+class PostObjectMap(Base):
+    """Maps posts to objects via post type field.
+
+    Each post can only be one type of 'post' so this table
+    will be quite sparse. At any given time only three columns
+    will have an entry:
+      - uuid
+      - post_uuid
+      - main object uuid
+    """
+    __tablename__ = "post_object_map"
+
+    uuid = Column(
+        UUID,
+        primary_key=True,
+    )
+    post_uuid = Column(
+        UUID,
+        ForeignKey("posts.post_uuid"),
+        doc="Foreign key pointer to post table",
+    )
+    text_post_uuid = Column(
+        UUID,
+        ForeignKey("text_posts.uuid"),
+        doc="Foreign key pointer to main text post object",
+    )
+    photo_post_uuid = Column(
+        UUID,
+        ForeignKey("photo_posts.uuid"),
+        doc="Foreign key pointer to main photo post object",
+    )
+    post = relationship(
+        "PostTable",
+        back_populates="mapper",
+    )
+    text = relationship(
+        "TextPost",
+        back_populates="mapper",
+    )
+    photo = relationship(
+        "PhotoPost",
+        back_populates="mapper",
+    )
+
+
+class TextPost(Base):
+    """Table for text posts."""
+
+    __tablename__ = "text_posts"
+
+    uuid = Column(
+        UUID,
+        primary_key=True
+    )
+    title = Column(
+        Text,
+        doc="Title of the text post"
+    )
+    body = Column(
+        Text,
+        doc="Body of the text post"
+    )
+    mapper = relationship(
+        "PostObjectMap",
+        uselist=False,
+        back_populates="text",
+    )
+
+
+class PhotoPost(Base):
+    """Table for picture posts."""
+
+    __tablename__ = "photo_posts"
+
+    uuid = Column(
+        UUID,
+        primary_key=True,
+    )
+    url_extension = Column(
+        Text,
+        index=True,
+        unique=True,
+        doc="The url extension of the picture, this will be used to"
+            "load the picture on each corna",
+    )
+    path = Column(
+        Text,
+        doc="path to photo",
+    )
+    caption = Column(
+        Text,
+        doc="Optional caption associated with picture",
+    )
+    size = Column(
+        Integer,
+        doc="Size of file in bytes. This is essentially output of `stat`",
+    )
+    mapper = relationship(
+        "PostObjectMap",
+        uselist=False,
+        back_populates="photo",
+    )

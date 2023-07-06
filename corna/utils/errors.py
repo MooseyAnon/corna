@@ -29,7 +29,7 @@ class NotLoggedInError(ValueError):
     """
 
 
-class PreExistingBlogError(ValueError):
+class PreExistingCornaError(ValueError):
     """Pre-existing blog error.
 
     Raised when user tries to create a new blog while
@@ -48,7 +48,7 @@ class DomainExistsError(ValueError):
     """
 
 
-class BlogOwnerError(ValueError):
+class CornaOwnerError(ValueError):
     """Blog owner error.
 
     Raised when blog is not owned by user.
