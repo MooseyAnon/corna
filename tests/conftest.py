@@ -40,11 +40,11 @@ def test_db_engine():
         # later versions of mac it might be:
         # '/usr/local/opt/postgresql@10/bin'
         postgresql_path = Path(
-            "/Applications/Postgres.app/Contents/Versions/latest/bin")
-    elif Path('/usr/lib/postgresql/10/bin').exists():
-        postgresql_path = Path('/usr/lib/postgresql/11/bin')
+            "/Applications/Postgres.app/Contents/Versions/12/bin")
+    elif Path('/usr/lib/postgresql/12/bin').exists():
+        postgresql_path = Path('/usr/lib/postgresql/12/bin')
     else:
-        postgresql_path = Path('/usr/pgsql-11/bin')
+        postgresql_path = Path('/usr/pgsql-12/bin')
 
     initdb_path = postgresql_path / 'initdb'
     postgres_path = postgresql_path / 'postgres'
