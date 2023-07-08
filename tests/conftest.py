@@ -37,7 +37,7 @@ def pytest_addoption(parser):
 def test_db_engine():
     """Context manager for session-wide test database."""
     if platform.system() == 'Darwin':
-        # later versions of mac it might be:
+        # later versions of mac it might be (this is were brew puts it):
         # '/usr/local/opt/postgresql@10/bin'
         postgresql_path = Path(
             "/Applications/Postgres.app/Contents/Versions/12/bin")
