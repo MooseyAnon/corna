@@ -1,6 +1,6 @@
 """Endpoints to manage posts on Corna."""
 from http import HTTPStatus
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import flask
 from flask import request
@@ -72,7 +72,49 @@ def is_allowed(filename: str) -> bool:
     :rtype: bool
     """
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS 
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def validate(payload: str, dict_to_pack: Dict[str, str]) -> None:
+    """Validate incoming json from create endpoint.
+
+    To make validation work in a sane way we want to split the
+    schemas into separate classes, one for each type of post we expect
+    to have. Marshmallow doesnt really allow for that kind of polymorphism
+    i.e. conditional schema selection, so we need to do it manually.
+
+    :param str payload: incoming payload to post create endpoint
+    :param dict dict_to_pack: pass by reference dict to update once payload
+        is validated
+    """
+    # we need to grab the type value first to use as the conditional key
+    # however, this means we cant guarantee that the type field has been
+    # set before we receive the data so we need to check first
+    _type: Optional[str] = payload.get("type")
+
+    if not _type in ("text", "picture"):
+        utils.respond_json_error(
+            "Incorrect post type", HTTPStatus.UNPROCESSABLE_ENTITY)
+
+    if _type == "text":
+        try:
+            dict_to_pack.update(
+                TextPostSend()
+                .load(payload)
+            )
+        except ValidationError as error:
+            utils.respond_json_error(
+                str(error), HTTPStatus.UNPROCESSABLE_ENTITY)
+
+    elif _type == "picture":
+        try:
+            dict_to_pack.update(
+                PicturePostSsend()
+                .load(payload)
+            )
+        except ValidationError as error:
+            utils.respond_json_error(
+                str(error), HTTPStatus.UNPROCESSABLE_ENTITY)
 
 
 @posts.after_request
@@ -111,29 +153,10 @@ def sec_headers(response: flask.Response) -> flask.Response:
 )
 def create_post(domain_name: str) -> Tuple[str, int]:
     """Create post endpoint."""
-    # to make validation work in a sane way we want to split the
-    # schemas into separate classes, one for each type of post
-    # marshmallow doesnt really allow for that kind of polymorphism
-    # i.e. conditional schema selection, so we need to do it manually
-    _type: str = flask.request.form.get("type")
-    # fail early
-    if not _type in ("text", "picture"):
-        utils.respond_json_error(
-            "Incorrect post type", HTTPStatus.UNPROCESSABLE_ENTITY)
 
-    if _type == "text":
-        try:
-            data: Dict[Any, Any] = TextPostSend().load(flask.request.form)
-        except ValidationError as error:
-            utils.respond_json_error(
-                str(error), HTTPStatus.UNPROCESSABLE_ENTITY)
-
-    elif _type == "picture":
-        try:
-            data: Dict[Any, Any] = PicturePostSsend().load(flask.request.form)
-        except ValidationError as error:
-            utils.respond_json_error(
-                str(error), HTTPStatus.UNPROCESSABLE_ENTITY)
+    data: Dict[str, str] = {}
+    validate(flask.request.form, data)
+    
     # add user cookie to data
     # -----
     data.update(
