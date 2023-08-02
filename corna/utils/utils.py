@@ -3,9 +3,11 @@
 import collections.abc
 from copy import deepcopy
 import datetime
-from functools import lru_cache
+from functools import lru_cache, wraps
+from http import HTTPStatus
 import logging
 import pathlib
+from typing import Any, Callable, Tuple, Dict
 import uuid
 
 import apispec
@@ -15,6 +17,7 @@ import requests
 from sqlalchemy import exists
 
 from corna.controls.marshmallow_control import BaseSchema
+from corna import enums
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +64,28 @@ def mkdir(path: pathlib.Path) -> None:
 
     # recursively make path
     path.mkdir(parents=True, exist_ok=True)
+
+
+def login_required(func: Callable) -> Callable:
+    """Login required decorator.
+
+    Check session headers for a light check to see if user is logged in.
+    We do not need to do a deeper check as any meaning state change to
+    the database does a series of checks to ensure that the user is not
+    only logged in but logged in to the correct account.
+
+    :param Callable func: the function to decorate
+    :returns: the decorated function if the user is logged in, else
+        abort and return error message
+    :rtype: Callable
+    """
+    @wraps(func)
+    def wrapper(*args: Tuple[Any], **kwargs: Dict[Any, Any]) -> Callable:
+        if flask.request.cookies.get(enums.SESSION.value) is None:
+            respond_json_error("Login required", HTTPStatus.UNAUTHORIZED)
+
+        return func(*args, **kwargs)
+    return wrapper
 
 
 def check_response(response, error_msg, exc_cls):

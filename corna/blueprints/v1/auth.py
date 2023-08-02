@@ -9,12 +9,13 @@ import logging
 from typing import Any, Dict, Optional, Union
 
 import flask
-from flask_apispec import doc, use_kwargs
+from flask_apispec import doc, marshal_with, use_kwargs
 from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields
 
 from corna import enums
 from corna.controls import auth_control
+from corna.db import models
 from corna.utils.errors import (
     IncorrectPasswordError, NoneExistingUserError, UserExistsError)
 from corna.utils import utils, secure
@@ -60,6 +61,15 @@ class LoginSchema(_BaseSchema):
         strict = True
 
 
+class LoginStatusSend(Schema):
+    """Schema for login status check."""
+
+    status = fields.Boolean(
+        metadata={
+            "description": "true is the user is logged in, false otherwise",
+        })
+
+
 @auth.after_request
 def sec_headers(response: flask.Response) -> flask.Response:
     """Add security headers to every response.
@@ -103,7 +113,7 @@ def set_cookie(response: flask.Response, **kwargs: Dict[str, Any]) -> None:
     response.set_cookie(**kwargs)
 
 
-@auth.route("/register", methods=["POST"])
+@auth.route("/auth/register", methods=["POST"])
 @use_kwargs(UserCreateSchema())
 @doc(
     tags=["Auth"],
@@ -125,7 +135,7 @@ def register_user(**data: Dict) -> Union[flask.Response, str]:
     return create_response(status=HTTPStatus.CREATED)
 
 
-@auth.route("/login", methods=["POST"])
+@auth.route("/auth/login", methods=["POST"])
 @use_kwargs(LoginSchema())
 @doc(
     tags=["Auth"],
@@ -144,7 +154,12 @@ def login_user(**data: Dict) -> Union[flask.Response, str]:
     # check if user is already logged in
     user_cookie: Optional[str] = flask.request.cookies.get(
         enums.SessionNames.SESSION.value)
-    if user_cookie is not None:
+    if (
+        user_cookie is not None
+        # we cant always assume that just because the browser has a session
+        # cookie saved that the cookie is still in the database
+        and auth_control.session_exists(session, user_cookie)
+    ):
         logger.info("User already logged in, logging out to start new session")
         auth_control.delete_user_session(session, user_cookie)
 
@@ -170,7 +185,7 @@ def login_user(**data: Dict) -> Union[flask.Response, str]:
     return response
 
 
-@auth.route("/logout", methods=["POST"])
+@auth.route("/auth/logout", methods=["DELETE"])
 @doc(
     tags=["Auth"],
     description="Log out a user session"
@@ -178,8 +193,11 @@ def login_user(**data: Dict) -> Union[flask.Response, str]:
 def logout_user() -> Union[flask.Response, HTTPStatus]:
     """Logout a user."""
     # check if user is already logged in
+    print("in logout")
     user_cookie: Optional[str] = flask.request.cookies.get(
         enums.SessionNames.SESSION.value)
+    print(user_cookie)
+    print(flask.request.cookies)
     if user_cookie is None:
         return HTTPStatus.OK
 
@@ -197,4 +215,25 @@ def logout_user() -> Union[flask.Response, HTTPStatus]:
         samesite="Lax",
         key=enums.SessionNames.SESSION.value,
     )
+    # print(response.cookies)
     return response
+
+
+@auth.route("/auth/check-login-status", methods=["GET"])
+@marshal_with(LoginStatusSend(), 200)
+@doc(
+    tags=["Auth"],
+    decription=["Check to see if user is logged in"]
+)
+def is_loggedin() -> Dict[str, bool]:
+    """Check if user is logged in."""
+    print(flask.request.cookies)
+    status: bool = False
+    cookie: Optional[str] = (
+        flask.request.cookies
+        .get(enums.SessionNames.SESSION.value)
+    )
+    if cookie is not None and auth_control.session_exists(session, cookie):
+        status = True
+
+    return {"status": status}

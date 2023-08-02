@@ -2,12 +2,24 @@
 import logging
 from typing import Any, Dict, Optional
 
+from sqlalchemy import exists
+
 from corna.db import models
 from corna.utils import secure, utils
 from corna.utils.errors import (
     IncorrectPasswordError, NoneExistingUserError, UserExistsError)
 
 logger = logging.getLogger(__name__)
+
+
+def exists_(session, column, check_val):
+    """Check if some value exists in a table"""
+    # wrap this in a try and raise error
+    return session.query(exists().where(column == check_val)).scalar()
+
+
+def session_exists(session, cookie_id):
+    return exists_(session, models.SessionTable.cookie_id, cookie_id)
 
 
 def register_user(session: Any, user_data: Dict[str, str]) -> None:
@@ -87,6 +99,7 @@ def delete_user_session(session: Any, cookie_id: str):
     :param sqlalchemy.Session session: session object
     :param str cookie_id: user cookie
     """
+    print("in delete user session")
     (
         session
         .query(models.SessionTable)

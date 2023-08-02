@@ -116,6 +116,7 @@ def create_post(domain_name: str) -> Tuple[str, int]:
     # marshmallow doesnt really allow for that kind of polymorphism
     # i.e. conditional schema selection, so we need to do it manually
     _type: str = flask.request.form.get("type")
+    print(flask.request.form)
     # fail early
     if not _type in ("text", "picture"):
         utils.respond_json_error(

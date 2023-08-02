@@ -84,17 +84,47 @@ def create(session: Any, data: Dict[str, Any]) -> None:
     )
 
 
-def get_domain(session: Any, cookie: str) -> str:
+def get_domain(session: Any, username: str) -> str:
     """Get a users domain for their corna.
 
     :param sqlalchemy.Session session: a db session
-    :param str cookie: users cookie
+    :param str username: username
 
     :returns: user domain name
     :rtype: str
-    :raises NoneExistingUserError: No user session i.e. not logged in
+    :raises NoneExistingUserError: No user found
     :raises NoDomainError: no domain associated with user i.e. they
         have not created a corna
+    """
+    user: Optional[object] = (
+        session
+        .query(models.UserTable)
+        .filter(models.UserTable.username == username)
+        .one_or_none()
+    )
+    if user is None:
+        raise NoneExistingUserError("Unable to find user")
+
+    # I dont like this, I would prefer this to be directly accessed as
+    # an attribute but also this makes it easier to do multiple Corna's
+    # per person in the future without having to change the database
+    # scheme from 1-1 to 1-many.
+    corna: Optional[object] = user.corna[0]
+    print(corna)
+    if not corna or not corna.domain_name:
+        raise NoDomainError("User has no corna")
+    return corna.domain_name
+
+
+def get_username(session: Any, cookie: str) -> str:
+    """Get the username associated with given corna domain name.
+
+    :param sqlalchemy.Session session: a db session
+    :param str cookie: session cookie associated with user
+
+    :return: user associated with domain
+    :rtype: str
+    :raises NoneExistingUserError: No user found
     """
     user_session: Optional[object] = (
         session
@@ -105,12 +135,4 @@ def get_domain(session: Any, cookie: str) -> str:
     if user_session is None:
         raise NoneExistingUserError("Unable to find user")
 
-    corna: Optional[object] = (
-        session.
-        query(models.CornaTable)
-        .filter(models.CornaTable.user_uuid == user_session.user_uuid)
-        .one_or_none()
-    )
-    if not corna:
-        raise NoDomainError("User has no corna")
-    return corna.domain_name
+    return user_session.user.username

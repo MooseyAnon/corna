@@ -44,6 +44,6 @@ if __name__ == "__main__":
     session_class = session_maker(statement_timeout_secs=300)
     app = create_app(session_class)
     app.run(
-        host="0.0.0.0",
+        host="127.0.0.1",
         port=int(os.environ.get("CORNA_PORT", 8080)),
         debug=bool(int(debug_val)))

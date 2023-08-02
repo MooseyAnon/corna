@@ -95,8 +95,14 @@ def cors_headers() -> Dict[str, str]:
     :rtype: dict[str, str]
     """
     headers: Dict[str, str] = {}
-    headers["Access-Control-Allow-Origin"] = "*"
-    headers["Access-Control-Allow-Credentials"] = True
-    headers["Access-Control-Allow-Headers"] = "*"
-    headers["Access-Control-Allow-Methods"] = True
+    # this has to be the origin the request is _coming from_ so in prod
+    # this should be the full url. It cannot be a "*" as we need to us
+    # { withCredentials: true } on the frontend to ferry the session tokens
+    # back and forth, CORs blocks it without a specifically accepting the
+    # origin.
+    headers["Access-Control-Allow-Origin"] = "http://127.0.0.1:5173"
+    headers["Access-Control-Allow-Credentials"] = "true"
+    headers["Access-Control-Allow-Headers"] = ["Content-Type"]
+    headers["Access-Control-Allow-Methods"] = [
+        "GET", "POST", "PUT", "DELETE", "OPTIONS"]
     return headers

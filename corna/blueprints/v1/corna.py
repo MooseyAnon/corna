@@ -1,10 +1,11 @@
 """Corna management endpoints."""
 
 from http import HTTPStatus
+import logging
 from typing import Any, Dict, Optional
 
 import flask
-from flask_apispec import doc, use_kwargs
+from flask_apispec import doc, marshal_with, use_kwargs
 from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields
 
@@ -15,6 +16,8 @@ from corna.utils.errors import (
 from corna.utils import secure, utils
 
 corna = flask.Blueprint("corna", __name__)
+
+logger = logging.getLogger(__name__)
 
 
 class _BaseSchema(Schema):
@@ -36,6 +39,19 @@ class CornaCreateSchema(Schema):
 
     class Meta:
         strict = True
+
+
+class CornaUserDetailsSend(Schema):
+    """Return basic user details."""
+
+    domain_name = fields.String(
+        metadata={
+            "description": "chosen domain of corna",
+        })
+    username = fields.String(
+        metadata={
+            "description": "username"
+        })
 
 
 @corna.after_request
@@ -91,10 +107,11 @@ def create_corna(domain_name: str, **data: Dict[str, Any]) -> flask.Response:
     return response
 
 
-@corna.route("/corna", methods=["GET"])
+@corna.route("/corna/user-details", methods=["GET"])
+@marshal_with(CornaUserDetailsSend(), 200)
 @doc(
     tags=["corna"],
-    description="Get a users corna domain name",
+    description="Get a basic user details",
     responses={
         HTTPStatus.BAD_REQUEST: {
             "description": "user is not logged in",
@@ -104,17 +121,28 @@ def create_corna(domain_name: str, **data: Dict[str, Any]) -> flask.Response:
         },
     },
 )
-def get_domain() -> Dict[str, str]:
-    """Get corna domain name for given user."""
+def get_user_details() -> Dict[str, str]:
+    """Get basic user details."""
     cookie: Optional[str] = flask.request.cookies.get(
         enums.SessionNames.SESSION.value)
+
+    # users dont have to create corna's on registering
+    domain: Optional[str] = None
 
     if not cookie:
         utils.respond_json_error("User not logged in", HTTPStatus.BAD_REQUEST)
     try:
-        domain: str = corna_control.get_domain(session, cookie)
+        username: str = corna_control.get_username(session, cookie)
+        domain = corna_control.get_domain(session, username)
+
+    except corna_control.NoDomainError as error:
+        logger.warning(error)
 
     except NoneExistingUserError as e:
         utils.respond_json_error(str(e), HTTPStatus.NOT_FOUND)
 
-    return {"domain_name": domain}
+    data: Dict[str, str] = {
+        "domain_name": domain,
+        "username": username
+    }
+    return data
