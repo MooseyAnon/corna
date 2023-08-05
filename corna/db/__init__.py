@@ -9,6 +9,7 @@ from sqlalchemy.event import listens_for
 from sqlalchemy.orm import sessionmaker
 
 from . import models
+from corna.utils import vault_item
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -36,8 +37,7 @@ def get_sqlalchemy_url():
             "The environment variables DB_ADDRESS or DB_USER are not "
             "defined")
 
-    # in future this should be handled by ansible vault
-    db_password = os.getenv('DB_PASSWORD')
+    db_password = vault_item(f"postgres.{db_user}")
     db_port = os.getenv('DB_PORT')
     db_name = os.getenv('DB_NAME')
     sqlalchemy_url = (
