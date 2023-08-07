@@ -1,9 +1,12 @@
 from logging.config import fileConfig
+import os
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+
+from corna.utils import vault_item
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -17,13 +20,33 @@ fileConfig(config.config_file_name)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+from corna.db import models
+target_metadata = models.Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+# alembic expects the full URL (including the password) to be in plain
+# text in the alembic.ini file. We could generate the alembic.ini file
+# from a template when needed but there is the risk that it could be
+# checked into git and become public. Here we securely generate the
+# url and override the value inside the alembic.ini config.
+db_address = os.getenv("DB_ADDRESS")
+db_user = os.getenv("DB_USER")
+if not(db_address and db_user):
+    raise RuntimeError(
+        "The environment variables DB_ADDRESS or DB_USER are not "
+        "defined")
+
+db_password = vault_item(f"postgres.{db_user}")
+db_port = os.getenv('DB_PORT')
+db_name = os.getenv('DB_NAME')
+sqlalchemy_url = (
+    f"postgresql://{db_user}:{db_password}"
+    f"@{db_address}:{db_port}/{db_name}"
+)
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
@@ -37,7 +60,7 @@ def run_migrations_offline():
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = sqlalchemy_url
     context.configure(
         url=url, target_metadata=target_metadata, literal_binds=True
     )
@@ -57,6 +80,9 @@ def run_migrations_online():
         config.get_section(config.config_ini_section),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        # this overrides the `sqlalchemy.url` prefixed url in the
+        # config file
+        url=sqlalchemy_url,
     )
 
     with connectable.connect() as connection:
