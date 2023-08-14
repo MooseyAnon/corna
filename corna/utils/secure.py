@@ -247,3 +247,19 @@ def is_valid(signature: Union[bytes, str]) -> bool:
         valid = False
 
     return valid
+
+
+def decoded_message(signature: bytes, encoding: str = "utf-8") -> str:
+    """Get original messaged decoded to a string.
+
+    :param bytes signature: the signed message to decode
+    :param str encoding: the encoding to use, defaults to UTF-8
+
+    :returns: the original, unsigned messaged decoded to string
+    :rtype: str
+    :raises BadSigniture: if signature is incorrect
+    """
+    message: bytes
+    message, _ = unsign(signature)
+    decoded_message: str = encodings.from_bytes(message, encoding=encoding)
+    return decoded_message

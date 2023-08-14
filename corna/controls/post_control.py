@@ -194,10 +194,12 @@ def create(session: Any, data: Dict[Any, Any]) -> None:
     if blog is None:
         raise NoneExistinCornaError("corna does not exist")
 
+    # cookies are signed, they need to be unsigned and decoded
+    cookie: str = secure.decoded_message(data["cookie"])
     user_session: Optional[object] = (
         session
         .query(models.SessionTable)
-        .filter(models.SessionTable.cookie_id == data["cookie"])
+        .filter(models.SessionTable.cookie_id == cookie)
         .one_or_none()
     )
 

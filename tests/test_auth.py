@@ -70,6 +70,8 @@ def test_login(session, client, user):
 
     # check database bits are saved correctly
     assert len(session.query(models.SessionTable).all()) == 1
+    # unsign cookie to search for it
+    cookie = secure.decoded_message(cookie)
     database_cookie = (
         session
         .query(models.SessionTable)
@@ -108,6 +110,8 @@ def test_user_already_logged_in(session, client, login):
 
     # ensure no new sessions were created
     assert len(session.query(models.SessionTable).all()) == 1
+    # unsign cookie to search for it
+    cookie = secure.decoded_message(cookie)
     database_cookie = (
         session
         .query(models.SessionTable)
@@ -296,9 +300,9 @@ def test_token_is_valid(session, client, login):
 
     assert secure.is_valid(cookie)
 
-    unsigned_cookie, _ = secure.unsign(cookie)
+    unsigned_cookie = secure.decoded_message(cookie)
     db_cookie = session.query(models.SessionTable).all()[0].cookie_id
-    assert db_cookie == encodings.from_bytes(db_cookie)
+    assert db_cookie == unsigned_cookie
 
 
 def test_signing_similar_messages():

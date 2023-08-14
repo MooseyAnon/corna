@@ -3,6 +3,7 @@ import pytest
 from corna.controls import corna_control as control
 from corna.db import models
 from corna.utils.errors import NoneExistingUserError
+from corna.utils import secure
 from tests.shared_data import blog_info, single_user
 
 
@@ -29,7 +30,7 @@ def test_blog_create(session, client, login):
 def test_when_user_not_logged_in(session):
 
     data = {
-        "cookie": "some-fake-cookie",
+        "cookie": secure.sign("some-fake-cookie"),
         "title": blog_info["title"],
         "domain_name": blog_info["domain_name"],
     }

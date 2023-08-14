@@ -30,6 +30,25 @@ def to_bytes(
     return message
 
 
+def from_bytes(
+    message: Union[bytes, str],
+    encoding: str = "utf-8",
+    errors: str = "strict"
+) -> str:
+    """Decode a bytestring to a given encoding.
+
+    :param Union[bytes, str] message: string to decode
+    :param str encoding: the new encoding
+    :oaram str errors: the error level to handle during encoding
+    
+    :returns: message decoded to string
+    :rtype: str
+    """
+    if isinstance(message, bytes):
+        message: str = message.decode(encoding, errors)
+    return message
+
+
 def base64_encode(string: Union[bytes, str]) -> bytes:
     """Base64 encode a string.
 
