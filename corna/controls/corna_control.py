@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 from sqlalchemy import exists
 
 from corna.db import models
-from corna.utils import utils
+from corna.utils import secure, utils
 from corna.utils.errors import (
     DomainExistsError, NoneExistingUserError, PreExistingCornaError)
 
@@ -55,10 +55,12 @@ def create(session: Any, data: Dict[str, Any]) -> None:
     :raises PreExistingCornaError: user has another corna already
     :raises DomainExistsError: domain name not unique
     """
+    # cookies are signed to we need to decode them for lookups to work
+    cookie_id: str = secure.decoded_message(data["cookie"])
     user_session: Optional[object] = (
         session
         .query(models.SessionTable)
-        .filter(models.SessionTable.cookie_id == data["cookie"])
+        .filter(models.SessionTable.cookie_id == cookie_id)
         .one_or_none()
     )
     if user_session is None:
@@ -84,11 +86,11 @@ def create(session: Any, data: Dict[str, Any]) -> None:
     )
 
 
-def get_domain(session: Any, cookie: str) -> str:
+def get_domain(session: Any, signed_cookie: str) -> str:
     """Get a users domain for their corna.
 
     :param sqlalchemy.Session session: a db session
-    :param str cookie: users cookie
+    :param bytes signed_cookie: users cookie
 
     :returns: user domain name
     :rtype: str
@@ -96,10 +98,11 @@ def get_domain(session: Any, cookie: str) -> str:
     :raises NoDomainError: no domain associated with user i.e. they
         have not created a corna
     """
+    unsigned_cookie: str = secure.decoded_message(signed_cookie)
     user_session: Optional[object] = (
         session
         .query(models.SessionTable)
-        .filter(models.SessionTable.cookie_id == cookie)
+        .filter(models.SessionTable.cookie_id == unsigned_cookie)
         .one_or_none()
     )
     if user_session is None:

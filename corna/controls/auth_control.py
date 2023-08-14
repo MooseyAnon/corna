@@ -88,12 +88,13 @@ def login_user(session: Any, user_data: Dict[str, str]) -> bytes:
     return secure.sign(cookie)
 
 
-def delete_user_session(session: Any, cookie_id: str):
+def delete_user_session(session: Any, signed_cookie: str):
     """Delete user session.
 
     :param sqlalchemy.Session session: session object
     :param str cookie_id: user cookie
     """
+    cookie_id = secure.decoded_message(signed_cookie)
     (
         session
         .query(models.SessionTable)
