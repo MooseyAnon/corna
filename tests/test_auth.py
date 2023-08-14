@@ -2,7 +2,7 @@ import pytest
 
 from corna import enums
 from corna.db import models
-from corna.utils import secure
+from corna.utils import encodings, secure
 from tests.shared_data import single_user
 
 
@@ -275,3 +275,58 @@ def test_new_session_starts_for_logged_in_user(session, client, login):
     )
     assert new_cookie is not None
     assert new_cookie != first_cookie
+
+
+def test_token_is_valid(session, client, login):
+
+    # ensure user sessions exists
+    assert len(session.query(models.SessionTable).all()) == 1
+
+    # get cookie from cookie_jar
+    assert len(client.cookie_jar) > 0
+    cookie = next(
+        (
+            cookie.value
+            for cookie in client.cookie_jar
+            if cookie.name == enums.SessionNames.SESSION.value
+        ),
+        None
+    )
+    assert cookie is not None
+
+    assert secure.is_valid(cookie)
+
+    unsigned_cookie, _ = secure.unsign(cookie)
+    db_cookie = session.query(models.SessionTable).all()[0].cookie_id
+    assert db_cookie == encodings.from_bytes(db_cookie)
+
+
+def test_signing_similar_messages():
+
+    m1 = "aaaaaaaaa"
+    m2 = "aaaaaaaab"
+
+    s1 = secure.sign(m1)
+    s2 = secure.sign(m2)
+
+    _, s1_sig = secure.unsign(s1)
+    _, s2_sig = secure.unsign(s2)
+
+    assert secure.verify(m1, s1_sig)
+    assert secure.verify(m2, s2_sig)
+
+    assert not secure.verify(m1, s2_sig)
+    assert not secure.verify(m2, s1_sig)
+
+
+def test_unsign():
+
+    sig = secure.sign("aaaaaaaaa")
+    orig_message, _ = secure.unsign(sig)
+    assert orig_message == b"aaaaaaaaa"
+
+
+def test_fake_message():
+    message = "I am a fake message"
+    assert secure.verify(message, encodings.base64_encode(message)) == False
+

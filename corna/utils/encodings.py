@@ -7,6 +7,9 @@ from typing import Union
 class EncodingError(ValueError):
     """Raised when there is an issue encoding or decoding base64."""
 
+class EncodingError(ValueError):
+    """Raised when there is an issue encoding or decoding base64."""
+
 
 def to_bytes(
     message: Union[bytes, str],
@@ -36,3 +39,19 @@ def base64_encode(string: Union[bytes, str]) -> bytes:
     """
     string: bytes = to_bytes(string)
     return base64.urlsafe_b64encode(string).rstrip(b"=")
+
+
+def base64_decode(string: Union[bytes, str]) -> bytes:
+    """Base64 decode a URL safe string.
+
+    :param  Union[bytes, str] string: string to decode
+    :returns: base64 decoded bytestring
+    :rtype: bytes
+    """
+    string: bytes = to_bytes(string, encoding="ascii", errors="ignore")
+    string += b"=" * (-len(string) % 4)
+
+    try:
+        return base64.urlsafe_b64decode(string)
+    except (TypeError, ValueError) as e:
+        raise EncodingError(f"Error decoding base64 data: {e}")

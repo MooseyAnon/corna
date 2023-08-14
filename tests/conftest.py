@@ -170,6 +170,12 @@ def _clear_all_envvars(monkeypatch):
     monkeypatch.delenv("ANSIBLE_VAULT_PATH", raising=False)
 
 
+@pytest.fixture(name="vault_item", autouse=True)
+def _vault_item(mocker):
+    # mocker vault interactions
+    mocker.patch("corna.utils.secure.vault_item", return_value="random-string")
+
+
 class FlaskSqlProfiler:
     """Class to handle profiling of Flask SQL.
 
