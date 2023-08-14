@@ -1,12 +1,20 @@
 """Security oriented utils."""
+import hashlib
+import hmac
 import logging
 import secrets
 import time
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Union
 
 from sqlalchemy import exists
 
+from corna.utils import encodings
+from corna.utils import vault_item
 logger = logging.getLogger(__name__)
+
+SPLITTR: bytes = b"||"
+# hashing function used in HMAC signature
+DIGESTMOD: Callable = hashlib.sha256
 
 
 class UnableToGenerateUnqiqueToken(ValueError):
@@ -100,3 +108,65 @@ def cors_headers() -> Dict[str, str]:
     headers["Access-Control-Allow-Headers"] = "*"
     headers["Access-Control-Allow-Methods"] = True
     return headers
+
+
+# this is lifted from and inspired by python pallets itsDangerous library
+# https://github.com/pallets/itsdangerous/tree/main
+def _sign(key: bytes, message: Union[bytes] = None) -> object:
+    """Return a new HMAC object ready to be signed.
+
+    We dont do the signing here as there are occasions where the caller
+    wants to modify the HMAC before signing e.g. to add a salt.
+
+    :param bytes key: the secret key for the HMAC
+    :param Union[bytes] message: message to add as part of the signing
+    :returns: a new HMAC object ready to be signed
+    :rtype: object
+    """
+    return hmac.new(
+        key,
+        msg=message,
+        digestmod=DIGESTMOD
+    )
+
+
+def get_signed_key() -> bytes:
+    """Get a signed and salted secret key.
+
+    This function retrieves the secret key, salts it and
+    hashes it before it is used as part of the message signing.
+
+    :returns: bytestring representing the signed and salted secret-key
+    :rtype: bytes
+    :raises keyError: if either salt or secret-key are not found
+    """
+    try:
+        salt: bytes = encodings.to_bytes(
+            vault_item("keys.cornauser.salt")
+        )
+        key: bytes = encodings.to_bytes(
+            vault_item("keys.cornauser.secret-key")
+        )
+
+    except KeyError as e:
+        raise e
+
+    signed_key: object = _sign(key)
+    signed_key.update(salt)
+    return signed_key.digest()
+
+
+def sign(message: Union[bytes, str]) -> bytes:
+    """Sign a given message using a secret key.
+
+    :param Union[bytes, str] message: message to sign
+    :returns: a bytestring representing the signed message
+    :rtype: bytes
+    """
+    key: bytes = get_signed_key()
+    message: bytes = encodings.to_bytes(message)
+
+    mac: bytes = _sign(key, message=message).digest()
+    encoded_signature: bytes = encodings.base64_encode(mac)
+
+    return message + SPLITTR + encoded_signature
