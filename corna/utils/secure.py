@@ -4,12 +4,14 @@ import hmac
 import logging
 import secrets
 import time
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Tuple, Union
 
 from sqlalchemy import exists
 
 from corna.utils import encodings
 from corna.utils import vault_item
+from corna.utils.encodings import EncodingError
+
 logger = logging.getLogger(__name__)
 
 SPLITTR: bytes = b"||"
@@ -19,6 +21,10 @@ DIGESTMOD: Callable = hashlib.sha256
 
 class UnableToGenerateUnqiqueToken(ValueError):
     """Unable to generate a unique secure token"""
+
+
+class BadSignature(ValueError):
+    """Signed message is not legit."""
 
 
 def session_token() -> str:
@@ -170,3 +176,74 @@ def sign(message: Union[bytes, str]) -> bytes:
     encoded_signature: bytes = encodings.base64_encode(mac)
 
     return message + SPLITTR + encoded_signature
+
+
+def verify(
+    original_message: Union[bytes, str],
+    signature: Union[bytes, str],
+) -> bool:
+    """Verify original message or signature have not been tampered with.
+
+    :param Union[bytes, str] original_message: the message that got signed
+    :param Union[bytes, str] signature: the expected signature
+    :return: true if signature is valid
+    :rtype: bool
+    :raises BadSignature: yeet out if anything goes wrong, we dont really
+        care exactly what it is.
+    """
+    try:
+        signature: bytes = encodings.base64_decode(signature)
+
+    except EncodingError as e:
+        raise BadSignature(e)
+
+    signed_original_message: bytes = _sign(
+        get_signed_key(),
+        message=encodings.to_bytes(original_message),
+    ).digest()
+
+    compare_result: bool =  hmac.compare_digest(
+        signature, signed_original_message
+    )
+    return compare_result
+
+
+def unsign(signature: Union[bytes, str]) -> Tuple[bytes, bytes]:
+    """Unsign a signed messaged.
+    
+    :param Union[bytes, str] signature:
+    :returns: the original message and its expected hash value
+    :rtype: Tuple[bytes, bytes]
+    """
+    message: bytes
+    hash_value: bytes
+
+    signature: bytes = encodings.to_bytes(signature)
+    if not SPLITTR in signature:
+        raise BadSignature(f"no {SPLITTR!r} found in signature")
+
+    message, hash_value = signature.rsplit(SPLITTR)
+    
+    return message, hash_value
+
+
+def is_valid(signature: Union[bytes, str]) -> bool:
+    """Check if a signature is valid.
+
+    :param Union[bytes, str] signature: signature to validate
+    :return: true if signature is valid
+    :rtype: bool
+    """
+    message: bytes
+    hash_value: bytes
+    valid: bool
+
+    try:
+        message, hash_value = unsign(signature)
+        valid = verify(message, hash_value)
+
+    except BadSignature as e:
+        logger.error(e)
+        valid = False
+
+    return valid
