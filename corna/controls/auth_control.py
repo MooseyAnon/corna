@@ -42,7 +42,7 @@ def register_user(session: Any, user_data: Dict[str, str]) -> None:
     logger.info("successfully registered a new user.")
 
 
-def login_user(session: Any, user_data: Dict[str, str]):
+def login_user(session: Any, user_data: Dict[str, str]) -> bytes:
     """Login a user.
 
     :param sqlalchemy.Session session: session object
@@ -78,7 +78,14 @@ def login_user(session: Any, user_data: Dict[str, str]):
     )
     logger.info("successfully logged in user and created session")
 
-    return cookie
+    # We want to sign the cookie after its been saved into the DB. 
+    # The reason for this is because there are weird issues with
+    # type conversions in postgres and it seems to want to save
+    # the HMAC has hex rather than unicode. This is an issues as
+    # it does the lookup comparisons without converting the incoming
+    # hash to hex. this leads to guaranteed failures as unicode values
+    # will never match the hex ones saved inside the db.
+    return secure.sign(cookie)
 
 
 def delete_user_session(session: Any, cookie_id: str):
