@@ -159,6 +159,17 @@ def _secure_headers(mocker):
     mocker.patch("corna.utils.secure.secure_headers", return_value={})
 
 
+@pytest.fixture(autouse=True)
+def _clear_all_envvars(monkeypatch):
+    """Clear all the env vars needed for vault access.
+
+    This prevents leakage from the users environment into the tests. Where
+    needed tests will patch as required.
+    """
+    monkeypatch.delenv("ANSIBLE_VAULT_PASSWORD_FILE", raising=False)
+    monkeypatch.delenv("ANSIBLE_VAULT_PATH", raising=False)
+
+
 class FlaskSqlProfiler:
     """Class to handle profiling of Flask SQL.
 
