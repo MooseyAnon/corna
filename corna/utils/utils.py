@@ -6,6 +6,7 @@ import datetime
 from functools import lru_cache
 import logging
 import pathlib
+from typing import Union
 import uuid
 
 import apispec
@@ -46,7 +47,7 @@ def get_uuid() -> str:
     return str(uuid.uuid4())
 
 
-def mkdir(path: pathlib.Path) -> None:
+def mkdir(path: Union[pathlib.Path, str]) -> None:
     """Recursively make directories in a path.
 
     Note: this is only here to make logging a bit cleaner.
