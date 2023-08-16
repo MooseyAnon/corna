@@ -47,12 +47,16 @@ def get_uuid() -> str:
     return str(uuid.uuid4())
 
 
-def mkdir(path: Union[pathlib.Path, str]) -> None:
+def mkdir(path: Union[pathlib.Path, str], exists_ok: bool = True) -> None:
     """Recursively make directories in a path.
 
     Note: this is only here to make logging a bit cleaner.
 
     :param pathlib.Path path: path or directory to make
+    :param bool exists_ok: Its useful to overwrite the exists_ok option
+        when attempting to do existence checks during directory creation.
+    :raises FileExistsError: when ran with exists_ok=False and the dir
+        exists.
     """
     if not isinstance(path, pathlib.Path):
         logger.warning(
@@ -61,7 +65,7 @@ def mkdir(path: Union[pathlib.Path, str]) -> None:
         path: pathlib.Path = pathlib.Path(path)
 
     # recursively make path
-    path.mkdir(parents=True, exist_ok=True)
+    path.mkdir(parents=True, exist_ok=exists_ok)
 
 
 def check_response(response, error_msg, exc_cls):
