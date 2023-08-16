@@ -64,7 +64,7 @@ def mkdir(path: Union[pathlib.Path, str], exists_ok: bool = True) -> None:
         )
         path: pathlib.Path = pathlib.Path(path)
 
-    # recursively make path
+    # attempt to recursively make path
     path.mkdir(parents=True, exist_ok=exists_ok)
 
 
