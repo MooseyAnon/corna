@@ -25,6 +25,22 @@ def convert_bytes(num):
         num /= 1024.0
 
 
+@pytest.fixture(autouse=True)
+def _all_post_based_stubs(tmpdir, mocker, monkeypatch):
+    """Environment variable and function mocks needed for post
+    related testing.
+    """
+    mocker.patch(
+        "corna.controls.post_control.random_short_string",
+        return_value="abcdef",
+    )
+    monkeypatch.setattr(
+        post_control,
+        "PICTURE_DIR",
+        tmpdir.mkdir("assets"),
+    )
+
+
 @freeze_time(FROZEN_TIME)
 def test_create_post(session, client, blog):
     resp = client.post(
@@ -72,11 +88,9 @@ def test_create_post(session, client, blog):
 
 
 @freeze_time(FROZEN_TIME)
-def test_post_with_picture(session, client, tmpdir, monkeypatch, blog):
-    assets = tmpdir.mkdir("assets")
-
-    monkeypatch.setattr(post_control, "PICTURE_DIR", assets)
-
+def test_post_with_picture(session, client, blog):
+    assets = post_control.PICTURE_DIR
+    
     resp = client.post(
         f"/api/v1/posts/{shared_data.blog_info['domain_name']}",
         data=shared_data.post_with_picture
@@ -127,10 +141,8 @@ def test_post_with_picture(session, client, tmpdir, monkeypatch, blog):
 
 
 @freeze_time(FROZEN_TIME)
-def test_get_one_post(session, client, tmpdir, monkeypatch, blog):
-    assets = tmpdir.mkdir("assets")
-
-    monkeypatch.setattr(post_control, "PICTURE_DIR", assets)
+def test_get_one_post(session, client, blog):
+    assets = post_control.PICTURE_DIR
 
     resp = client.post(
         f"/api/v1/posts/{shared_data.blog_info['domain_name']}",
@@ -152,10 +164,8 @@ def test_get_one_post(session, client, tmpdir, monkeypatch, blog):
 
 
 @freeze_time(FROZEN_TIME)
-def test_get_multiple_posts(session, client, tmpdir, monkeypatch, blog):
-    assets = tmpdir.mkdir("assets")
-
-    monkeypatch.setattr(post_control, "PICTURE_DIR", assets)
+def test_get_multiple_posts(session, client, blog):
+    assets = post_control.PICTURE_DIR
 
     # opening the picture file in a shared directory fucks things up
     # over multiple runs, so its easier just to put it in here
@@ -187,12 +197,8 @@ def test_get_multiple_posts(session, client, tmpdir, monkeypatch, blog):
 
 
 @freeze_time(FROZEN_TIME)
-def test_get_image(session, client, tmpdir, monkeypatch, mocker, blog):
-    assets = tmpdir.mkdir("assets")
-
-    monkeypatch.setattr(post_control, "PICTURE_DIR", assets)
-    mocker.patch("corna.controls.post_control.random_short_string",
-        return_value="abcdef")
+def test_get_image(session, client, blog):
+    assets = post_control.PICTURE_DIR
 
     # opening the picture file in a shared directory fucks things up
     # over multiple runs, so its easier just to put it in here
