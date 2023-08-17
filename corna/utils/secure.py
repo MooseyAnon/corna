@@ -1,4 +1,5 @@
 """Security oriented utils."""
+import datetime
 import hashlib
 import hmac
 import logging
@@ -6,6 +7,7 @@ import secrets
 import time
 from typing import Any, Callable, Dict, Tuple, Union
 
+from dateutil.parser import parse
 from sqlalchemy import exists
 
 from corna.utils import encodings
@@ -243,6 +245,18 @@ def unsign(signature: Union[bytes, str]) -> Tuple[bytes, bytes, bytes]:
     return expiry_date, message, hash_value
 
 
+def expired(iso_datetime: Union[bytes, str]) -> bool:
+    """Check if ISO 8601 formatted datetime is in the past.
+
+    :param Union[bytes, str] iso_datetime: iso formatted datetime
+    :returns: True if iso_datetime is in the past i.e. expired
+    :rtype: bool
+    """
+    parsed_datetime: datetime.datetime = parse(iso_datetime)
+    now: datetime.datetime = utils.get_utc_now()
+    return now > parsed_datetime
+
+
 def is_valid(signature: Union[bytes, str]) -> bool:
     """Check if a signature is valid.
 
@@ -257,7 +271,7 @@ def is_valid(signature: Union[bytes, str]) -> bool:
 
     try:
         expiry_date, message, hash_value = unsign(signature)
-        valid = verify(message, hash_value)
+        valid = verify(message, hash_value) and not expired(expiry_date)
 
     except BadSignature as e:
         logger.error(e)
