@@ -14,6 +14,7 @@ pytest
 pytest-mock
 requests
 pycodestyle
+python-dateutil
 python-systemd
 SQLAlchemy==1.4.*
 sqltap
