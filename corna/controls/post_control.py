@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 
 from corna.db import models
 from corna.enums import ContentType
-from corna.utils import secure, utils
+from corna.utils import image_proc, secure, utils
 from corna.utils.errors import (
     CornaOwnerError, NotLoggedInError, NoneExistingUserError)
 
@@ -46,6 +46,28 @@ def random_short_string(length: int = 8) -> str:
     return "".join(random.choices(ALPHABET, k=length))
 
 
+
+def hash_to_dir(hash_32: str) -> str:
+    """Construct directory structure from hash.
+
+    This function expects the hexadecimal representation of _at least_ a
+    128bit (i.e 16 bytes) hash function output. Typically 128bit to hex
+    results in at least 32 hexadecimal digits (2 digits per byte).
+
+    :param str hash_32: the image hash to use for the directory structure.
+    :returns: The hash broken down into a directory structure e.g.
+        in: b064a10c720babc723728f9ffd58f472
+        out: b06/4a1/0c7/20babc723728f9ffd58f472
+    rtype: str
+    """
+    # This directory structure allows us to "balance" pictures more
+    # uniformly rather relying on something that does not have great
+    # distribution like directories prefixed with user IDs or something.
+    # More discussion: https://stackoverflow.com/a/900528
+    path: str = f"{hash_32[:3]}/{hash_32[3:6]}/{hash_32[6:9]}/{hash_32[9:]}"
+    return path
+
+
 def handle_pictures(picture: Any) -> str:
     """Handle the saving of a picture.
 
@@ -53,13 +75,24 @@ def handle_pictures(picture: Any) -> str:
     :returns: the full path of the picture
     :rtype: str
     """
-    # save all pictures from the same day in the same dir
-    date: datetime.datetime = utils.get_utc_now().date().isoformat()
-    dir_path: str = f"{PICTURE_DIR}/{date}"
-    # try make dir if not exsting
-    utils.mkdir(dir_path)
+    secure_image_name: str = secure_filename(picture.filename)
+    image_hash: str = image_proc.hash_image(secure_image_name)
+    # combination of the root assets dir and the hash derived fs
+    directory_path: str = f"{PICTURE_DIR}/{hash_to_dir(image_hash)}"
 
-    full_path: str = f"{dir_path}/{secure_filename(picture.filename)}"
+    # Eventually we will replace this with either a `phash` or `dhash`
+    # to check for similarity but this is a useful initial tool to use
+    # in monitoring and obvious duplicates
+    try:
+        utils.mkdir(directory_path, exists_ok=False)
+
+    except FileExistsError as e:
+        logger.warning(
+            f"Photo directory exists, duplicate? Dir path: {directory_path}. "
+            f"Name of image: {secure_image_name}"
+        )
+
+    full_path: str = f"{directory_path}/{secure_image_name}"
     # save picture
     try:
         picture.save(full_path)
