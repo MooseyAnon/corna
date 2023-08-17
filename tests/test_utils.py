@@ -1,6 +1,11 @@
+import datetime
+
+from freezegun import freeze_time
 import pytest
 
-from corna.utils import encodings, secure
+from corna.utils import encodings, secure, utils
+
+FROZEN_TIME = "2023-04-05T03:21:34"
 
 
 def test_signing_similar_messages():
@@ -31,3 +36,15 @@ def test_unsign():
 def test_fake_message():
     message = "I am a fake message"
     assert secure.verify(message, encodings.base64_encode(message)) == False
+
+
+@freeze_time(FROZEN_TIME)
+@pytest.mark.parametrize("days", [2, 4, 14, 23, -1, -3])
+def test_future(days):
+
+    days_skipped = 5 + days
+    expected = datetime.datetime(
+        2023, 4, days_skipped, 3, 21, 34,
+        tzinfo=datetime.timezone.utc
+    )
+    assert utils.future(days) == expected
