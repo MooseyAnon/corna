@@ -38,6 +38,18 @@ def get_utc_now() -> datetime.datetime:
     return datetime.datetime.now(datetime.timezone.utc)
 
 
+def future(days: int = 14) -> datetime.datetime:
+    """Datetime object for some number of days in the future.
+
+    :param int days: number of days in the future
+    :returns: current time + number of skip days
+    :rtype: datetime.datetime
+    """
+    now = get_utc_now()
+    skip = datetime.timedelta(days=days)
+    return now + skip
+
+
 def get_uuid() -> str:
     """Get a random UUID.
 
