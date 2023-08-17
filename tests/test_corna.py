@@ -1,5 +1,6 @@
 import pytest
 
+from corna import enums
 from corna.controls import corna_control as control
 from corna.db import models
 from corna.utils.errors import NoneExistingUserError
@@ -41,6 +42,30 @@ def test_when_user_not_logged_in(session):
         assert False
     except NoneExistingUserError:
         assert True
+
+
+def test_when_user_not_logged_in_client(client):
+
+    resp = client.post(
+        f"/api/v1/corna/{blog_info['domain_name']}",
+        json={"title": blog_info["title"]},
+    )
+    assert resp.status_code == 400
+    assert "Login required for this action" in resp.json["message"]
+
+
+def test_user_attempt_with_invalid_cookie(client):
+    client.set_cookie(
+        "/",
+        key=enums.SessionNames.SESSION.value,
+        value="this-is-a-fake-cookie"
+    )
+    resp = client.post(
+        f"/api/v1/corna/{blog_info['domain_name']}",
+        json={"title": blog_info["title"]},
+    )
+    assert resp.status_code == 400
+    assert "Login required for this action" in resp.json["message"]
 
 
 def test_user_already_has_blog(client, blog):

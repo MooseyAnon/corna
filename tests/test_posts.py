@@ -6,6 +6,7 @@ import pytest
 import requests
 import werkzeug
 
+from corna import enums
 from corna.controls import post_control
 from corna.db import models
 from corna.utils import utils
@@ -266,3 +267,26 @@ def test_path_collision(session, client, capsys, blog):
     assert "Photo directory exists, duplicate?" in captured.err
 
     assert len((assets / "thi/sis/afa/kehash12345").listdir()) == 2
+
+
+def test_when_user_not_logged_in_client(session, client):
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.blog_info['domain_name']}",
+        data=shared_data.simple_text_post
+    )
+    assert resp.status_code == 400
+    assert "Login required for this action" in resp.json["message"]
+
+
+def test_user_attempt_with_invalid_cookie(session, client, blog):
+    client.set_cookie(
+        "/",
+        key=enums.SessionNames.SESSION.value,
+        value="this-is-a-fake-cookie"
+    )
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.blog_info['domain_name']}",
+        data=shared_data.simple_text_post
+    )
+    assert resp.status_code == 400
+    assert "Login required for this action" in resp.json["message"]

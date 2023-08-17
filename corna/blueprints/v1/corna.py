@@ -38,6 +38,19 @@ class CornaCreateSchema(Schema):
         strict = True
 
 
+@corna.before_request
+def login_required() -> None:
+    """Check user is logged in."""
+    signed_cookie: Optional[str] = flask.request.cookies.get(
+        enums.SessionNames.SESSION.value)
+
+    if not signed_cookie or not secure.is_valid(signed_cookie):
+        utils.respond_json_error(
+            "Login required for this action",
+            HTTPStatus.BAD_REQUEST
+        )
+
+
 @corna.after_request
 def sec_headers(response: flask.Response) -> flask.Response:
     """Add security headers to every response.
