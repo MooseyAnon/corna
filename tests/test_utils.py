@@ -58,3 +58,21 @@ def test_future(days):
         tzinfo=datetime.timezone.utc
     )
     assert utils.future(days) == expected
+
+
+@freeze_time(FROZEN_TIME)
+@pytest.mark.parametrize("date,expected",
+    [
+        ("2023-04-04T03:21:34+00:00", True),
+        ("2023-04-05T01:21:34+00:00", True),
+        ("2023-04-05T03:20:34+00:00", True),
+        ("2023-04-05T03:21:34+01:00", True),
+        ("2023-03-05T03:21:34+00:00", True),
+        ("2023-04-06T03:21:34+00:00", False),
+        ("2023-04-05T04:21:34+00:00", False),
+        ("2023-04-05T03:22:34+00:00", False),
+        ("2023-04-05T03:21:34-01:00", False),
+    ]
+)
+def test_expiry_2(date, expected):
+    assert secure.expired(date) == expected
