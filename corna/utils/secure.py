@@ -9,6 +9,7 @@ from typing import Any, Callable, Dict, Tuple, Union
 from sqlalchemy import exists
 
 from corna.utils import encodings
+from corna.utils import utils
 from corna.utils import vault_item
 from corna.utils.encodings import EncodingError
 
@@ -169,13 +170,22 @@ def sign(message: Union[bytes, str]) -> bytes:
     :returns: a bytestring representing the signed message
     :rtype: bytes
     """
+    expiry_date: bytes = encodings.to_bytes(utils.future().isoformat())
+
     key: bytes = get_signed_key()
     message: bytes = encodings.to_bytes(message)
 
     mac: bytes = _sign(key, message=message).digest()
-    encoded_signature: bytes = encodings.base64_encode(mac)
+    encoded_mac: bytes = encodings.base64_encode(mac)
 
-    return message + SPLITTR + encoded_signature
+    encoded_signature: bytes = encodings.base64_encode(
+        expiry_date
+        + SPLITTR
+        + message
+        + SPLITTR
+        + encoded_mac
+    )
+    return encoded_signature
 
 
 def verify(
@@ -208,7 +218,7 @@ def verify(
     return compare_result
 
 
-def unsign(signature: Union[bytes, str]) -> Tuple[bytes, bytes]:
+def unsign(signature: Union[bytes, str]) -> Tuple[bytes, bytes, bytes]:
     """Unsign a signed messaged.
     
     :param Union[bytes, str] signature:
@@ -217,14 +227,20 @@ def unsign(signature: Union[bytes, str]) -> Tuple[bytes, bytes]:
     """
     message: bytes
     hash_value: bytes
+    expiry_date: bytes
 
-    signature: bytes = encodings.to_bytes(signature)
+    try:
+        signature: bytes = encodings.base64_decode(signature)
+
+    except EncodingError as e:
+        raise BadSignature(e)
+    
     if not SPLITTR in signature:
         raise BadSignature(f"no {SPLITTR!r} found in signature")
 
-    message, hash_value = signature.rsplit(SPLITTR)
+    expiry_date, message, hash_value = signature.rsplit(SPLITTR)
     
-    return message, hash_value
+    return expiry_date, message, hash_value
 
 
 def is_valid(signature: Union[bytes, str]) -> bool:
@@ -236,10 +252,11 @@ def is_valid(signature: Union[bytes, str]) -> bool:
     """
     message: bytes
     hash_value: bytes
+    expiry_date: bytes
     valid: bool
 
     try:
-        message, hash_value = unsign(signature)
+        expiry_date, message, hash_value = unsign(signature)
         valid = verify(message, hash_value)
 
     except BadSignature as e:
@@ -260,6 +277,6 @@ def decoded_message(signature: bytes, encoding: str = "utf-8") -> str:
     :raises BadSigniture: if signature is incorrect
     """
     message: bytes
-    message, _ = unsign(signature)
+    _, message, _ = unsign(signature)
     decoded_message: str = encodings.from_bytes(message, encoding=encoding)
     return decoded_message
