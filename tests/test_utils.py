@@ -16,8 +16,8 @@ def test_signing_similar_messages():
     s1 = secure.sign(m1)
     s2 = secure.sign(m2)
 
-    _, s1_sig = secure.unsign(s1)
-    _, s2_sig = secure.unsign(s2)
+    _, _, s1_sig = secure.unsign(s1)
+    _, _, s2_sig = secure.unsign(s2)
 
     assert secure.verify(m1, s1_sig)
     assert secure.verify(m2, s2_sig)
@@ -26,11 +26,21 @@ def test_signing_similar_messages():
     assert not secure.verify(m2, s1_sig)
 
 
+@freeze_time(FROZEN_TIME)
 def test_unsign():
 
     sig = secure.sign("aaaaaaaaa")
-    orig_message, _ = secure.unsign(sig)
+    _, orig_message, _ = secure.unsign(sig)
     assert orig_message == b"aaaaaaaaa"
+
+
+@freeze_time(FROZEN_TIME)
+def test_expiry_in_unsign():
+    
+    sig = secure.sign("aaaaaaaaa")
+    expiry, _, _ = secure.unsign(sig)
+    # signing adds 14 days to original datetime by default
+    assert expiry == b"2023-04-19T03:21:34+00:00"
 
 
 def test_fake_message():
