@@ -3,10 +3,11 @@
 import collections.abc
 from copy import deepcopy
 import datetime
-from functools import lru_cache
+from functools import lru_cache, wraps
+from http import HTTPStatus
 import logging
 import pathlib
-from typing import Union
+from typing import Callable, Optional, Union
 import uuid
 
 import apispec
@@ -16,6 +17,8 @@ import requests
 from sqlalchemy import exists
 
 from corna.controls.marshmallow_control import BaseSchema
+from corna import enums
+from corna.utils import secure
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +81,23 @@ def mkdir(path: Union[pathlib.Path, str], exists_ok: bool = True) -> None:
 
     # attempt to recursively make path
     path.mkdir(parents=True, exist_ok=exists_ok)
+
+
+def login_required(func: Callable):
+    @wraps(func)
+    def inner(*args, **kwargs):
+        """Check user is logged in."""
+        signed_cookie: Optional[str] = flask.request.cookies.get(
+            enums.SessionNames.SESSION.value)
+
+        if not signed_cookie or not secure.is_valid(signed_cookie):
+            respond_json_error(
+                "Login required for this action",
+                HTTPStatus.BAD_REQUEST
+            )
+
+        return func(*args, **kwargs)
+    return inner
 
 
 def check_response(response, error_msg, exc_cls):

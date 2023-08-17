@@ -15,6 +15,7 @@ from corna.controls import post_control
 from corna.controls.post_control import (
     InvalidContentType, NoneExistinCornaError, PostDoesNotExist)
 from corna.utils import secure, utils
+from corna.utils.utils import login_required
 
 
 posts = flask.Blueprint("posts", __name__)
@@ -133,6 +134,7 @@ def sec_headers(response: flask.Response) -> flask.Response:
 # valid locations:
 # https://github.com/marshmallow-code/webargs/blob/dev/src/webargs/core.py#L158
 @posts.route("/posts/<domain_name>", methods=["POST"])
+@login_required
 @doc(
     tags=["posts"],
     description="Create a new post",
