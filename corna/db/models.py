@@ -324,3 +324,48 @@ class Images(Base):
         "PostTable",
         back_populates="images",
     )
+
+
+class Themes(Base):
+    """Table for managing corna themes."""
+
+    uuid = Column(
+        UUID,
+        primary_key=True,
+    )
+    name = Column(
+        Text,
+        doc="The name of the theme",
+    )
+    description = Column(
+        Text,
+        doc="Short, optional, description of the theme",
+    )
+    created = Column(
+        DateTime,
+        doc="Date theme was created",
+    )
+    path = Column(
+        Text,
+        doc="Path to the main index.html of the theme, relative to themes "
+            "directory.",
+    )
+    status = Column(
+        Text,
+        nullable=False,
+        doc="The current status of the PR i.e. do we know the full "
+            "path to the theme yet? This is needed because there may "
+            "be a delay between the initial time that the theme gets "
+            "submitted and the time we know the full path to the theme",
+    )
+    creator_user_id = Column(
+        UUID,
+        ForeignKey("users.uuid"),
+        doc="User who created the theme, for attribution",
+    )
+    thumbnail = Column(
+        UUID,
+        ForeignKey("images.uuid"),
+        nullable=True,
+        doc="Thumbnail of the theme to display to users when selecting",
+    )
