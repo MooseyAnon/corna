@@ -360,7 +360,7 @@ class Themes(Base):
     )
     status = Column(
         Text,
-        required=True,
+        nullable=False,
         doc="The current status of the PR i.e. do we know the full "
             "path to the theme yet? This is needed because there may "
             "be a delay between the initial time that the theme gets "
