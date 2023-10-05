@@ -47,6 +47,13 @@ def _theme(**kwargs):
     return theme_data
 
 
+def create_theme_helper(client, **kwargs):
+    """Helper to create themes for testing none create endpoints."""
+
+    resp = client.post("api/v1/themes", data=_theme(**kwargs))
+    assert resp.status_code == 201
+
+
 @pytest.fixture(name="cwfc")
 def _client_with_fake_cookie(client):
     client.set_cookie(
