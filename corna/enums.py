@@ -13,3 +13,8 @@ class ContentType(enum.Enum):
 
 class SessionNames(enum.Enum):
     SESSION = "corna-sesh"
+
+
+class ThemeReviewState(enum.Enum):
+    UNKNOWN = "unknown"
+    MERGED = "merged"
