@@ -7,7 +7,7 @@ from typing import Dict, Optional
 import flask
 from flask_apispec import doc, use_kwargs
 from flask_sqlalchemy_session import current_session as session
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validate
 
 from corna import enums
 from corna.controls import theme_control as control
@@ -50,11 +50,27 @@ class ThemeAddSend(Base):
     
     class Meta:
         strict = True
+
+
+class ThemeUpdateStatusSend(Base):
+    """Schema for updating status."""
+
+    status = fields.String(
+        validate=validate.OneOf(
+            [
+                state.value for state in
+                enums.ThemeReviewState
+            ]
+        ),
+        required=True,
         metadata={
             "description": \
-                "path to themes main index.html file, relative "
-                "to the themes directory."
+                "The current status of the PR associated with the "
+                "theme. I.e. this is essentially a state change."
         })
+
+    class Meta:
+        strict = True
 
 
 @themes.before_request
@@ -112,3 +128,37 @@ def add_theme(**data: Dict[str, str]) -> flask.wrappers.Response:
 
     session.commit()
     return "", HTTPStatus.CREATED
+
+
+@themes.route("/themes/status", methods=["PUT"])
+@use_kwargs(ThemeUpdateStatusSend())
+@doc(
+    tags=["themes"],
+    description="Update theme PR status",
+    responses={
+        HTTPStatus.UNAUTHORIZED: {
+            "Description": "Current user not logged in",
+        },
+        HTTPStatus.BAD_REQUEST: {
+            "description": \
+                "Issues with theme path, read error message for "
+                "more details.",
+        },
+    }
+)
+def update_status(**data) -> flask.wrappers.Response:
+    """Update theme status."""
+
+    cookie: str = flask.request.cookies[enums.SessionNames.SESSION.value]
+
+    try:
+        control.update(session, cookie, data)
+    
+    except NoneExistingUserError as error:
+        utils.respond_json_error(str(error), HTTPStatus.UNAUTHORIZED)
+
+    except ValueError as error:
+        utils.respond_json_error(str(error), HTTPStatus.BAD_REQUEST)
+
+    session.commit()
+    return "", HTTPStatus.OK

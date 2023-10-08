@@ -2,6 +2,7 @@ import logging
 import os
 from typing import Dict, Optional
 
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from werkzeug.local import LocalProxy
 
 from corna.enums import ThemeReviewState
@@ -105,4 +106,70 @@ def add(session: LocalProxy, cookie: str, data: Dict[str, str]) -> None:
             status=status,
             creator_user_id=user.uuid
         )
+    )
+
+
+def update(session: LocalProxy, cookie: str, data: Dict[str, str]) -> None:
+    """Update theme status.
+
+    This updates the themes status based on PR.
+
+    :param LocalProxy session: database connection
+    :param str cookie: current user cookie
+    :param dict data: status information
+
+    :raises NoneExistingUserError: if user session cannot be found
+    :raise ValueError: if no theme exists matching query
+    :raises ValueError: if multiple themes match details
+    """
+    cookie_id: str = secure.decoded_message(cookie)
+    user_session: Optional[models.SessionTable] = (
+        session
+        .query(models.SessionTable)
+        .filter(models.SessionTable.cookie_id == cookie_id)
+        .one_or_none()
+    )
+
+    if not user_session:
+        raise NoneExistingUserError("Login required for this action")
+
+    if user_session.user.username != data["creator"]:
+        user: Optional[models.UserTable] = (
+            session
+            .query(models.UserTable)
+            .filter(models.UserTable.username == data["creator"])
+            .one_or_none()
+        )
+        if not user:
+            raise NoneExistingUserError("Theme creator does not exist")
+
+    else:
+        user: models.UserTable = user_session.user
+
+    try:
+        theme: Optional[models.Themes] = (
+            session
+            .query(models.Themes)
+            .filter(models.Themes.creator_user_id == user.uuid)
+            .filter(models.Themes.name == data["name"])
+            .one()
+        )
+
+    except NoResultFound:
+        raise ValueError("No theme exists matching given details")
+
+    except MultipleResultsFound:
+        raise ValueError(
+            "User has multiple themes that match that name, unable to update")
+
+    path = sanitize_path(data.get("path"))
+    if not path and (data["status"] == ThemeReviewState.MERGED):
+        raise ValueError("Cannot set status to merged without valid path")
+
+    prev_status = theme.status
+    theme.status = data["status"]
+
+    logger.info(
+        "updated status for %s from %s -> %s",
+        theme.name, prev_status, theme.status
     )
