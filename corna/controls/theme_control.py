@@ -169,3 +169,63 @@ def thumbnail(session: LocalProxy, image: FileStorage) -> str:
     )
 
     return thumbnail_uuid
+
+
+def update(session: LocalProxy, cookie: str, data: Theme) -> None:
+    """Update theme status.
+
+    This updates the themes status based on PR.
+
+    :param LocalProxy session: database connection
+    :param str cookie: current user cookie
+    :param Theme data: status information
+
+    :raises NoneExistingUserError: if user session cannot be found
+    :raise ValueError: if no theme exists matching query
+    :raises ValueError: if multiple themes match details
+    """
+    # ensure current user is logged in
+    # this will be also used as a permissions gate in the future
+    utils.current_user(
+        session, cookie,
+        exception=NoneExistingUserError,
+    )
+
+    user: Optional[models.UserTable] = (
+        session
+        .query(models.UserTable)
+        .filter(models.UserTable.username == data["creator"])
+        .one_or_none()
+    )
+    if not user:
+        raise NoneExistingUserError("Theme creator does not exist")
+
+    try:
+        theme: Optional[models.Themes] = (
+            session
+            .query(models.Themes)
+            .filter(models.Themes.creator_user_id == user.uuid)
+            .filter(models.Themes.name == data["name"])
+            .one()
+        )
+
+    except NoResultFound:
+        raise ValueError(
+            "No theme exists matching given details") from NoResultFound
+
+    except MultipleResultsFound:
+        raise ValueError(
+            "User has multiple themes that match that name, "
+            "unable to update") from MultipleResultsFound
+
+    path = sanitize_path(data.get("path"))
+    if not path and (data["status"] == ThemeReviewState.MERGED):
+        raise ValueError("Cannot set status to merged without valid path")
+
+    prev_status = theme.status
+    theme.status = data["status"]
+
+    logger.info(
+        "updated status for %s from %s -> %s",
+        theme.name, prev_status, theme.status
+    )
