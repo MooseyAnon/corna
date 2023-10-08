@@ -73,8 +73,20 @@ def add(session: LocalProxy, cookie: str, data: Dict[str, str]) -> None:
     )
 
     if user_session is None:
-        raise NoneExistingUserError("Unable to find user")
-    user: models.UserTable = user_session.user
+        raise NoneExistingUserError("Login required for this action")
+
+    if user_session.user.username != data["creator"]:
+        user: Optional[models.UserTable] = (
+            session
+            .query(models.UserTable)
+            .filter(models.UserTable.username == data["creator"])
+            .one_or_none()
+        )
+        if not user:
+            raise NoneExistingUserError("Theme creator does not exist")
+
+    else:
+        user: models.UserTable = user_session.user
 
     path: Optional[str] = sanitize_path(path=data.get("path"))
     status: str = (
