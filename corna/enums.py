@@ -18,3 +18,6 @@ class SessionNames(enum.Enum):
 class ThemeReviewState(enum.Enum):
     UNKNOWN = "unknown"
     MERGED = "merged"
+
+    def __eq__(self, other):
+        return self.value == other
