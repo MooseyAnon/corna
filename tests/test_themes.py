@@ -244,3 +244,127 @@ def test_add_theme_duplicate(client, session, login):
     resp = client.post("/api/v1/themes", data=_theme())
     assert resp.status_code == 400
     assert resp.json["message"] == "Theme already exists"
+
+
+def test_status_update_with_path(client, session, login):
+
+    path = pathlib.Path(theme_control.THEMES_DIR) / "index.html"
+    path.touch()
+
+    data = {
+        "creator": "john_snow",
+        "name": "new fancy theme",
+        "path": "index.html",
+        "status": "unknown",
+    }
+    create_theme_helper(client, path="index.html")
+
+    resp = client.put("/api/v1/themes/status", json=data)
+    assert resp.status_code == 200
+
+    user = (
+        session
+        .query(models.UserTable)
+        .filter(models.UserTable.username == data["creator"])
+        .one_or_none()
+    )
+    theme = session.query(models.Themes).first()
+    assert theme.uuid != None
+    assert theme.name == "new fancy theme"
+    assert theme.description == "This theme does super cool theme stuff."
+    assert theme.path == "index.html"
+    assert theme.status == enums.ThemeReviewState.UNKNOWN.value
+    assert theme.creator_user_id == user.uuid
+
+
+def test_update_status_user_with_cookie_but_no_session(cwfc):
+    
+    data = {
+        "creator": "john_snow",
+        "name": "new fancy theme",
+        "path": "index.html",
+        "status": "unknown",
+    }
+
+    resp = cwfc.put("/api/v1/themes/status", json=data)
+    assert resp.status_code == 401
+
+
+def test_no_theme_exists(client, login):
+    
+    data = {
+        "creator": "john_snow",
+        "name": "new fancy theme",
+        "path": "index.html",
+        "status": "unknown",
+    }
+
+    resp = client.put("/api/v1/themes/status", json=data)
+    assert resp.status_code == 400
+    assert resp.json["message"] == "No theme exists matching given details"
+
+
+def test_theme_creator_does_not_exist(client, login):
+
+    data = {
+        "creator": "no-existant-user",
+        "name": "new fancy theme",
+        "path": "index.html",
+        "status": "unknown",
+    }
+
+    resp = client.put("/api/v1/themes/status", json=data)
+    assert resp.status_code == 401
+    assert resp.json["message"] == "Theme creator does not exist"
+
+
+def test_status_update_no_path_but_merged(client, login):
+
+    data = {
+        "creator": "john_snow",
+        "name": "new fancy theme",
+        "status": "merged",
+    }
+
+    create_theme_helper(client)
+
+    resp = client.put("/api/v1/themes/status", json=data)
+    assert resp.status_code == 400
+    assert resp.json["message"] == "Cannot set status to merged without valid path"
+
+
+def test_status_update_bad_path(client, login):
+
+    data = {
+        "creator": "john_snow",
+        "name": "new fancy theme",
+        "status": "merged",
+        "path": "index.php"
+    }
+
+    path = pathlib.Path(theme_control.THEMES_DIR) / "index.php"
+    path.touch()
+
+    # we want to actually enter the user into the database
+    create_theme_helper(client)
+
+    resp = client.put("/api/v1/themes/status", json=data)
+    assert resp.status_code == 400
+    assert resp.json["message"] == "Incorrect file type"
+
+
+def test_anon_user_update_status(client):
+    """
+    Here we test the standard 'this person is not logged in'
+    scenario. This should always fail and return 401.
+    """
+    data = {
+        "creator": "john_snow",
+        "name": "new fancy theme",
+        "status": "merged",
+        "path": "index.html"
+    }
+
+    resp = client.put("/api/v1/themes/status", json=data)
+    assert resp.status_code == 401
+    assert resp.json["message"] == "Login required for this action"
