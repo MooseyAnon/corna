@@ -42,6 +42,19 @@ def _theme_dir_patch(tmpdir, monkeypatch):
      monkeypatch.setattr(theme_control, "THEMES_DIR", tmpdir.mkdir("themes"))
 
 
+def test_themes_dir_exists():
+    """
+    This will be useful if we ever change the filesystem structure
+    because we've essentially hardcoded the path to the themes directory.
+
+    Furthermore, we use the CORNA_ROOT variable in utils to test it
+    because the theme directory patch fixture is auto-used and it would
+    be a pain to manually pass it into every test just because of this one
+    test.
+    """
+    assert (utils.CORNA_ROOT / "themes").exists()
+
+
 def test_add_theme(session, client, login):
 
     resp = client.post("/api/v1/themes", json=_theme())
