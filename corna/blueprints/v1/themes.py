@@ -21,8 +21,8 @@ themes = flask.Blueprint("themes", __name__)
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
-class ThemeAddSend(Schema):
-    """Schema for incoming theme data."""
+class Base(Schema):
+    """Shared fields for themes endpoints."""
 
     creator = fields.String(
         required=True,
@@ -30,19 +30,28 @@ class ThemeAddSend(Schema):
             "description": "username of theme creator"
         })
     name = fields.String(
+        required=True,
         metadata={
             "description": "name of the theme",
         })
+    path = fields.String(
+        metadata={
+            "description":
+                "path to themes main index.html file, relative "
+                "to the themes directory."
+        })
+
+
+class ThemeAddSend(Base):
+    """Schema for incoming theme data."""
+
     description = fields.String(
         metadata={
             "description": "Short description of the theme",
         })
-    path = fields.String(
-        metadata={
-            "description": \
-                "path to themes main index.html file, relative "
-                "to the themes directory."
-        })
+
+    class Meta:  # pylint: disable=missing-class-docstring
+        strict = True
 
 
 def is_allowed(filename: str) -> bool:
