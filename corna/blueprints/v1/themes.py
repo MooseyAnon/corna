@@ -84,18 +84,15 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
         },
     }
 )
-def add_theme(**data: Dict[str, str]) -> flask.Response:
+def add_theme(**data: Dict[str, str]) -> flask.wrappers.Response:
     """Add new theme."""
 
     cookie: str = flask.request.cookies[enums.SessionNames.SESSION.value]
     try:
         control.add(session, cookie, data)
 
-    except NoneExistingUserError:
-        utils.respond_json_error(
-            "Login required for this action",
-            HTTPStatus.UNAUTHORIZED,
-        )
+    except NoneExistingUserError as error:
+        utils.respond_json_error(str(error), HTTPStatus.UNAUTHORIZED)
 
     except ValueError as error:
         utils.respond_json_error(str(error), HTTPStatus.BAD_REQUEST)
