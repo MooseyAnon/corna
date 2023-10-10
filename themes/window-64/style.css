@@ -1,0 +1,428 @@
+• {
+  margin: 0;
+  padding: 0;
+}
+body {
+  background-color: #bfbfbf;
+  margin: 1.5vh;
+}
+
+.nav-icon-container {
+  display: grid;
+  grid-auto-flow: column;
+  grid-column-gap: 10px;
+}
+
+.nav-icon {
+  height: 24px;
+  width: 24px;
+  background-color: #bfbfbf;
+  padding: 3px;
+  border: 2px outset #323131;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #010180;
+  padding: 10px;
+  grid-auto-flow: column;
+  grid-column-gap: 10px;
+}
+
+nav > text {
+  color: white;
+  font-size: 20pt;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  font-family: "Share Tech Mono", monospace;
+}
+
+.grid-container {
+  grid-template-columns: repeat(auto-fill, 98px);
+  justify-content: start;
+  display: grid;
+  column-gap: 50px;
+  row-gap: 50px;
+  margin: 30px 0px;
+}
+.post-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.post-icon {
+  height: 50px;
+  fill: aliceblue;
+}
+
+.post-container p {
+  text-align: center;
+  font-family: "Share Tech Mono", monospace;
+  margin-top: 5px;
+  margin-bottom: 2px;
+  cursor: default;
+}
+
+.text-modal {
+  width: 630px;
+  background-color: #bfbfbf;
+  padding: 10px;
+  border: 3px outset #ffffff;
+  height: 400px;
+  flex-direction: column;
+  display: none;
+  position: fixed;
+}
+
+.picture-modal {
+  width: fit-content;
+  max-width: 630px;
+  margin: auto;
+  background-color: #bfbfbf;
+  padding: 10px;
+  border: 3px outset #ffffff;
+  height: fit-content;
+  max-height: 500px;
+  display: none;
+  position: fixed;
+  flex-direction: column;
+}
+
+.folder-modal {
+  width: 630px;
+  margin: auto;
+  background-color: #bfbfbf;
+  padding: 10px;
+  border: 3px outset #ffffff;
+  height: 400px;
+  position: fixed;
+  flex-direction: column;
+  display: none;
+}
+.outter-modal {display: none;}
+
+.modal-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #010180;
+  padding: 4px;
+}
+.modal-title p {
+  color: white;
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin: 0px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 16pt;
+}
+.modal-title {
+  column-gap: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.modal-navigation {
+  display: flex;
+  column-gap: 3px;
+}
+.modal-icon {
+  height: 20px;
+  width: 20px;
+}
+.modal-nav-close-icon {
+  width: 20px;
+  background-color: #bfbfbf;
+  padding: 3px;
+  border: 2px outset #323131;
+  margin: 0px;
+  text-align: center;
+  font-size: 20pt;
+  line-height: 17px;
+}
+.modal-nav-minimise-icon {
+  width: 20px;
+  background-color: #bfbfbf;
+  padding: 3px;
+  border: 2px outset #323131;
+  margin: 0px;
+  text-align: center;
+  font-size: 14pt;
+  line-height: 19px;
+  font-weight: 900;
+}
+
+.modal-picture-content-container {
+  background: white;
+  margin-top: 10px;
+  height: 100%;
+  box-shadow: inset 0 0 5px 3px rgb(43 43 43);
+  border-radius: 1px;
+  border: 4px outset #45454573;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+.modal-text-content-container {
+  background: white;
+  margin-top: 10px;
+  height: 100%;
+  box-shadow: inset 0 0 5px 3px rgb(43 43 43);
+  border-radius: 1px;
+  border: 4px outset #45454573;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+}
+.modal-picture-content-container p {
+  text-align: left;
+  margin: 10px;
+  flex: auto;
+  overflow: auto;
+  font-size: 16pt;
+  font-family: "Inconsolata", monospace;
+}
+.modal-text-content-container p {
+  font-size: 16pt;
+  font-family: "Inconsolata", monospace;
+  margin: 10px 0px;
+}
+.modal-text-content-container h1 {
+  font-size: 16pt;
+  font-family: "Inconsolata", monospace;
+  margin: 2px 0px;
+}
+.article {
+  text-align: left;
+  margin: 10px;
+  flex: auto;
+  overflow: auto;
+}
+.text-image-container {
+  height: 9vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.picture-container {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  object-fit: cover;
+}
+.pallette {
+  margin: 10px 0px 0px 0px;
+  display: flex;
+  flex-direction: row;
+  height: 70px;
+  column-gap: 10px;
+}
+.selectedColour {
+  background-color: #d0d0d0;
+  width: 67px;
+  box-shadow: inset 1px 1px 2px 3px rgb(43 43 43);
+  border-radius: 1px;
+  border: 4px outset #45454571;
+}
+.colourPallette {
+  display: grid;
+  column-gap: 4px;
+  row-gap: 4px;
+  grid-template-columns: repeat(9, 1fr);
+}
+
+.folder-body-container {
+  background: white;
+  height: 100%;
+  box-shadow: inset 0 0 5px 3px rgb(43 43 43);
+  border-radius: 1px;
+  border: 4px outset #45454573;
+  overflow: hidden;
+}
+.folder-content {
+  justify-content: start;
+  display: grid;
+  overflow: auto;
+  margin: 5px;
+}
+
+.location-folder-container {
+  display: flex;
+  align-items: center;
+  column-gap: 20px;
+  padding: 10px 0px;
+  margin: 0px 20px;
+}
+.location-folder-container p {
+  font-family: "Share Tech Mono", monospace;
+  text-wrap: nowrap;
+  width: 18%;
+  font-size: 15px;
+}
+
+.folder-icon-container {
+  column-gap: 5px;
+  display: flex;
+}
+.location-route {
+  background: white;
+  width: -webkit-fill-available;
+  box-shadow: inset 0 0 3px 2px rgb(43 43 43);
+  border-radius: 1px;
+  border: 2px outset #45454573;
+  justify-content: flex-start;
+  display: flex;
+  align-items: center;
+  column-gap: 10px;
+  padding: 0px 10px;
+  height: 34px;
+}
+
+.location-icon {
+  height: 24px;
+  width: 24px;
+}
+
+.file-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  column-gap: 2px;
+  justify-content: flex-start;
+}
+.file-icon {
+  height: 24px;
+  fill: aliceblue;
+}
+
+.file-container p {
+  text-align: center;
+  font-family: "Share Tech Mono", monospace;
+  margin-top: 5px;
+  margin-bottom: 2px;
+  cursor: default;
+}
+.route {
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 10px 0px 5px 0px;
+  row-gap: 10px;
+}
+.route-icon {
+  background-color: #bfbfbf;
+  padding: 3px;
+  border: 2px outset #323131;
+  width: 200px;
+  height: 32px;
+}
+.route-container {
+  display: flex;
+  align-items: center;
+  column-gap: 20px;
+}
+.route-container p {
+  font-family: "Share Tech Mono", monospace;
+  text-wrap: nowrap;
+  width: 23%;
+  font-size: 15px;
+}
+
+::-webkit-scrollbar {
+  height: 0px;
+  width: 16px;
+}
+
+::-webkit-scrollbar-track {
+  border-radius: 0;
+  background: #e1e5e6;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 0;
+  background: #c2c2c2;
+  border: 2px outset #aeaeae;
+  height: 54%;
+}
+
+/*Extra small devices*/
+@media screen and (min-width: 320px) and (max-width: 599px) {
+  .text-modal {
+    /* top: 3vh !important;
+    width: -webkit-fill-available;
+    display: flex;
+    position: fixed;
+    left: 0 !important;
+    height: -webkit-fill-available; */
+    position: fixed;
+    left: 0 !important;
+    height: fit-content;
+    /* bottom: 0px !important; */
+    /* top: auto !important; */
+    margin: 0;
+    width: -webkit-fill-available;
+  }
+  .picture-modal {
+    /* top: 3vh !important;
+    width: -webkit-fill-available;
+    display: flex;
+    position: fixed;
+    left: 0 !important;
+    height: -webkit-fill-available; */
+    position: fixed;
+    left: 0 !important;
+    height: inherit;
+    max-height: -webkit-fill-available;
+    bottom: 0px !important;
+    top: 2vh !important;
+    margin: 0;
+    width: -webkit-fill-available;
+    max-width: -webkit-fill-available;
+  }
+  .folder-modal {
+    position: fixed;
+    left: 0 !important;
+    height: fit-content;
+    bottom: 0px !important;
+    top: auto !important;
+    margin: 0;
+    width: -webkit-fill-available;
+  }
+  .route-container p {
+    width: 45%;
+  }
+  .folder-content {
+    margin: 10px;
+  }
+  .pallette {
+    height: 75px;
+  }
+}
+/*Small to medium devices*/
+@media only screen and (min-width: 600px) and (max-width: 1279px) {
+}
+/*Large devices*/
+@media only screen and (min-width: 1280px) {
+}
+
+
+.test-div {
+  height: 100px;
+  width: 100px;
+  background-color: pink;
+  display: none;
+  cursor: move;
+}
