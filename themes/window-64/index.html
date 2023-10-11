@@ -19,22 +19,6 @@
       </div>
     </nav>
     <main class="grid-container">
-      <!-- <div class="post-container" id="clickableSVG">
-        <img
-          src="./images/Text.png"
-          alt="File"
-          class="post-icon clickable-text-element"
-        />
-        <p class="clickable-text-element">name</p>
-      </div>
-      <div class="post-container">
-        <img
-          src="./images/Text.png"
-          alt="File"
-          class="post-icon clickable-text-element"
-        />
-        <p class="clickable-text-element">Document name</p>
-      </div> -->
       <div class="post-container">
         <img
           src="./images/Text.png"
@@ -68,8 +52,147 @@
         />
         <p class="clickable-folder-element">File name</p>
       </div>
-    </main>
 
-    <script src="./script.js"></script>
+    </main>
+    <div id="draggble" class="test-div test-div-0"><p> hello world</p></div>
+
+    <!-- ///////////////////////////// text modal //////////////////////// -->
+    <div class="text-modal">
+      <div class="modal-header-container">
+          <div class="modal-title">
+              <img src = "./images/Text.png" alt="Minimize" class="modal-icon"/>
+              <p>This is the modal title</p>
+          </div>
+          <div class="modal-navigation">
+              <p class="modal-nav-minimise-icon">__</p>
+              <p class="modal-nav-close-icon closeTextModalIcon" id="closeTextModalIcon" alt="close">&times;</p>
+          </div>
+      </div>
+      <div class="modal-text-content-container">
+          <div class="article">
+          <div class="text-image-container"><img src="./images/Dummyimage.jpg" class="text-banner"></div>
+          <h1>Title of this article</h1>
+          <p>It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum</p>
+          </div>
+      </div>
+    </div>
+
+
+    <!-- /////////////////////////// picture modal ///////////////////// -->
+    <div class="picture-modal">
+      <div class="modal-header-container">
+  <div class="modal-title">
+      <img src = "./images/Inverted-picture.png" alt="Minimize" class="modal-icon"/>
+      <p>This is a picture modal</p>
+  </div>
+  <div class="modal-navigation">
+      <p class="modal-nav-minimise-icon">__</p>
+      <p class="modal-nav-close-icon closeTextModalIcon" id="closePictureModalIcon" alt="close">&times;</p>
+  </div>
+</div>
+<div class="modal-picture-content-container">
+<img src = "./images/Imageplaceholder.avif" alt="main image" class="picture-container"/>
+</div>
+<div class="pallette">
+  <div class="selectedColour">
+      <div class="backgroundcolour"></div>
+      <div class="pickedcolour"></div>
+  </div>
+  <div class="colourPallette">
+      <div style="background-color: aqua; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292; width: 32px;"></div>                                                                                                                        
+      <div style="background-color: darkblue; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: darkcyan; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                                            
+      <div style="background-color: darkgoldenrod; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: orchid; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: blueviolet; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color:brown; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: chartreuse; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: chocolate; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: black; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: deeppink; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: burlywood; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color:gold; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: pink; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: darkslateblue; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: darkturquoise; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: darkgreen; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: rgb(173, 0, 46); box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+
+  </div>
+</div>
+    </div>
+
+
+    <!-- ////////////////////////// folder modal /////////////////////// -->
+    <div class="folder-modal">
+      <div class="modal-header-container">
+  <div class="modal-title">
+      <img src = "./images/Folder.png" alt="Minimize" class="modal-icon"/>
+      <p>Open</p>
+  </div>
+  <div class="modal-navigation">
+      <p class="modal-nav-minimise-icon">__</p>
+      <p class="modal-nav-close-icon closeTextModalIcon" id="closeFolderModalIcon" alt="close">&times;</p>
+  </div>
+</div>
+<div class="location-folder-container">
+  <p>Look in</p>
+  <div class="location-route">
+      <img src = "./images/Folder.png" alt="Folder" class="location-icon"/>
+      <p>Your brain</p>
+  </div>
+  <div class="folder-icon-container">
+  <img src = "./images/bug-fill.svg" alt="Minimize" class="nav-icon"/>
+  <img src = "./images/bug-outline.svg" alt="Close" class="nav-icon"/>
+</div>
+</div>
+<div class="folder-body-container">
+  <div class="folder-content">
+  <div class="file-container" id="clickableSVG">
+          <img src = "./images/Text.png" alt="File" class="file-icon clickable-text-element"/>
+          <p class="clickable-text-element">name</p>
+  </div>
+  <div class="file-container">
+          <img src = "./images/Text.png" alt="File" class="file-icon clickable-text-element"/>
+          <p class="clickable-text-element">Document name</p>
+  </div>
+  <div class="file-container">
+          <img src = "./images/Text.png" alt="File" class="file-icon clickable-text-element"/>
+          <p class="clickable-text-element">Document name</p>
+  </div>
+  <div class="file-container">
+          <img src = "./images/Text.png" alt="File" class="file-icon clickable-text-element"/>
+          <p class="clickable-text-element">Document name</p>
+  </div>
+      
+  <div class="file-container">
+          <img src = "./images/Picture.png" alt="Picture" class="file-icon clickable-picture-element"/>
+          <p class="clickable-picture-element">Picture name</p>
+      </div>
+      <div class="file-container">
+          <img src = "./images/Folder.png" alt="File" class="file-icon clickable-folder-element" />
+          <p class="clickable-folder-element">File name</p>
+      </div>
+</div>
+</div>
+<div class="route">
+      <div class="route-container">
+          <p >File name</p>
+          <div class="location-route">
+              <p>.txt</p>
+          </div>
+          <button class="route-icon">Save</button>
+          </div>
+      <div class="route-container">
+          <p>File of type</p>
+          <div class="location-route">
+              <p>.txt</p>
+          </div>
+          <button class="route-icon">Cancel</button>
+      </div>
+  </div>
+    </div>
+
+  <script src="./script.js"></script>
   </body>
 </html>

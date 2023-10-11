@@ -1,125 +1,67 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const clickableTextElements = document.querySelectorAll(
-    ".clickable-text-element"
-  );
 
-  clickableTextElements.forEach((element) => {
-    element.addEventListener("click", openTextModal);
-  });
-  const clickablePictureElements = document.querySelectorAll(
-    ".clickable-picture-element"
-  );
+  clickListener(document, "clickable-text-element", textModal);
+  clickListener(document, "clickable-picture-element", pictureModal);
+  clickListener(document, "clickable-folder-element", folderModal);
 
-  clickablePictureElements.forEach((element) => {
-    element.addEventListener("click", openPictureModal);
-  });
-
-  const clickableFolderElements = document.querySelectorAll(
-    ".clickable-folder-element"
-  );
-
-  clickableFolderElements.forEach((element) => {
-    element.addEventListener("click", openFolderModal);
-  });
 });
 
-function openTextModal() {
-  console.log("I have been clicked");
-  const textModal = document.createElement("div");
-  textModal.classList.add("text-modal");
-  textModal.style.display = "flex";
-  textModal.innerHTML = `
-    <div class="modal-header-container">
-        <div class="modal-title">
-            <img src = "./images/Text.png" alt="Minimize" class="modal-icon"/>
-            <p>This is the modal title</p>
-        </div>
-        <div class="modal-navigation">
-            <p class="modal-nav-minimise-icon">__</p>
-            <p class="modal-nav-close-icon" id="closeTextModalIcon" alt="close">&times;</p>
-        </div>
-    </div>
-    <div class="modal-text-content-container">
-        <div class="article">
-        <div class="text-image-container"><img src="./images/Dummyimage.jpg" class="text-banner"></div>
-        <h1>Title of this article</h1>
-        <p>It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum</p>
-        </div>
-    </div>`;
+
+function closeModal(e) {
+  e.remove()
+}
+
+
+function folderModal() {
+  _ = document.getElementsByClassName("folder-modal")[0];
 
   const popupWidth = 630; // Width of the modal.
   const popupHeight = 400; // Height of the modal.
 
-  const maxX = window.innerWidth - popupWidth;
-  const maxY = window.innerHeight - popupHeight;
+  const el = addDisplay(_, popupWidth, popupHeight, ret=true);
 
-  const randomX = Math.random() * maxX;
-  const randomY = Math.random() * maxY;
+  clickListener(el, "clickable-text-element", textModal);
+  clickListener(el, "clickable-picture-element", pictureModal);
 
-  textModal.style.left = `${randomX}px`;
-  textModal.style.top = `${randomY}px`;
+  document.body.appendChild(el);
+}
 
-  document.body.appendChild(textModal);
-  const closeTextModalIcon = textModal.querySelector("#closeTextModalIcon");
+
+function textModal() {
+  _ = document.getElementsByClassName("text-modal")[0];
+
+  const popupWidth = 630; // Width of the modal.
+  const popupHeight = 400; // Height of the modal.
+  
+  addDisplay(_, popupWidth, popupHeight);
+}
+
+
+function pictureModal() {
+  _ = document.getElementsByClassName("picture-modal")[0];
+
+  const popupWidth = 630; // Width of the modal.
+  const popupHeight = 400; // Height of the modal.
+
+  addDisplay(_, popupWidth, popupHeight);
+}
+
+
+function addDisplay(el, width, height, ret=false) {
+
+  el = _.cloneNode(true);
+  var className = el.className.split(" ")[0];
+
+  el.className = "";
+  el.classList.add(className);
+
+  const closeTextModalIcon = el.getElementsByClassName("closeTextModalIcon")[0];
   closeTextModalIcon.addEventListener(
-    "click",
-    closeTextModal.bind(null, textModal)
+    "click", closeModal.bind(null, el)
   );
-}
 
-function closeTextModal(modal) {
-  modal.remove();
-}
-
-function openPictureModal() {
-  console.log("Picture modal");
-  const pictureModal = document.createElement("div");
-  pictureModal.className = "picture-modal";
-  pictureModal.style.display = "flex";
-  pictureModal.innerHTML = `
-  <div class="modal-header-container">
-  <div class="modal-title">
-      <img src = "./images/Inverted-picture.png" alt="Minimize" class="modal-icon"/>
-      <p>This is a picture modal</p>
-  </div>
-  <div class="modal-navigation">
-      <p class="modal-nav-minimise-icon">__</p>
-      <p class="modal-nav-close-icon" id="closePictureModalIcon" alt="close">&times;</p>
-  </div>
-</div>
-<div class="modal-picture-content-container">
-<img src = "./images/Imageplaceholder.avif" alt="main image" class="picture-container"/>
-</div>
-<div class="pallette">
-  <div class="selectedColour">
-      <div class="backgroundcolour"></div>
-      <div class="pickedcolour"></div>
-  </div>
-  <div class="colourPallette">
-      <div style="background-color: aqua; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292; width: 32px;"></div>                                                                                                                        
-      <div style="background-color: darkblue; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: darkcyan; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                                            
-      <div style="background-color: darkgoldenrod; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: orchid; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: blueviolet; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color:brown; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: chartreuse; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: chocolate; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: black; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: deeppink; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: burlywood; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color:gold; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: pink; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: darkslateblue; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: darkturquoise; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: darkgreen; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: rgb(173, 0, 46); box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-
-  </div>
-</div>`;
-
-  const popupWidth = 630; // Width of the modal.
-  const popupHeight = 520; // Height of the modal.
+  const popupWidth = width; // Width of the modal.
+  const popupHeight = height; // Height of the modal.
 
   const maxX = window.innerWidth - popupWidth;
   const maxY = window.innerHeight - popupHeight;
@@ -127,133 +69,63 @@ function openPictureModal() {
   const randomX = Math.random() * maxX;
   const randomY = Math.random() * maxY;
 
-  pictureModal.style.left = `${randomX}px`;
-  pictureModal.style.top = `${randomY}px`;
+  el.style.left = `${randomX}px`;
+  el.style.top = `${randomY}px`;
 
-  document.body.appendChild(pictureModal);
-  const closePictureModalIcon = pictureModal.querySelector(
-    "#closePictureModalIcon"
-  );
-  closePictureModalIcon.addEventListener(
-    "click",
-    closePictureModal.bind(null, pictureModal)
-  );
+  if (el.style.display !== "flex") { el.style.display = "flex"; }
+
+  // make element draggable
+  dragElement(el);
+
+  if (ret) { return el; }
+
+  document.body.appendChild(el);
 }
 
-function closePictureModal(modal) {
-  modal.remove();
+
+function clickListener(el, className, method) {
+  const clickableElement = el.getElementsByClassName(className);
+
+  for (let i = 0; i < clickableElement.length; i++) {
+    const element = clickableElement[i];
+    element.addEventListener("click", method);
+  }
 }
 
-function openFolderModal() {
-  console.log("Folder modal");
-  const folderModal = document.createElement("div");
-  folderModal.className = "folder-modal";
-  folderModal.style.display = "flex";
-  folderModal.innerHTML = `
-  <div class="modal-header-container">
-  <div class="modal-title">
-      <img src = "./images/Folder.png" alt="Minimize" class="modal-icon"/>
-      <p>Open</p>
-  </div>
-  <div class="modal-navigation">
-      <p class="modal-nav-minimise-icon">__</p>
-      <p class="modal-nav-close-icon" id="closeFolderModalIcon" alt="close">&times;</p>
-  </div>
-</div>
-<div class="location-folder-container">
-  <p>Look in</p>
-  <div class="location-route">
-      <img src = "./images/Folder.png" alt="Folder" class="location-icon"/>
-      <p>Your brain</p>
-  </div>
-  <div class="folder-icon-container">
-  <img src = "./images/bug-fill.svg" alt="Minimize" class="nav-icon"/>
-  <img src = "./images/bug-outline.svg" alt="Close" class="nav-icon"/>
-</div>
-</div>
-<div class="folder-body-container">
-  <div class="folder-content">
-  <div class="file-container" id="clickableSVG">
-          <img src = "./images/Text.png" alt="File" class="file-icon clickable-text-element"/>
-          <p class="clickable-text-element">name</p>
-  </div>
-  <div class="file-container">
-          <img src = "./images/Text.png" alt="File" class="file-icon clickable-text-element"/>
-          <p class="clickable-text-element">Document name</p>
-  </div>
-  <div class="file-container">
-          <img src = "./images/Text.png" alt="File" class="file-icon clickable-text-element"/>
-          <p class="clickable-text-element">Document name</p>
-  </div>
-  <div class="file-container">
-          <img src = "./images/Text.png" alt="File" class="file-icon clickable-text-element"/>
-          <p class="clickable-text-element">Document name</p>
-  </div>
-      
-  <div class="file-container">
-          <img src = "./images/Picture.png" alt="Picture" class="file-icon clickable-picture-element"/>
-          <p class="clickable-picture-element">Picture name</p>
-      </div>
-      <div class="file-container">
-          <img src = "./images/Folder.png" alt="File" class="file-icon clickable-folder-element" />
-          <p class="clickable-folder-element">File name</p>
-      </div>
-</div>
-</div>
-<div class="route">
-      <div class="route-container">
-          <p >File name</p>
-          <div class="location-route">
-              <p>.txt</p>
-          </div>
-          <button class="route-icon">Save</button>
-          </div>
-      <div class="route-container">
-          <p>File of type</p>
-          <div class="location-route">
-              <p>.txt</p>
-          </div>
-          <button class="route-icon">Cancel</button>
-      </div>
-  </div>`;
 
-  const popupWidth = 630; // Width of the modal.
-  const popupHeight = 400; // Height of the modal.
+function dragElement(elmnt) {
+  var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
 
-  const maxX = window.innerWidth - popupWidth;
-  const maxY = window.innerHeight - popupHeight;
+  elmnt.addEventListener("mousedown", dragMouseDown);
+  elmnt.addEventListener("touchstart", dragMouseDown);
 
-  const randomX = Math.random() * maxX;
-  const randomY = Math.random() * maxY;
+  function dragMouseDown(e) {
+    e = e || window.event;
+    e.preventDefault();
+    // get the mouse cursor position at startup:
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    document.onmouseup = closeDragElement;
+    // call a function whenever the cursor moves:
+    document.onmousemove = elementDrag;
+  }
 
-  folderModal.style.left = `${randomX}px`;
-  folderModal.style.top = `${randomY}px`;
+  function elementDrag(e) {
+    e = e || window.event;
+    e.preventDefault();
+    // calculate the new cursor position:
+    pos1 = pos3 - e.clientX;
+    pos2 = pos4 - e.clientY;
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    // set the element's new position:
+    elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+    elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+  }
 
-  document.body.appendChild(folderModal);
-  const closeFolderModalIcon = folderModal.querySelector(
-    "#closeFolderModalIcon"
-  );
-  closeFolderModalIcon.addEventListener(
-    "click",
-    closeFolderModal.bind(null, folderModal)
-  );
-  const clickableTextElements = document.querySelectorAll(
-    ".clickable-text-element"
-  );
-  const clickablePictureElements = document.querySelectorAll(
-    ".clickable-picture-element"
-  );
-
-  clickablePictureElements.forEach((element) => {
-    element.addEventListener("click", openPictureModal);
-  });
-
-  clickableTextElements.forEach((element) => {
-    console.log("file");
-    element.addEventListener("click", openTextModal);
-  });
-}
-
-function closeFolderModal(modal) {
-  modal.remove();
+  function closeDragElement() {
+    /* stop moving when mouse button is released:*/
+    document.onmouseup = null;
+    document.onmousemove = null;
+  }
 }
