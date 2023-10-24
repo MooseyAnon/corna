@@ -217,14 +217,14 @@ def create(session: Any, data: Dict[Any, Any]) -> None:
     :raises NotLoggedInError: user not logged in
     :raises CornaOwnerError: user does not own the corna
     """
-    blog: Optional[object] = (
+    corna: Optional[object] = (
         session
         .query(models.CornaTable)
         .filter(models.CornaTable.domain_name == data["domain_name"])
         .one_or_none()
     )
 
-    if blog is None:
+    if corna is None:
         raise NoneExistinCornaError("corna does not exist")
 
     # cookies are signed, they need to be unsigned and decoded
@@ -239,8 +239,8 @@ def create(session: Any, data: Dict[Any, Any]) -> None:
     if user_session is None:
         raise NotLoggedInError("User not logged in")
 
-    if not user_session.user_uuid == blog.user_uuid:
-        raise CornaOwnerError("Current user does not own the blog")
+    if not user_session.user_uuid == corna.user_uuid:
+        raise CornaOwnerError("Current user does not own the Corna")
 
     object_uuid: str = post_factory(data["type"])(session, data)
     post_uuid: str = utils.get_uuid()
@@ -248,7 +248,7 @@ def create(session: Any, data: Dict[Any, Any]) -> None:
     session.add(
         models.PostTable(
             post_uuid=post_uuid,
-            blog_uuid=blog.blog_uuid,
+            corna_uuid=corna.uuid,
             created=utils.get_utc_now(),
             deleted=False,
             type=data["type"],
@@ -281,7 +281,7 @@ def get(session: Any, domain_name: str) -> Dict[str, List[Dict[str, Any]]]:
     posts: Optional[object] = (
         session.
         query(models.PostTable)
-        .filter(models.PostTable.blog_uuid == corna.blog_uuid)
+        .filter(models.PostTable.corna_uuid == corna.uuid)
     )
 
     return {"posts": [parse_post(post) for post in posts]}
@@ -338,7 +338,7 @@ def get_image(session: Any, domain_name: str, url: str) -> str:
         raise PostDoesNotExist("Post does not exist")
 
     post = image.mapper.post
-    if not post.blog.domain_name == domain_name:
+    if not post.corna.domain_name == domain_name:
         # not exactly right description, here we are testing
         # if the domain_name matches the corna associated with
         # the post, so technically this is a "post does not exist"

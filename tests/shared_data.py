@@ -3,7 +3,7 @@ import pathlib
 
 ASSET_DIR = pathlib.Path(__file__).parent.absolute() / "assets"
 
-blog_info = {
+corna_info = {
         "domain_name": "some-fake-domain",
         "title": "some-fake-title",
     }
