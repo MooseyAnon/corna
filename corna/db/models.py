@@ -79,6 +79,10 @@ class UserTable(Base):
         "EmailTable",
         back_populates="user",
     )
+    corna = relationship(
+        "CornaTable",
+        back_populates="user",
+    )
 
 
 class EmailTable(Base):
@@ -190,10 +194,12 @@ class CornaTable(Base):
     )
     user = relationship(
         "UserTable",
-        backref="corna",
+        back_populates="corna",
     )
-
-    # backrefs: posts
+    posts = relationship(
+        "PostTable",
+        back_populates="corna"
+    )
 
 
 class PostTable(Base):
@@ -223,7 +229,7 @@ class PostTable(Base):
     )
     corna = relationship(
         "CornaTable",
-        backref="posts",
+        back_populates="posts",
     )
     mapper = relationship(
         "PostObjectMap",
