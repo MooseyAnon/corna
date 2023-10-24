@@ -13,7 +13,7 @@ import testing.postgresql
 
 from corna.app import create_app
 from corna.db import models
-from tests.shared_data import blog_info, single_user
+from tests.shared_data import corna_info, single_user
 
 
 logger = logging.getLogger(__name__)
@@ -144,11 +144,11 @@ def _create_and_login_user(client, user):
     logger.debug("logged in user")
 
 
-@pytest.fixture(name="blog")
-def _create_blog_for_logged_in_user(client, login):
+@pytest.fixture(name="corna")
+def _create_corna_for_logged_in_user(client, login):
     resp = client.post(
-        f"/api/v1/corna/{blog_info['domain_name']}",
-        json={"title": blog_info["title"]},
+        f"/api/v1/corna/{corna_info['domain_name']}",
+        json={"title": corna_info["title"]},
     )
     assert resp.status_code == 201
 

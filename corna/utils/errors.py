@@ -30,13 +30,13 @@ class NotLoggedInError(ValueError):
 
 
 class PreExistingCornaError(ValueError):
-    """Pre-existing blog error.
+    """Pre-existing corna error.
 
-    Raised when user tries to create a new blog while
+    Raised when user tries to create a new corna while
     already having one.
 
     We currently dont allow for a single user to have
-    multiple blogs.
+    multiple corna's.
     """
 
 
@@ -49,7 +49,7 @@ class DomainExistsError(ValueError):
 
 
 class CornaOwnerError(ValueError):
-    """Blog owner error.
+    """Corna owner error.
 
-    Raised when blog is not owned by user.
+    Raised when corna is not owned by user.
     """

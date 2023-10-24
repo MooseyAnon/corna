@@ -75,8 +75,10 @@ class UserTable(Base):
         DateTime,
         doc="date of account creation",
     )
-    email = relationship("EmailTable", back_populates="user")
-    # backrefs: corna
+    email = relationship(
+        "EmailTable",
+        back_populates="user",
+    )
 
 
 class EmailTable(Base):
@@ -160,10 +162,10 @@ class SessionTable(Base):
 
 
 class CornaTable(Base):
-    """Blog table."""
-    __tablename__ = "blogs"
+    """Corna table."""
+    __tablename__ = "corna"
 
-    blog_uuid = Column(
+    uuid = Column(
         UUID,
         primary_key=True,
     )
@@ -171,15 +173,15 @@ class CornaTable(Base):
         Text,
         unique=True,
         index=True,
-        doc="chosen domain name of blog"
+        doc="chosen domain name for Corna"
     )
     title = Column(
         Text,
-        doc="title of the blog",
+        doc="title of the Corna",
     )
     date_created = Column(
         DateTime,
-        doc="creation date of blog",
+        doc="creation date of Corna",
     )
     user_uuid = Column(
         UUID,
@@ -215,11 +217,11 @@ class PostTable(Base):
         Boolean,
         doc="post has been deleted, do not show",
     )
-    blog_uuid = Column(
+    corna_uuid = Column(
         UUID,
-        ForeignKey("blogs.blog_uuid"),
+        ForeignKey("corna.uuid"),
     )
-    blog = relationship(
+    corna = relationship(
         "CornaTable",
         backref="posts",
     )

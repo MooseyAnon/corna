@@ -47,9 +47,9 @@ def _all_post_based_stubs(tmpdir, mocker, monkeypatch):
 
 
 @freeze_time(FROZEN_TIME)
-def test_create_post(session, client, blog):
+def test_create_post(session, client, corna):
     resp = client.post(
-        f"/api/v1/posts/{shared_data.blog_info['domain_name']}",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
         data=shared_data.simple_text_post
     )
     assert resp.status_code == 201
@@ -58,22 +58,22 @@ def test_create_post(session, client, blog):
     posts = session.query(models.PostTable).all()
     assert len(posts) == 1
 
-    blog = (
+    corna = (
         session
         .query(models.CornaTable)
         .filter(
             models.CornaTable.domain_name
-            == shared_data.blog_info["domain_name"]
+            == shared_data.corna_info["domain_name"]
         )
         .one()
     )
-    assert len(blog.posts) == 1
+    assert len(corna.posts) == 1
 
     post = session.query(models.PostTable).first()
     text = session.query(models.TextPost).first()
     
     # checking foreign key relationships
-    assert post.blog_uuid == blog.blog_uuid
+    assert post.corna_uuid == corna.uuid
     assert post.mapper is text.mapper
     assert post.mapper.text_post_uuid == text.uuid
 
@@ -93,11 +93,11 @@ def test_create_post(session, client, blog):
 
 
 @freeze_time(FROZEN_TIME)
-def test_post_with_picture(session, client, blog):
+def test_post_with_picture(session, client, corna):
     assets = post_control.PICTURE_DIR
     
     resp = client.post(
-        f"/api/v1/posts/{shared_data.blog_info['domain_name']}",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
         data=shared_data.post_with_picture
     )
 
@@ -112,21 +112,21 @@ def test_post_with_picture(session, client, blog):
     posts = session.query(models.PostTable).all()
     assert len(posts) == 1
 
-    blog = (
+    corna = (
         session
         .query(models.CornaTable)
         .filter(
             models.CornaTable.domain_name
-            == shared_data.blog_info["domain_name"]
+            == shared_data.corna_info["domain_name"]
         )
         .one()
     )
-    assert len(blog.posts) == 1
+    assert len(corna.posts) == 1
     post = session.query(models.PostTable).first()
     pic = session.query(models.PhotoPost).first()
 
     # checking foreign key relationships
-    assert post.blog_uuid == blog.blog_uuid
+    assert post.corna_uuid == corna.uuid
     assert post.mapper is pic.mapper
     assert post.mapper.photo_post_uuid == pic.uuid
 
@@ -146,16 +146,16 @@ def test_post_with_picture(session, client, blog):
 
 
 @freeze_time(FROZEN_TIME)
-def test_get_one_post(session, client, blog):
+def test_get_one_post(session, client, corna):
     assets = post_control.PICTURE_DIR
 
     resp = client.post(
-        f"/api/v1/posts/{shared_data.blog_info['domain_name']}",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
         data=shared_data.simple_text_post
     )
     assert resp.status_code == 201
 
-    resp = client.get(f"api/v1/posts/{shared_data.blog_info['domain_name']}")
+    resp = client.get(f"api/v1/posts/{shared_data.corna_info['domain_name']}")
     
     # there should only be 4 fields in the response. This test
     # is to make sure marshmallow is dropping fields correctly
@@ -169,7 +169,7 @@ def test_get_one_post(session, client, blog):
 
 
 @freeze_time(FROZEN_TIME)
-def test_get_multiple_posts(session, client, blog):
+def test_get_multiple_posts(session, client, corna):
     assets = post_control.PICTURE_DIR
 
     # opening the picture file in a shared directory fucks things up
@@ -182,12 +182,12 @@ def test_get_multiple_posts(session, client, blog):
 
     for post in (shared_data.simple_text_post, post_with_picture):
         resp = client.post(
-            f"/api/v1/posts/{shared_data.blog_info['domain_name']}",
+            f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
             data=post
         )
         assert resp.status_code == 201
 
-    resp = client.get(f"api/v1/posts/{shared_data.blog_info['domain_name']}")
+    resp = client.get(f"api/v1/posts/{shared_data.corna_info['domain_name']}")
     posts = resp.json["posts"]
 
     for post in posts:
@@ -202,7 +202,7 @@ def test_get_multiple_posts(session, client, blog):
 
 
 @freeze_time(FROZEN_TIME)
-def test_get_image(session, client, blog):
+def test_get_image(session, client, corna):
     assets = post_control.PICTURE_DIR
 
     # opening the picture file in a shared directory fucks things up
@@ -214,7 +214,7 @@ def test_get_image(session, client, blog):
     }
 
     resp = client.post(
-        f"/api/v1/posts/{shared_data.blog_info['domain_name']}",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
         data=post_with_picture
     )
     assert resp.status_code == 201
@@ -225,11 +225,11 @@ def test_get_image(session, client, blog):
     full_path = expected_path.listdir()[0]
     assert post_control.get_image(
         session,
-        shared_data.blog_info['domain_name'],
+        shared_data.corna_info['domain_name'],
         "abcdef") == full_path
 
 
-def test_path_collision(session, client, capsys, blog):
+def test_path_collision(session, client, capsys, corna):
     assets = post_control.PICTURE_DIR
 
     # opening the picture file in a shared directory fucks things up
@@ -241,7 +241,7 @@ def test_path_collision(session, client, capsys, blog):
     }
 
     resp = client.post(
-        f"/api/v1/posts/{shared_data.blog_info['domain_name']}",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
         data=post_with_picture
     )
     assert resp.status_code == 201
@@ -271,21 +271,21 @@ def test_path_collision(session, client, capsys, blog):
 
 def test_when_user_not_logged_in_client(session, client):
     resp = client.post(
-        f"/api/v1/posts/{shared_data.blog_info['domain_name']}",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
         data=shared_data.simple_text_post
     )
     assert resp.status_code == 400
     assert "Login required for this action" in resp.json["message"]
 
 
-def test_user_attempt_with_invalid_cookie(session, client, blog):
+def test_user_attempt_with_invalid_cookie(session, client, corna):
     client.set_cookie(
         "/",
         key=enums.SessionNames.SESSION.value,
         value="this-is-a-fake-cookie"
     )
     resp = client.post(
-        f"/api/v1/posts/{shared_data.blog_info['domain_name']}",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
         data=shared_data.simple_text_post
     )
     assert resp.status_code == 400

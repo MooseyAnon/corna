@@ -1,4 +1,4 @@
-"""Manage blogs."""
+"""Manage Corna's."""
 
 import logging
 from typing import Any, Dict, Optional
@@ -69,15 +69,15 @@ def create(session: Any, data: Dict[str, Any]) -> None:
     user: object = user_session.user
 
     if exists_(session, models.CornaTable.user_uuid, user.uuid):
-        # user already has a blog
-        raise PreExistingCornaError("User has pre-existing blog")
+        # user already has a Corna
+        raise PreExistingCornaError("User has pre-existing Corna")
 
     if not domain_unique(session, data["domain_name"]):
         raise DomainExistsError("Domain name in use")
 
     session.add(
         models.CornaTable(
-            blog_uuid=utils.get_uuid(),
+            uuid=utils.get_uuid(),
             domain_name=data["domain_name"],
             title=data["title"],
             date_created=utils.get_utc_now(),
