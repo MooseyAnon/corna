@@ -11,7 +11,6 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_apispec import FlaskApiSpec
 from flask_sqlalchemy_session import flask_scoped_session
 
-from corna.blueprints import frontend
 from .blueprints.v1 import auth, corna, dummy, posts
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -61,7 +60,6 @@ def create_app(session_class):
         api_spec, corna, "corna", url_prefix="/api/v1")
     register_blueprint_with_docs(
         api_spec, dummy, "dummy", url_prefix="/api/v1")
-    register_blueprint_with_docs(api_spec, frontend, "frontend")
     register_blueprint_with_docs(
         api_spec, posts, "posts", url_prefix="/api/v1")
 
