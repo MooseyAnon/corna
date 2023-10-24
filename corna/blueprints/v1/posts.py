@@ -246,3 +246,23 @@ def get_image(domain_name: str, url_extension: str):
         utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
 
     return flask.send_file(path)
+
+
+@posts.route("/posts/<domain_name>/<type_>/<uuid>", methods=["GET"])
+def get_single_post(domain_name, type_, uuid):
+
+    print("//////// call to api //////////")
+
+    from corna.db import models
+
+    post = ""
+    if type_ == "text":
+        obj = session.query(models.PostTable).get(uuid)
+        tpost = obj.mapper.text
+        post = {
+            "uuid": tpost.uuid,
+            "title": tpost.title if tpost.title else "",
+            "body": tpost.body if tpost.body else "",
+        }
+
+    return flask.jsonify({"post": post})

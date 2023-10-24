@@ -43,6 +43,9 @@ def create_app(session_class):
     logger.info("Creating the Flask app")
     app = flask.Flask(__name__, instance_path=os.getcwd())
     app.url_map.strict_slashes = False
+    # app.config["EXPLAIN_TEMPLATE_LOADING"] = True
+    # import pprint
+    # pprint.pprint(app.config)
 
     # Register API documentation
     api_spec = FlaskApiSpec(app)
@@ -61,7 +64,8 @@ def create_app(session_class):
         api_spec, corna, "corna", url_prefix="/api/v1")
     register_blueprint_with_docs(
         api_spec, dummy, "dummy", url_prefix="/api/v1")
-    register_blueprint_with_docs(api_spec, frontend, "frontend")
+    register_blueprint_with_docs(
+        api_spec, frontend, "frontend", url_prefix="/api/v1")
     register_blueprint_with_docs(
         api_spec, posts, "posts", url_prefix="/api/v1")
     register_blueprint_with_docs(

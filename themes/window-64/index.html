@@ -1,7 +1,10 @@
 <html>
   <head>
+    <style>
+      
+    </style>
     <title>Old Desktop</title>
-    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./static/window-64/style.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -12,24 +15,46 @@
 
   <body>
     <nav>
-      <text>Username goes here</text>
+      <!-- <text>Username goes here</text> -->
+      <text> {{ title }} </text>
       <div class="nav-icon-container">
-        <img src="./images/bug-fill.svg" alt="Minimize" class="nav-icon" />
-        <img src="./images/bug-outline.svg" alt="Close" class="nav-icon" />
+        <img src="./static/window-64/images/bug-fill.svg" alt="Minimize" class="nav-icon" />
+        <img src="./static/window-64/images/bug-outline.svg" alt="Close" class="nav-icon" />
       </div>
     </nav>
     <main class="grid-container">
+      {% for post in simplifiedPostList %}
+
+      <a href="{{ post.post_url }}"
+        onclick="textModal(event, '{{ post.domain_name }}', '{{ post.type }}')">
       <div class="post-container">
+        {% if post.type == "text" %}
         <img
-          src="./images/Text.png"
+          src="./static/window-64/images/Text.png"
           alt="File"
           class="post-icon clickable-text-element"
         />
-        <p class="clickable-text-element">Document name</p>
-      </div>
-      <div class="post-container">
+          {% if post.title %}
+          <p class="clickable-text-element">{{ post.title[:7] }}...</p>
+          {% endif%}
+        {% elif post.type == "picture" %}
         <img
-          src="./images/Text.png"
+          src="./static/window-64/images/Picture.png"
+          alt="Picture"
+          class="post-icon clickable-picture-element"
+        />
+          {% if post.title %}
+          <p class="clickable-picture-element">{{ post.title[:7] }}...</p>
+          {% endif %}
+        {% endif %}
+      </div>
+      </a>
+
+      {% endfor %}
+      
+      <!-- <div class="post-container">
+        <img
+          src="./static/window-64/images/Text.png"
           alt="File"
           class="post-icon clickable-text-element"
         />
@@ -38,7 +63,7 @@
 
       <div class="post-container">
         <img
-          src="./images/Picture.png"
+          src="./static/window-64/images/Picture.png"
           alt="Picture"
           class="post-icon clickable-picture-element"
         />
@@ -46,7 +71,7 @@
       </div>
       <div class="post-container">
         <img
-          src="./images/Folder.png"
+          src="./static/window-64/images/Folder.png"
           alt="File"
           class="post-icon clickable-folder-element"
         />
@@ -54,14 +79,14 @@
       </div>
 
     </main>
-    <div id="draggble" class="test-div test-div-0"><p> hello world</p></div>
+    <div id="draggble" class="test-div test-div-0"><p> hello world</p></div> -->
 
     <!-- ///////////////////////////// text modal //////////////////////// -->
     <div class="text-modal">
       <div class="modal-header-container">
           <div class="modal-title">
-              <img src = "./images/Text.png" alt="Minimize" class="modal-icon"/>
-              <p>This is the modal title</p>
+              <img src = "./static/window-64/images/Text.png" alt="Minimize" class="modal-icon"/>
+              <p>PLACEHOLDER</p>
           </div>
           <div class="modal-navigation">
               <p class="modal-nav-minimise-icon">__</p>
@@ -70,7 +95,7 @@
       </div>
       <div class="modal-text-content-container">
           <div class="article">
-          <div class="text-image-container"><img src="./images/Dummyimage.jpg" class="text-banner"></div>
+          <div class="text-image-container"><img src="./static/window-64/images/Dummyimage.jpg" class="text-banner"></div>
           <h1>Title of this article</h1>
           <p>It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum</p>
           </div>
@@ -82,7 +107,7 @@
     <div class="picture-modal">
       <div class="modal-header-container">
   <div class="modal-title">
-      <img src = "./images/Inverted-picture.png" alt="Minimize" class="modal-icon"/>
+      <img src = "./static/window-64/images/Inverted-picture.png" alt="Minimize" class="modal-icon"/>
       <p>This is a picture modal</p>
   </div>
   <div class="modal-navigation">
@@ -91,7 +116,7 @@
   </div>
 </div>
 <div class="modal-picture-content-container">
-<img src = "./images/Imageplaceholder.avif" alt="main image" class="picture-container"/>
+<img src = "./static/window-64/images/Imageplaceholder.avif" alt="main image" class="picture-container"/>
 </div>
 <div class="pallette">
   <div class="selectedColour">
@@ -127,7 +152,7 @@
     <div class="folder-modal">
       <div class="modal-header-container">
   <div class="modal-title">
-      <img src = "./images/Folder.png" alt="Minimize" class="modal-icon"/>
+      <img src = "./static/window-64/images/Folder.png" alt="Minimize" class="modal-icon"/>
       <p>Open</p>
   </div>
   <div class="modal-navigation">
@@ -138,39 +163,39 @@
 <div class="location-folder-container">
   <p>Look in</p>
   <div class="location-route">
-      <img src = "./images/Folder.png" alt="Folder" class="location-icon"/>
+      <img src = "./static/window-64/images/Folder.png" alt="Folder" class="location-icon"/>
       <p>Your brain</p>
   </div>
   <div class="folder-icon-container">
-  <img src = "./images/bug-fill.svg" alt="Minimize" class="nav-icon"/>
-  <img src = "./images/bug-outline.svg" alt="Close" class="nav-icon"/>
+  <img src = "./static/window-64/images/bug-fill.svg" alt="Minimize" class="nav-icon"/>
+  <img src = "./static/window-64/images/bug-outline.svg" alt="Close" class="nav-icon"/>
 </div>
 </div>
 <div class="folder-body-container">
   <div class="folder-content">
   <div class="file-container" id="clickableSVG">
-          <img src = "./images/Text.png" alt="File" class="file-icon clickable-text-element"/>
+          <img src = "./static/window-64/images/Text.png" alt="File" class="file-icon clickable-text-element"/>
           <p class="clickable-text-element">name</p>
   </div>
   <div class="file-container">
-          <img src = "./images/Text.png" alt="File" class="file-icon clickable-text-element"/>
+          <img src = "./static/window-64/images/Text.png" alt="File" class="file-icon clickable-text-element"/>
           <p class="clickable-text-element">Document name</p>
   </div>
   <div class="file-container">
-          <img src = "./images/Text.png" alt="File" class="file-icon clickable-text-element"/>
+          <img src = "./static/window-64/images/Text.png" alt="File" class="file-icon clickable-text-element"/>
           <p class="clickable-text-element">Document name</p>
   </div>
   <div class="file-container">
-          <img src = "./images/Text.png" alt="File" class="file-icon clickable-text-element"/>
+          <img src = "./static/window-64/images/Text.png" alt="File" class="file-icon clickable-text-element"/>
           <p class="clickable-text-element">Document name</p>
   </div>
       
   <div class="file-container">
-          <img src = "./images/Picture.png" alt="Picture" class="file-icon clickable-picture-element"/>
+          <img src = "./static/window-64/images/Picture.png" alt="Picture" class="file-icon clickable-picture-element"/>
           <p class="clickable-picture-element">Picture name</p>
       </div>
       <div class="file-container">
-          <img src = "./images/Folder.png" alt="File" class="file-icon clickable-folder-element" />
+          <img src = "./static/window-64/images/Folder.png" alt="File" class="file-icon clickable-folder-element" />
           <p class="clickable-folder-element">File name</p>
       </div>
 </div>
@@ -193,6 +218,7 @@
   </div>
     </div>
 
-  <script src="./script.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js" integrity="sha512-emSwuKiMyYedRwflbZB2ghzX8Cw8fmNVgZ6yQNNXXagFzFOaQmbvQ1vmDkddHjm5AITcBIZfC7k4ShQSjgPAmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="./static/window-64/script.js"></script>
   </body>
 </html>

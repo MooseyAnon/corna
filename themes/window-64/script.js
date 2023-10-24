@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-  clickListener(document, "clickable-text-element", textModal);
-  clickListener(document, "clickable-picture-element", pictureModal);
+  // clickListener(document, "clickable-text-element", textModal);
+  // clickListener(document, "clickable-picture-element", pictureModal);
   clickListener(document, "clickable-folder-element", folderModal);
 
 });
@@ -27,13 +27,42 @@ function folderModal() {
 }
 
 
-function textModal() {
+function textModal(e, domain_name, type) {
+  // e = e || window.event;
+  e.preventDefault();
+  console.log("prevented default");
+  console.log(domain_name, type)
   _ = document.getElementsByClassName("text-modal")[0];
 
   const popupWidth = 630; // Width of the modal.
   const popupHeight = 400; // Height of the modal.
   
-  addDisplay(_, popupWidth, popupHeight);
+  el = addDisplay(_, popupWidth, popupHeight, ret=true);
+
+  axios({
+    method: "get",
+    url: `http://192.168.1.152:8080/api/v1/posts/${domain_name}/${type}/89995ab5-4583-4189-b7e6-f43ca8f3a4fd`,
+    withCredentials: true,
+  })
+  .then((response) => {
+    json = response.data.post;
+    console.log(json);
+    let title = el.getElementsByClassName("modal-title")[0];
+    let p = title.getElementsByTagName("p")[0];
+    p.innerText = json.title;
+
+    // // let img = title.getElementsByTagName("img")[0];
+    // // img.src = "./static/window-64/images/Text.png";
+
+    let content = el.getElementsByClassName("modal-text-content-container")[0];
+    let contentHeader = content.getElementsByTagName("h1")[0];
+    contentHeader.innerText = json.title;
+
+    let contentPara = content.getElementsByTagName("p")[0];
+    contentPara.innerText = json.body;
+    
+    document.body.appendChild(el);
+  })
 }
 
 
@@ -129,3 +158,13 @@ function dragElement(elmnt) {
     document.onmousemove = null;
   }
 }
+
+
+// function modalData() {
+//   return axios({
+//     method: "get",
+//     url: "/api/v1/posts/moose-corna/text/uuid",
+//     withCredentials: true,
+//   })
+//   .then((response) => )
+// }
