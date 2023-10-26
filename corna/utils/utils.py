@@ -15,10 +15,13 @@ import flask
 from marshmallow import fields, missing as marshmallow_missing
 import requests
 from sqlalchemy import exists
+from werkzeug.local import LocalProxy
 
 from corna.controls.marshmallow_control import BaseSchema
 from corna import enums
+from corna.db import models
 from corna.utils import secure
+from corna.utils.errors import NotLoggedInError
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +101,37 @@ def login_required(func: Callable):
 
         return func(*args, **kwargs)
     return inner
+
+
+def current_user(
+    session: LocalProxy, 
+    cookie: str,
+    error: Callable = NotLoggedInError,
+) -> models.UserTable:
+    """Return the current user.
+
+    This function returns an instance of the current user depending
+    on the given cookie.
+
+    :param LocalProxy session: a db session
+    :param str cookie: a signed cookie
+
+    :return: a user object
+    :rtype: models.UserTable
+    :raises NotLoggedInError: if user is not logged int
+    """
+    cookie_id: str = secure.decoded_message(cookie)
+    user_session: Optional[models.UserTable] = (
+        session
+        .query(models.SessionTable)
+        .filter(models.SessionTable.cookie_id == cookie_id)
+        .one_or_none()
+    )
+
+    if user_session is None:
+        raise error("User not logged in")
+
+    return user_session.user
 
 
 def check_response(response, error_msg, exc_cls):
