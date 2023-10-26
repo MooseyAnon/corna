@@ -7,6 +7,7 @@ from sqlalchemy import exists
 
 from corna.db import models
 from corna.utils import secure, utils
+from corna.utils.utils import current_user
 from corna.utils.errors import (
     DomainExistsError, NoneExistingUserError, PreExistingCornaError)
 
@@ -51,22 +52,13 @@ def create(session: Any, data: Dict[str, Any]) -> None:
     :param sqlalchemy.Session session: db session
     :param dict data: data required to create corna
 
-    :raises NoneExistingUserError: no user session i.e. not logged in
     :raises PreExistingCornaError: user has another corna already
     :raises DomainExistsError: domain name not unique
     """
-    # cookies are signed to we need to decode them for lookups to work
-    cookie_id: str = secure.decoded_message(data["cookie"])
-    user_session: Optional[object] = (
-        session
-        .query(models.SessionTable)
-        .filter(models.SessionTable.cookie_id == cookie_id)
-        .one_or_none()
+    user: object = current_user(
+        session, data["cookie"],
+        error=NoneExistingUserError
     )
-    if user_session is None:
-        raise NoneExistingUserError("Unable to find user")
-
-    user: object = user_session.user
 
     if exists_(session, models.CornaTable.user_uuid, user.uuid):
         # user already has a Corna
@@ -94,24 +86,18 @@ def get_domain(session: Any, signed_cookie: str) -> str:
 
     :returns: user domain name
     :rtype: str
-    :raises NoneExistingUserError: No user session i.e. not logged in
     :raises NoDomainError: no domain associated with user i.e. they
         have not created a corna
     """
-    unsigned_cookie: str = secure.decoded_message(signed_cookie)
-    user_session: Optional[object] = (
-        session
-        .query(models.SessionTable)
-        .filter(models.SessionTable.cookie_id == unsigned_cookie)
-        .one_or_none()
+    user: object = current_user(
+        session, signed_cookie,
+        error=NoneExistingUserError
     )
-    if user_session is None:
-        raise NoneExistingUserError("Unable to find user")
 
     corna: Optional[object] = (
         session.
         query(models.CornaTable)
-        .filter(models.CornaTable.user_uuid == user_session.user_uuid)
+        .filter(models.CornaTable.user_uuid == user.user_uuid)
         .one_or_none()
     )
     if not corna:
