@@ -207,9 +207,15 @@ class PostTable(Base):
 
     __tablename__ = "posts"
 
-    post_uuid = Column(
+    uuid = Column(
         UUID,
         primary_key=True,
+    )
+    url_extension = Column(
+        Text,
+        index=True,
+        unique=True,
+        doc="The url extension of the post",
     )
     created = Column(
         DateTime,
@@ -231,86 +237,58 @@ class PostTable(Base):
         "CornaTable",
         back_populates="posts",
     )
-    mapper = relationship(
-        "PostObjectMap",
+    text = relationship(
+        "TextContent",
         uselist=False,
         back_populates="post",
     )
+    images = relationship(
+        "Images",
+        back_populates="post",
+        )
 
 
-class PostObjectMap(Base):
-    """Maps posts to objects via post type field.
+class TextContent(Base):
+    """Table for holding text and related data."""
 
-    Each post can only be one type of 'post' so this table
-    will be quite sparse. At any given time only three columns
-    will have an entry:
-      - uuid
-      - post_uuid
-      - main object uuid
-    """
-    __tablename__ = "post_object_map"
+    __tablename__ = "text"
 
     uuid = Column(
         UUID,
         primary_key=True,
     )
+    title = Column(
+        Text,
+        doc="Title of the text"
+    )
+    content = Column(
+        Text,
+        doc="Any text content associated with the post.",
+    )
+    created = Column(
+        DateTime,
+        doc="Text creation timestamp",
+    )
     post_uuid = Column(
         UUID,
-        ForeignKey("posts.post_uuid"),
-        doc="Foreign key pointer to post table",
-    )
-    text_post_uuid = Column(
-        UUID,
-        ForeignKey("text_posts.uuid"),
-        doc="Foreign key pointer to main text post object",
-    )
-    photo_post_uuid = Column(
-        UUID,
-        ForeignKey("photo_posts.uuid"),
-        doc="Foreign key pointer to main photo post object",
+        ForeignKey("posts.uuid"),
+        unique=True,
+        nullable=True,
+        doc="A nullable FK to the posts table. The reason we allow this field "
+            "to be nullable is because this means the text table can be a "
+            "bit more generic e.g. we can use it to save the 'about' section "
+            "for a corna which will not be associated with any post.",
     )
     post = relationship(
         "PostTable",
-        back_populates="mapper",
-    )
-    text = relationship(
-        "TextPost",
-        back_populates="mapper",
-    )
-    photo = relationship(
-        "PhotoPost",
-        back_populates="mapper",
-    )
-
-
-class TextPost(Base):
-    """Table for text posts."""
-
-    __tablename__ = "text_posts"
-
-    uuid = Column(
-        UUID,
-        primary_key=True
-    )
-    title = Column(
-        Text,
-        doc="Title of the text post"
-    )
-    body = Column(
-        Text,
-        doc="Body of the text post"
-    )
-    mapper = relationship(
-        "PostObjectMap",
-        uselist=False,
         back_populates="text",
     )
 
 
-class PhotoPost(Base):
-    """Table for picture posts."""
+class Images(Base):
+    """Table for image data."""
 
-    __tablename__ = "photo_posts"
+    __tablename__ = "images"
 
     uuid = Column(
         UUID,
@@ -320,23 +298,31 @@ class PhotoPost(Base):
         Text,
         index=True,
         unique=True,
-        doc="The url extension of the picture, this will be used to"
-            "load the picture on each corna",
+        doc="The url extension of the picture, this will be used to "
+            "fetch the image on the client.",
     )
     path = Column(
         Text,
-        doc="path to photo",
-    )
-    caption = Column(
-        Text,
-        doc="Optional caption associated with picture",
+        doc="path to image",
     )
     size = Column(
         Integer,
         doc="Size of file in bytes. This is essentially output of `stat`",
     )
-    mapper = relationship(
-        "PostObjectMap",
-        uselist=False,
-        back_populates="photo",
+    created = Column(
+        DateTime,
+        doc="image creation timestamp",
+    )
+    post_uuid = Column(
+        UUID,
+        ForeignKey("posts.uuid"),
+        nullable=True,
+        doc="A nullable FK to the posts table. The reason we allow this field "
+            "to be nullable is because this means the images table can be a "
+            "bit more generic e.g. we can use it to save a favicon which will "
+            "not be associated with any post.",
+    )
+    post = relationship(
+        "PostTable",
+        back_populates="images",
     )

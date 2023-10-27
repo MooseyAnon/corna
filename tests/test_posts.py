@@ -47,10 +47,16 @@ def _all_post_based_stubs(tmpdir, mocker, monkeypatch):
 
 
 @freeze_time(FROZEN_TIME)
-def test_create_post(session, client, corna):
+@pytest.mark.parametrize("with_image", [False, True])
+def test_create_post(session, client, corna, with_image):
+    out_post = shared_data.mock_post(
+        with_content=True,
+        with_title=True,
+        with_image=with_image,
+    )
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
-        data=shared_data.simple_text_post
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        data=out_post,
     )
     assert resp.status_code == 201
 
@@ -70,36 +76,46 @@ def test_create_post(session, client, corna):
     assert len(corna.posts) == 1
 
     post = session.query(models.PostTable).first()
-    text = session.query(models.TextPost).first()
+    text = session.query(models.TextContent).first()
     
     # checking foreign key relationships
     assert post.corna_uuid == corna.uuid
-    assert post.mapper is text.mapper
-    assert post.mapper.text_post_uuid == text.uuid
+    assert text.post_uuid == post.uuid
 
-    assert post.type == shared_data.simple_text_post["type"]
+    assert post.type == out_post["type"]
     assert post.deleted == False
     assert post.created.isoformat() == FROZEN_TIME
 
-    assert text.body == shared_data.simple_text_post["content"]
-    assert text.title == shared_data.simple_text_post["title"]
+    assert text.content == out_post["content"]
+    assert text.title == out_post["title"]
 
-    # make sure the save was mutually exclusive in the mapper object
-    mapper = post.mapper
-
-    assert mapper.post_uuid == post.post_uuid
-    assert mapper.photo_post_uuid is None
-    assert mapper.photo is None
+    if with_image:
+        assert len(post.images) == 1
+        image = post.images[0]
+        # check relationships
+        assert image.post_uuid == post.uuid
+        assert image.size >= 1024
+        assert image.url_extension == "abcdef"
 
 
 @freeze_time(FROZEN_TIME)
-def test_post_with_picture(session, client, corna):
+@pytest.mark.parametrize("with_image,expected", [(False, 400), (True, 201)])
+def test_post_with_picture(session, client, corna, with_image, expected):
     assets = post_control.PICTURE_DIR
-    
-    resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
-        data=shared_data.post_with_picture
+    out_post = shared_data.mock_post(
+        type_="picture",
+        with_content=True,
+        with_title=True,
+        with_image=with_image
     )
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/photo-post",
+        data=out_post
+    )
+    assert resp.status_code == expected
+
+    # return early on no image text as there is nothing to check
+    if not with_image: return
 
     expected_path = assets / "thi/sis/afa/kehash12345"
     assert expected_path.exists()
@@ -123,126 +139,105 @@ def test_post_with_picture(session, client, corna):
     )
     assert len(corna.posts) == 1
     post = session.query(models.PostTable).first()
-    pic = session.query(models.PhotoPost).first()
+    pic = session.query(models.Images).first()
+    text = session.query(models.TextContent).first()
 
     # checking foreign key relationships
     assert post.corna_uuid == corna.uuid
-    assert post.mapper is pic.mapper
-    assert post.mapper.photo_post_uuid == pic.uuid
+    assert pic.post_uuid == post.uuid
+    assert text.post_uuid == post.uuid
 
-    assert post.type == shared_data.post_with_picture["type"]
+    assert post.type == out_post["type"]
     assert post.deleted == False
     assert post.created.isoformat() == FROZEN_TIME
-    assert pic.caption == shared_data.post_with_picture["caption"]
-    assert pic.size > 1024
+
+    assert text.content == out_post["caption"]
+    assert pic.size >= 1024
     assert pic.path == expected_path.listdir()[0]
-
-    # make sure the save was mutually exclusive in the mapper object
-    mapper = post.mapper
-
-    assert mapper.post_uuid == post.post_uuid
-    assert mapper.text_post_uuid is None
-    assert mapper.text is None
+    assert pic.url_extension == "abcdef"
 
 
 @freeze_time(FROZEN_TIME)
-def test_get_one_post(session, client, corna):
+def test_get_all_posts(session, client, corna):
     assets = post_control.PICTURE_DIR
+    out_post = shared_data.mock_post(
+        with_content=True,
+        with_title=True,
+        with_image=True,
+    )
 
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
-        data=shared_data.simple_text_post
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        data=out_post
     )
     assert resp.status_code == 201
 
     resp = client.get(f"api/v1/posts/{shared_data.corna_info['domain_name']}")
     
-    # there should only be 4 fields in the response. This test
-    # is to make sure marshmallow is dropping fields correctly
-    assert len(resp.json["posts"][0]) == 4
-
-    post = resp.json["posts"][0]
-    assert post["body"] == shared_data.simple_text_post["content"]
-    assert post["title"] == shared_data.simple_text_post["title"]
-    assert post["created"] == FROZEN_TIME
-    assert post["type"] == "text"
-
-
-@freeze_time(FROZEN_TIME)
-def test_get_multiple_posts(session, client, corna):
-    assets = post_control.PICTURE_DIR
-
-    # opening the picture file in a shared directory fucks things up
-    # over multiple runs, so its easier just to put it in here
-    post_with_picture = {
-        "type": "picture",
-        "caption": "this is a picture I did not take",
-        "pictures": (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb"),
+    expected = {
+        "posts": [{
+            "content": (
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed "
+                "do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut "
+                "enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi "
+                "ut aliquip ex ea commodo consequat. Duis aute irure dolor in "
+                "reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla "
+                "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "
+                "culpa qui officia deserunt mollit anim id est laborum."
+            ),
+            "type": "text",
+            "title": "this is a title of a post",
+            "created": FROZEN_TIME,
+            "post_url": "https://api.mycorna.com/v1/posts/some-fake-domain/text/abcdef",
+            "image_urls": ["https://api.mycorna.com/v1/posts/some-fake-domain/image/abcdef"],
+        }]
     }
 
-    for post in (shared_data.simple_text_post, post_with_picture):
-        resp = client.post(
-            f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
-            data=post
-        )
-        assert resp.status_code == 201
-
-    resp = client.get(f"api/v1/posts/{shared_data.corna_info['domain_name']}")
-    posts = resp.json["posts"]
-
-    for post in posts:
-        if post["type"] == "text":
-            assert post["body"] == shared_data.simple_text_post["content"]
-            assert post["title"] == shared_data.simple_text_post["title"]
-            assert post["created"] == FROZEN_TIME
-        if post["type"] == "picture":
-            assert post["caption"] == shared_data.post_with_picture["caption"]
-            assert post["url"] is not None
-            assert post["created"] == FROZEN_TIME
+    assert len(resp.json["posts"][0]) > 0
+    actual = resp.json
+    assert actual == expected
 
 
 @freeze_time(FROZEN_TIME)
 def test_get_image(session, client, corna):
     assets = post_control.PICTURE_DIR
-
-    # opening the picture file in a shared directory fucks things up
-    # over multiple runs, so its easier just to put it in here
-    post_with_picture = {
-        "type": "picture",
-        "caption": "this is a picture I did not take",
-        "pictures": (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb"),
-    }
+    out_post = shared_data.mock_post(
+        type_="picture",
+        with_content=True,
+        with_title=True,
+        with_image=True,
+    )
 
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
-        data=post_with_picture
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/photo-post",
+        data=out_post
     )
     assert resp.status_code == 201
 
     expected_path = assets / "thi/sis/afa/kehash12345"
     assert expected_path.exists()
 
-    full_path = expected_path.listdir()[0]
-    assert post_control.get_image(
+    expected = expected_path.listdir()[0]
+    actual = post_control.get_image(
         session,
         shared_data.corna_info['domain_name'],
-        "abcdef") == full_path
+        "abcdef"
+    )
+    assert actual == expected
 
 
 def test_path_collision(session, client, capsys, corna):
     assets = post_control.PICTURE_DIR
-
-    # opening the picture file in a shared directory fucks things up
-    # over multiple runs, so its easier just to put it in here
-    post_with_picture = {
-        "type": "picture",
-        "caption": "this is a picture I did not take",
-        "pictures": (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb"),
-    }
+    out_post = shared_data.mock_post(
+        type_="picture",
+        with_content=True,
+        with_title=True,
+        with_image=True,
+    )
 
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
-        data=post_with_picture
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/photo-post",
+        data=out_post
     )
     assert resp.status_code == 201
     # check pic exists
@@ -269,24 +264,35 @@ def test_path_collision(session, client, capsys, corna):
     assert len((assets / "thi/sis/afa/kehash12345").listdir()) == 2
 
 
-def test_when_user_not_logged_in_client(session, client):
+@pytest.mark.parametrize("type_", ["text", "photo"])
+def test_when_user_not_logged_in_client(session, client, type_):
+    out_post = shared_data.mock_post(
+        with_content=True,
+        with_title=True,
+        with_image=False,
+    )
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
-        data=shared_data.simple_text_post
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/{type_}-post",
+        data=out_post
     )
     assert resp.status_code == 400
     assert "Login required for this action" in resp.json["message"]
 
 
 def test_user_attempt_with_invalid_cookie(session, client, corna):
+    out_post = shared_data.mock_post(
+        with_content=True,
+        with_title=True,
+        with_image=False,
+    )
     client.set_cookie(
         "/",
         key=enums.SessionNames.SESSION.value,
         value="this-is-a-fake-cookie"
     )
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}",
-        data=shared_data.simple_text_post
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        data=out_post
     )
     assert resp.status_code == 400
     assert "Login required for this action" in resp.json["message"]
