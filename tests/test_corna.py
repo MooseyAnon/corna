@@ -80,7 +80,7 @@ def test_user_already_has_corna(client, corna):
 def test_domain_name_not_unique(session, client, corna):
     # make new adhoc user
     resp = client.post(
-        "/api/v1/register",
+        "/api/v1/auth/register",
         json={
             "email_address": "new.email@tester.com",
             "password": "some-fake=password",
@@ -90,7 +90,7 @@ def test_domain_name_not_unique(session, client, corna):
     assert resp.status_code == 201
 
     # login
-    resp = client.post("/api/v1/login",
+    resp = client.post("/api/v1/auth/login",
         json={
             "email_address": "new.email@tester.com",
             "password": "some-fake=password",

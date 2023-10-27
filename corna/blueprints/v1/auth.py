@@ -103,7 +103,7 @@ def set_cookie(response: flask.Response, **kwargs: Dict[str, Any]) -> None:
     response.set_cookie(**kwargs)
 
 
-@auth.route("/register", methods=["POST"])
+@auth.route("/auth/register", methods=["POST"])
 @use_kwargs(UserCreateSchema())
 @doc(
     tags=["Auth"],
@@ -125,7 +125,7 @@ def register_user(**data: Dict) -> Union[flask.Response, str]:
     return create_response(status=HTTPStatus.CREATED)
 
 
-@auth.route("/login", methods=["POST"])
+@auth.route("/auth/login", methods=["POST"])
 @use_kwargs(LoginSchema())
 @doc(
     tags=["Auth"],
@@ -170,7 +170,7 @@ def login_user(**data: Dict) -> Union[flask.Response, str]:
     return response
 
 
-@auth.route("/logout", methods=["POST"])
+@auth.route("/auth/logout", methods=["POST"])
 @doc(
     tags=["Auth"],
     description="Log out a user session"
