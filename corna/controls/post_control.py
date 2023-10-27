@@ -106,7 +106,7 @@ def handle_pictures(picture: Any) -> str:
     :rtype: str
     """
     secure_image_name: str = secure_filename(picture.filename)
-    image_hash: str = image_proc.hash_image(secure_image_name)
+    image_hash: str = image_proc.hash_image(picture)
     # combination of the root assets dir and the hash derived fs
     directory_path: str = f"{PICTURE_DIR}/{hash_to_dir(image_hash)}"
 
