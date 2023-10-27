@@ -8,7 +8,7 @@ from tests.shared_data import single_user
 
 def test_regester(session, client):
     user_deets = single_user()
-    resp = client.post("/api/v1/register", json=user_deets)
+    resp = client.post("/api/v1/auth/register", json=user_deets)
     assert resp.status_code == 201
     assert len(session.query(models.EmailTable).all()) == 1
     assert len(session.query(models.UserTable).all()) == 1
@@ -42,7 +42,7 @@ def test_email_in_use_register_attempt(client, user):
 
     # try create another account with same user deets
     user_deets = single_user()
-    resp = client.post("/api/v1/register", json=user_deets)
+    resp = client.post("/api/v1/auth/register", json=user_deets)
     assert resp.status_code == 400
     assert resp.json["message"] == "Email address already has an account"
 
@@ -50,7 +50,7 @@ def test_email_in_use_register_attempt(client, user):
 def test_login(session, client, user):
 
     user_deets = single_user()
-    resp = client.post("/api/v1/login", json={
+    resp = client.post("/api/v1/auth/login", json={
             "email_address": user_deets["email_address"],
             "password": user_deets["password"],
         }
@@ -92,7 +92,7 @@ def test_login(session, client, user):
 def test_user_already_logged_in(session, client, login):
 
     user_deets = single_user()
-    resp = client.post("/api/v1/login", json={
+    resp = client.post("/api/v1/auth/login", json={
             "email_address": user_deets["email_address"],
             "password": user_deets["password"],
         }
@@ -139,7 +139,7 @@ def test_login_attempt_with_wrong_creds(
     client, user, email, password, expected_status
 ):
 
-    resp = client.post("/api/v1/login", json={
+    resp = client.post("/api/v1/auth/login", json={
             "email_address": email,
             "password": password,
         }
@@ -158,7 +158,7 @@ def test_headers(mocker, client, user):
         }
     )
     user_deets = single_user()
-    resp = client.post("/api/v1/login", json={
+    resp = client.post("/api/v1/auth/login", json={
             "email_address": user_deets["email_address"],
             "password": user_deets["password"],
         }
@@ -187,7 +187,7 @@ def test_headers(mocker, client, user):
 def test_secure_cookie(session, client, user):
 
     user_deets = single_user()
-    resp = client.post("/api/v1/login", json={
+    resp = client.post("/api/v1/auth/login", json={
             "email_address": user_deets["email_address"],
             "password": user_deets["password"],
         }
@@ -215,7 +215,7 @@ def test_logout(session, client, login):
     )
     assert cookie is not None
     # logout
-    resp = client.post("/api/v1/logout")
+    resp = client.post("/api/v1/auth/logout")
     assert resp.status_code == 200
 
     # check db
@@ -255,7 +255,7 @@ def test_new_session_starts_for_logged_in_user(session, client, login):
 
     # try to log user in
     user_deets = single_user()
-    resp = client.post("/api/v1/login", json={
+    resp = client.post("/api/v1/auth/login", json={
             "email_address": user_deets["email_address"],
             "password": user_deets["password"],
         }

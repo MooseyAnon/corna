@@ -124,7 +124,7 @@ def _client(session, request):
 
 @pytest.fixture(name="user")
 def _create_user(client):
-    resp = client.post("/api/v1/register", json=single_user())
+    resp = client.post("/api/v1/auth/register", json=single_user())
     assert resp.status_code == 201
     logger.debug("created user")
 
@@ -135,7 +135,7 @@ def _create_and_login_user(client, user):
     email = user_deets["email_address"]
     password = user_deets["password"]
 
-    resp = client.post("/api/v1/login", json={
+    resp = client.post("/api/v1/auth/login", json={
             "email_address": email,
             "password": password,
         }
