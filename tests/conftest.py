@@ -153,25 +153,16 @@ def _create_corna_for_logged_in_user(client, login):
     assert resp.status_code == 201
 
 
-@pytest.fixture(name="sec_headers", autouse=True)
-def _secure_headers(mocker):
+@pytest.fixture(autouse=True)
+def system_patches(mocker, monkeypatch):
+    """System wide patches that are needed for every test."""
     # mock out secure headers
     mocker.patch("corna.utils.secure.secure_headers", return_value={})
-
-
-@pytest.fixture(autouse=True)
-def _clear_all_envvars(monkeypatch):
-    """Clear all the env vars needed for vault access.
-
-    This prevents leakage from the users environment into the tests. Where
-    needed tests will patch as required.
-    """
+    # Clear all the env vars needed for vault access.
+    # This prevents leakage from the users environment into the tests. Where
+    #needed tests will patch as required.
     monkeypatch.delenv("ANSIBLE_VAULT_PASSWORD_FILE", raising=False)
     monkeypatch.delenv("ANSIBLE_VAULT_PATH", raising=False)
-
-
-@pytest.fixture(name="vault_item", autouse=True)
-def _vault_item(mocker):
     # mocker vault interactions
     mocker.patch("corna.utils.secure.vault_item", return_value="random-string")
 
