@@ -2,14 +2,19 @@
 import enum
 
 
-class ContentType(enum.Enum):
+class EnumWrapper(enum.Enum):
+    """Wrapper to add extra functionality to enums."""
+
+    def __eq__(self, other):
+        """Make equality syntax more ergonomic."""
+        return self.value == other
+
+
+class ContentType(EnumWrapper):
     """Types of content we currently accept."""
     TEXT = "text"
     PHOTO = "picture"
 
-    def __eq__(self, other):
-        return self.value == other
 
-
-class SessionNames(enum.Enum):
+class SessionNames(EnumWrapper):
     SESSION = "corna-sesh"
