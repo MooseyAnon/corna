@@ -1,10 +1,10 @@
 """Manage Corna posts."""
-import datetime
+
 import logging
 import os
 import random
 import string
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 # for types
 from werkzeug.datastructures import FileStorage
@@ -16,8 +16,7 @@ from corna.enums import ContentType
 from corna.utils import get_utc_now
 from corna.utils import image_proc, secure, utils
 from corna.utils.utils import current_user
-from corna.utils.errors import (
-    CornaOwnerError, NotLoggedInError, NoneExistingUserError)
+from corna.utils.errors import CornaOwnerError
 
 
 logger = logging.Logger(__name__)
@@ -66,7 +65,7 @@ def get_corna(session: LocalProxy, domain_name: str) -> models.CornaTable:
     return corna
 
 
-# from: https://stackoverflow.com/questions/13484726/safe-enough-8-character-short-unique-random-string
+# from: https://stackoverflow.com/q/13484726
 def random_short_string(length: int = 8) -> str:
     """Random-ish short string generator.
 
@@ -105,6 +104,7 @@ def handle_pictures(picture: Any) -> str:
     :param flask.FileStorage picture: the picture to save
     :returns: the full path of the picture
     :rtype: str
+    :raises OSError: if picture cannot be saved
     """
     secure_image_name: str = secure_filename(picture.filename)
     image_hash: str = image_proc.hash_image(picture)
@@ -117,10 +117,13 @@ def handle_pictures(picture: Any) -> str:
     try:
         utils.mkdir(directory_path, exists_ok=False)
 
-    except FileExistsError as e:
+    except FileExistsError as error_message:
         logger.warning(
-            f"Photo directory exists, duplicate? Dir path: {directory_path}. "
-            f"Name of image: {secure_image_name}"
+            "Photo directory exists, duplicate? Dir path: %s. "
+            "Name of image: %s. Error: %s",
+            directory_path,
+            secure_image_name,
+            error_message,
         )
 
     full_path: str = f"{directory_path}/{secure_image_name}"
@@ -139,6 +142,8 @@ def create(session: Any, data: Dict[Any, Any]) -> None:
     :param sqlalchemy.Session session: a db session
     :param dict data: the incoming data to be saved
     :raises CornaOwnerError: user does not own the corna
+    :raises InvalidContentType: if the incoming content type
+        is not correct.
     """
     user: models.UserTable = current_user(session, data["cookie"])
     corna: models.CornaTable = get_corna(session, data["domain_name"])
@@ -164,7 +169,7 @@ def create(session: Any, data: Dict[Any, Any]) -> None:
             type=type_,
             uuid=post_uuid,
             corna_uuid=corna.uuid,
-            created=utils.get_utc_now(),
+            created=get_utc_now(),
         )
     )
 
@@ -206,7 +211,7 @@ def save_image(
             path=path,
             post_uuid=post_uuid,
             size=os.stat(path).st_size,
-            created=utils.get_utc_now(),
+            created=get_utc_now(),
             url_extension=url_extension,
         )
     )
@@ -226,6 +231,7 @@ def save_text(
     :param Dict[srt, Any] data: dict containing text 'stuff'
     :param Optional[str] post_uuid: post id for relationship, if
         text content is a part of a post.
+    :param str post_uuid: post id for relationship
     """
 
     content: bool = data.get("content") or data.get("caption")
@@ -240,7 +246,7 @@ def save_text(
             uuid=utils.get_uuid(),
             title=title,
             content=content,
-            created=utils.get_utc_now(),
+            created=get_utc_now(),
         )
     )
 

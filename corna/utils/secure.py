@@ -48,6 +48,7 @@ def token_unique(session: Any, column: Any, token: str) -> bool:
     :param sqlalchemy.Session session: a db session
     :param sqlalchemy.Table.column column: name of column to search on e.g.
         UserTable.email_address
+    :param str token: the token to check for
     :returns: True if token is unqiue, else False
     :rtype: bool
     """
@@ -66,6 +67,7 @@ def generate_unique_token(
     :param sqlalchemy.Table.column column: name of column to search on e.g.
         UserTable.email_address
     :param int tries: the number of tries before giving up
+    :param Callable func: token generation function
 
     :returns: a unique token if possible
     :rtype: str
@@ -147,7 +149,7 @@ def get_signed_key() -> bytes:
 
     :returns: bytestring representing the signed and salted secret-key
     :rtype: bytes
-    :raises keyError: if either salt or secret-key are not found
+    :raises KeyError: if either salt or secret-key are not found
     """
     try:
         salt: bytes = encodings.to_bytes(
@@ -172,7 +174,7 @@ def sign(message: Union[bytes, str]) -> bytes:
     :returns: a bytestring representing the signed message
     :rtype: bytes
     """
-    expiry_date: bytes = encodings.to_bytes(utils.future().isoformat())
+    expiry_date: bytes = encodings.to_bytes(future().isoformat())
 
     key: bytes = get_signed_key()
     message: bytes = encodings.to_bytes(message)
@@ -207,7 +209,7 @@ def verify(
         signature: bytes = encodings.base64_decode(signature)
 
     except EncodingError as e:
-        raise BadSignature(e)
+        raise BadSignature from e
 
     signed_original_message: bytes = _sign(
         get_signed_key(),
@@ -222,10 +224,11 @@ def verify(
 
 def unsign(signature: Union[bytes, str]) -> Tuple[bytes, bytes, bytes]:
     """Unsign a signed messaged.
-    
+
     :param Union[bytes, str] signature:
     :returns: the original message and its expected hash value
     :rtype: Tuple[bytes, bytes]
+    :raises BadSignature:
     """
     message: bytes
     hash_value: bytes
@@ -235,13 +238,13 @@ def unsign(signature: Union[bytes, str]) -> Tuple[bytes, bytes, bytes]:
         signature: bytes = encodings.base64_decode(signature)
 
     except EncodingError as e:
-        raise BadSignature(e)
-    
+        raise BadSignature(e) from e
+
     if not SPLITTR in signature:
         raise BadSignature(f"no {SPLITTR!r} found in signature")
 
     expiry_date, message, hash_value = signature.rsplit(SPLITTR)
-    
+
     return expiry_date, message, hash_value
 
 
@@ -253,7 +256,7 @@ def expired(iso_datetime: Union[bytes, str]) -> bool:
     :rtype: bool
     """
     parsed_datetime: datetime.datetime = parse(iso_datetime)
-    now: datetime.datetime = utils.get_utc_now()
+    now: datetime.datetime = get_utc_now()
     return now > parsed_datetime
 
 
@@ -292,5 +295,5 @@ def decoded_message(signature: bytes, encoding: str = "utf-8") -> str:
     """
     message: bytes
     _, message, _ = unsign(signature)
-    decoded_message: str = encodings.from_bytes(message, encoding=encoding)
-    return decoded_message
+    original_message: str = encodings.from_bytes(message, encoding=encoding)
+    return original_message

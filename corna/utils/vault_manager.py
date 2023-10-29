@@ -4,7 +4,6 @@ from binascii import unhexlify
 import json
 import logging
 import os
-import pathlib
 import sys
 from typing import Any, Dict, Optional, Tuple, Union
 import yaml
@@ -79,14 +78,14 @@ def get_decrypted_data() -> Dict[str, Any]:
         try:
             with open(PASSWORD_PATH, 'r', encoding="utf-8") as password_file:
                 password: str = password_file.read().strip().encode("utf-8")
-        except IOError:
-            raise OSError("Password file %r not found" % PASSWORD_PATH)
+        except IOError as e:
+            raise OSError(f"Password file {PASSWORD_PATH!r} not found") from e
 
         try:
             with open(VAULT_PATH, "r", encoding="utf-8") as vault_file:
                 encrypted_data: bytes = vault_file.readlines()
-        except IOError:
-            raise OSError("Vault file %r not found" % VAULT_PATH)
+        except IOError as e:
+            raise OSError(f"Vault file {VAULT_PATH!r} not found") from e
 
         _VAULT_DATA = decrypt_data(password, encrypted_data)
 
@@ -131,4 +130,4 @@ def pretty_print(val: Union[str, object]) -> None:
         out = json.dumps(val, indent=2)
     else:
         out = val
-    sys.stdout.write("{}\n".format(out))
+    sys.stdout.write(f"{out}\n")

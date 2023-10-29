@@ -2,7 +2,6 @@
 
 import collections.abc
 from copy import deepcopy
-import datetime
 from functools import lru_cache, wraps
 from http import HTTPStatus
 import logging
@@ -14,7 +13,6 @@ import apispec
 import flask
 from marshmallow import fields, missing as marshmallow_missing
 import requests
-from sqlalchemy import exists
 from werkzeug.local import LocalProxy
 
 from corna.controls.marshmallow_control import BaseSchema
@@ -65,7 +63,46 @@ def mkdir(path: Union[pathlib.Path, str], exists_ok: bool = True) -> None:
     path.mkdir(parents=True, exist_ok=exists_ok)
 
 
+def current_user(
+    session: LocalProxy,
+    cookie: str,
+    exception: Callable = NotLoggedInError,
+) -> models.UserTable:
+    """Return the current user.
+
+    This function returns an instance of the current user depending
+    on the given cookie.
+
+    :param LocalProxy session: a db session
+    :param str cookie: a signed cookie
+    :param Exception exception: Custom exception to raise on failure
+
+    :return: a user object
+    :rtype: models.UserTable
+    :raises exception: if user is not logged in
+    """
+    cookie_id: str = secure.decoded_message(cookie)
+    user_session: Optional[models.UserTable] = (
+        session
+        .query(models.SessionTable)
+        .filter(models.SessionTable.cookie_id == cookie_id)
+        .one_or_none()
+    )
+
+    if user_session is None:
+        raise exception("User not logged in")
+
+    return user_session.user
+
+
 def login_required(func: Callable):
+    """Login required decorator.
+
+    :param Callable func: the function being wrapped.
+    :returns: the wrapped function after the users login
+        status has been checked
+    :rtype: Callable
+    """
     @wraps(func)
     def inner(*args, **kwargs):
         """Check user is logged in."""
@@ -82,37 +119,7 @@ def login_required(func: Callable):
     return inner
 
 
-def current_user(
-    session: LocalProxy, 
-    cookie: str,
-    error: Callable = NotLoggedInError,
-) -> models.UserTable:
-    """Return the current user.
-
-    This function returns an instance of the current user depending
-    on the given cookie.
-
-    :param LocalProxy session: a db session
-    :param str cookie: a signed cookie
-
-    :return: a user object
-    :rtype: models.UserTable
-    :raises NotLoggedInError: if user is not logged int
-    """
-    cookie_id: str = secure.decoded_message(cookie)
-    user_session: Optional[models.UserTable] = (
-        session
-        .query(models.SessionTable)
-        .filter(models.SessionTable.cookie_id == cookie_id)
-        .one_or_none()
-    )
-
-    if user_session is None:
-        raise error("User not logged in")
-
-    return user_session.user
-
-
+# pylint: disable=raise-missing-from
 def check_response(response, error_msg, exc_cls):
     """Call `raise_for_status` on `response`; log `error_msg` if necessary.
 
@@ -176,7 +183,8 @@ def copy_schema_with_missing_values_stripped(schema):
     new_schema_name = f"Rules{schema.__name__}"
 
     new_fields = {}
-    for attribute, field in schema._declared_fields.items():  # pylint: disable=protected-access
+    items = schema._declared_fields.items()  # pylint: disable=protected-access
+    for attribute, field in items:
         new_field = deepcopy(field)
         if isinstance(field, fields.Nested):
             new_nested = copy_schema_with_missing_values_stripped(
@@ -207,12 +215,3 @@ def nested_dict_update(dest, other):
         else:
             dest[key] = value
     return dest
-
-
-# pylint: disable=unused-argument
-def exists_(table, column, check_val):
-    """Check if some value exists in a table"""
-    # wrap this in a try and raise error
-    return session.query(
-        exists().where(table.column == check_val)
-    ).scalar()

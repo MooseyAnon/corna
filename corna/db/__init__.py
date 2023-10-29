@@ -8,10 +8,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.event import listens_for
 from sqlalchemy.orm import sessionmaker
 
-from . import models
 from corna.utils import vault_item
+from . import models
 
-logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+logger = logging.getLogger(__name__)
 
 
 def get_sqlalchemy_url():
@@ -77,14 +77,14 @@ def session_maker(application_name="corna", statement_timeout_secs=None):
 
     if statement_timeout_secs is not None:
         statement_timeout_ms = int(statement_timeout_secs * 1000)
-        set_statement = "SET statement_timeout={}".format(statement_timeout_ms)
+        set_statement = f"SET statement_timeout={statement_timeout_ms}"
 
         # 'engine_connect' seems to be the least frequent event where
         # 'SET statement_timeout' will persist. The 'connect' event registers
         # the first time the pool connects to the db, but the statement_timeout
         # only lasts for the first query on each connection.
         @listens_for(engine, "engine_connect")
-        def set_timeout(connection, _):  # pylint: disable=unused-variable
+        def set_timeout(connection, _):
             connection.execute(set_statement)
 
     logger.info("Creating tables")

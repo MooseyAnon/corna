@@ -1,8 +1,7 @@
 """Models for the Corna app."""
 
-# pylint: disable=too-few-public-methods
 from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text)
+    Boolean, Column, DateTime, ForeignKey, Integer, String, Text)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.inspection import inspect
@@ -21,7 +20,7 @@ class Base:
 
     def __repr__(self):
         args = []
-        for column in inspect(self).attrs:  # pylint: disable=not-callable
+        for column in inspect(self).attrs:
             try:
                 val = getattr(self, column.key)
             except DetachedInstanceError:
@@ -30,7 +29,6 @@ class Base:
             if hasattr(val, '__iter__') and not isinstance(val, str):
                 args.append(f"{column.key}=[{len(val)} items]")
             elif isinstance(val, Base):
-                # pylint: disable=not-callable
                 args.append(
                     f"{column.key}={val.__class__.__name__}(pk="
                     f"{inspect(val).identity})")
@@ -116,7 +114,7 @@ class EmailTable(Base):
     @password.setter
     def password(self, password: str) -> None:
         """Setter method for a user password.
-        
+
         :param str password: users password to be hashed
         """
         self.password_hash = generate_password_hash(password)
@@ -144,7 +142,7 @@ class SessionTable(Base):
     -- is it worth makeing the cookie_id PK?
     """
     __tablename__ = "sessions"
-    
+
     session_id = Column(
         Text,
         primary_key=True,

@@ -1,13 +1,13 @@
 """Manage Corna's."""
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from sqlalchemy import exists
 
 from corna.db import models
-from corna.utils import secure, utils
 from corna.utils import get_utc_now
+from corna.utils import utils
 from corna.utils.utils import current_user
 from corna.utils.errors import (
     DomainExistsError, NoneExistingUserError, PreExistingCornaError)
@@ -58,7 +58,7 @@ def create(session: Any, data: Dict[str, Any]) -> None:
     """
     user: object = current_user(
         session, data["cookie"],
-        error=NoneExistingUserError
+        exception=NoneExistingUserError
     )
 
     if exists_(session, models.CornaTable.user_uuid, user.uuid):
@@ -73,7 +73,7 @@ def create(session: Any, data: Dict[str, Any]) -> None:
             uuid=utils.get_uuid(),
             domain_name=data["domain_name"],
             title=data["title"],
-            date_created=utils.get_utc_now(),
+            date_created=get_utc_now(),
             user_uuid=user.uuid,
         )
     )
@@ -92,7 +92,7 @@ def get_domain(session: Any, signed_cookie: str) -> str:
     """
     user: object = current_user(
         session, signed_cookie,
-        error=NoneExistingUserError
+        exception=NoneExistingUserError
     )
 
     corna: Optional[object] = (
