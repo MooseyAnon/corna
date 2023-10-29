@@ -1,6 +1,5 @@
 """Corna social blogging site."""
 
-import http
 import inspect
 import logging
 import os
@@ -13,7 +12,7 @@ from flask_sqlalchemy_session import flask_scoped_session
 
 from .blueprints.v1 import auth, corna, dummy, posts
 
-logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+logger = logging.getLogger(__name__)
 
 
 def register_blueprint_with_docs(
@@ -65,7 +64,8 @@ def create_app(session_class):
 
     # Handle argument errors
     # app.register_error_handler(
-    #     http.HTTPStatus.UNPROCESSABLE_ENTITY, docs.handle_unprocessable_entity)
+    #     http.HTTPStatus.UNPROCESSABLE_ENTITY,
+    #     docs.handle_unprocessable_entity)
     logger.info("The Flask app has been created")
 
     return app

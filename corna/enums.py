@@ -17,4 +17,5 @@ class ContentType(EnumWrapper):
 
 
 class SessionNames(EnumWrapper):
+    """Session names."""
     SESSION = "corna-sesh"

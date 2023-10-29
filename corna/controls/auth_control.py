@@ -1,6 +1,6 @@
 """Manage Auth"""
 import logging
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from corna.db import models
 from corna.utils import get_utc_now
@@ -16,6 +16,7 @@ def register_user(session: Any, user_data: Dict[str, str]) -> None:
 
     :param sqlalchemy.Session session: session object
     :param dict user_data: user data to register
+    :raises UserExistsError: if user details are already in use
     """
     user_email: Optional[str] = (
         session
@@ -37,7 +38,7 @@ def register_user(session: Any, user_data: Dict[str, str]) -> None:
             uuid=utils.get_uuid(),
             email_address=user_data["email_address"],
             username=user_data["user_name"],
-            date_created=utils.get_utc_now(),
+            date_created=get_utc_now(),
         )
     )
     logger.info("successfully registered a new user.")
@@ -48,6 +49,8 @@ def login_user(session: Any, user_data: Dict[str, str]) -> bytes:
 
     :param sqlalchemy.Session session: session object
     :param dict user_data: user data to login
+    :raises NoneExistingUserError: if user details do not exist
+    :raises IncorrectPasswordError: if password is wrong
     """
     user_account: Optional[str] = (
         session
@@ -79,7 +82,7 @@ def login_user(session: Any, user_data: Dict[str, str]) -> bytes:
     )
     logger.info("successfully logged in user and created session")
 
-    # We want to sign the cookie after its been saved into the DB. 
+    # We want to sign the cookie after its been saved into the DB.
     # The reason for this is because there are weird issues with
     # type conversions in postgres and it seems to want to save
     # the HMAC has hex rather than unicode. This is an issues as
@@ -93,7 +96,7 @@ def delete_user_session(session: Any, signed_cookie: str):
     """Delete user session.
 
     :param sqlalchemy.Session session: session object
-    :param str cookie_id: user cookie
+    :param str signed_cookie: user cookie
     """
     cookie_id = secure.decoded_message(signed_cookie)
     (

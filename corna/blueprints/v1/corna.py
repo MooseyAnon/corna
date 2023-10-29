@@ -4,7 +4,7 @@ from http import HTTPStatus
 from typing import Any, Dict, Optional
 
 import flask
-from flask_apispec import doc, use_kwargs
+from flask_apispec import doc, marshal_with, use_kwargs
 from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields
 
@@ -34,8 +34,12 @@ class CornaCreateSchema(Schema):
             "description": "title of the corna"
         })
 
-    class Meta:
+    class Meta:  # pylint: disable=missing-class-docstring
         strict = True
+
+
+class DomainNameReturnSchema(_BaseSchema):
+    """Schema for domain name return."""
 
 
 @corna.before_request
@@ -105,6 +109,7 @@ def create_corna(domain_name: str, **data: Dict[str, Any]) -> flask.Response:
 
 
 @corna.route("/corna", methods=["GET"])
+@marshal_with(DomainNameReturnSchema(), code=200)
 @doc(
     tags=["corna"],
     description="Get a users corna domain name",

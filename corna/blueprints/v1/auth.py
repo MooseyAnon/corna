@@ -3,10 +3,9 @@
 Passwords will never be seen or stored in plain text. SSL will cover transport,
 and then it will be hashed using `werkzeug.security`.
 """
-# pylint: disable=too-few-public-methods
 from http import HTTPStatus
 import logging
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import flask
 from flask_apispec import doc, use_kwargs

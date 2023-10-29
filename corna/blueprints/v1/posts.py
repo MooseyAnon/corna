@@ -1,13 +1,12 @@
 """Endpoints to manage posts on Corna."""
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 import flask
 from flask import request
-from flask_apispec import doc, marshal_with, use_kwargs
+from flask_apispec import doc, use_kwargs
 from flask_sqlalchemy_session import current_session as session
-import marshmallow
-from marshmallow import fields, Schema, validate, validates_schema
+from marshmallow import fields, Schema, validate
 
 # for types
 from werkzeug.datastructures import FileStorage
@@ -56,7 +55,7 @@ class TextPost(_BaseSchema):
         },
     )
 
-    class Meta:
+    class Meta:  # pylint: disable=missing-class-docstring
         strict = True
 
 
@@ -75,7 +74,7 @@ class PhotoPost(_BaseSchema):
         },
     )
 
-    class Meta:
+    class Meta:  # pylint: disable=missing-class-docstring
         strict = True
 
 
@@ -257,12 +256,12 @@ def photo_post(domain_name: str, **data: Dict[str, Any]):
 def get_all_posts(domain_name: str) -> Dict[Any, Any]:
     """Get all posts for a given cora."""
     try:
-        posts: Dict[str, Any] = post_control.get(session, domain_name)
+        all_posts: Dict[str, Any] = post_control.get(session, domain_name)
 
     except NoneExistinCornaError as e:
         utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
 
-    return flask.jsonify(posts)
+    return flask.jsonify(all_posts)
 
 
 @posts.route("/posts/<domain_name>/image/<url_extension>", methods=["GET"])

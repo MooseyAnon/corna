@@ -1,5 +1,7 @@
+"""Image processing functionality."""
+
 import hashlib
-from typing import Callable, Optional
+from typing import Callable
 
 from werkzeug.datastructures import FileStorage
 
