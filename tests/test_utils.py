@@ -3,7 +3,7 @@ import datetime
 from freezegun import freeze_time
 import pytest
 
-from corna.utils import encodings, secure, utils
+from corna.utils import encodings, future, secure, utils
 
 FROZEN_TIME = "2023-04-05T03:21:34"
 
@@ -57,7 +57,7 @@ def test_future(days):
         2023, 4, days_skipped, 3, 21, 34,
         tzinfo=datetime.timezone.utc
     )
-    assert utils.future(days) == expected
+    assert future(days) == expected
 
 
 @freeze_time(FROZEN_TIME)
