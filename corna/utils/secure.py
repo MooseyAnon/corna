@@ -10,8 +10,8 @@ from typing import Any, Callable, Dict, Tuple, Union
 from dateutil.parser import parse
 from sqlalchemy import exists
 
+from corna.utils import future, get_utc_now
 from corna.utils import encodings
-from corna.utils import utils
 from corna.utils import vault_item
 from corna.utils.encodings import EncodingError
 

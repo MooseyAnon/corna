@@ -7,6 +7,7 @@ from sqlalchemy import exists
 
 from corna.db import models
 from corna.utils import secure, utils
+from corna.utils import get_utc_now
 from corna.utils.utils import current_user
 from corna.utils.errors import (
     DomainExistsError, NoneExistingUserError, PreExistingCornaError)
