@@ -6,6 +6,7 @@ unnecessary code duplication.
 
 import datetime
 
+
 def get_utc_now() -> datetime.datetime:
     """Get a time-zone aware datetime for "now".
 

@@ -10,9 +10,9 @@ from marshmallow import Schema, fields
 
 from corna import enums
 from corna.controls import corna_control
+from corna.utils import secure, utils
 from corna.utils.errors import (
     DomainExistsError, NoneExistingUserError, PreExistingCornaError)
-from corna.utils import secure, utils
 
 corna = flask.Blueprint("corna", __name__)
 

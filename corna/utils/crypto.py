@@ -20,13 +20,10 @@ try:
         )
         from cryptography.hazmat.backends import default_backend
     from cryptography.hazmat.primitives import hashes, padding
+    from cryptography.hazmat.primitives.ciphers import (
+        Cipher as C_Cipher, algorithms, modes)
     from cryptography.hazmat.primitives.hmac import HMAC
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-    from cryptography.hazmat.primitives.ciphers import (
-        Cipher as C_Cipher,
-        algorithms,
-        modes,
-    )
 except ImportError as error:
     raise(error)
 

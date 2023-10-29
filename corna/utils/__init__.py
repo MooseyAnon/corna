@@ -1,10 +1,8 @@
 """Corna utils imports."""
 
-from .vault_manager import get_item as vault_item
-from .vault_manager import get_items as vault_items
-
 # this is being done to avoid circular dependencies
 from .meta import future, get_utc_now
+from .vault_manager import get_item as vault_item, get_items as vault_items
 
 __all__ = [
     "future",

@@ -6,11 +6,10 @@ from typing import Any, Optional
 from sqlalchemy import exists
 
 from corna.db import models
-from corna.utils import get_utc_now
-from corna.utils import utils
-from corna.utils.utils import current_user
+from corna.utils import get_utc_now, utils
 from corna.utils.errors import (
     DomainExistsError, NoneExistingUserError, PreExistingCornaError)
+from corna.utils.utils import current_user
 
 logger = logging.getLogger(__name__)
 

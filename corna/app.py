@@ -4,9 +4,9 @@ import inspect
 import logging
 import os
 
-import flask
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+import flask
 from flask_apispec import FlaskApiSpec
 from flask_sqlalchemy_session import flask_scoped_session
 

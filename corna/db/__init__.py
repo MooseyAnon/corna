@@ -9,6 +9,7 @@ from sqlalchemy.event import listens_for
 from sqlalchemy.orm import sessionmaker
 
 from corna.utils import vault_item
+
 from . import models
 
 logger = logging.getLogger(__name__)
