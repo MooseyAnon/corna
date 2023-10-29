@@ -13,11 +13,9 @@ from werkzeug.utils import secure_filename
 
 from corna.db import models
 from corna.enums import ContentType
-from corna.utils import get_utc_now
-from corna.utils import image_proc, secure, utils
-from corna.utils.utils import current_user
+from corna.utils import get_utc_now, image_proc, secure, utils
 from corna.utils.errors import CornaOwnerError
-
+from corna.utils.utils import current_user
 
 logger = logging.Logger(__name__)
 

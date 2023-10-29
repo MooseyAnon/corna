@@ -3,8 +3,7 @@ import logging
 from typing import Optional
 
 from corna.db import models
-from corna.utils import get_utc_now
-from corna.utils import secure, utils
+from corna.utils import get_utc_now, secure, utils
 from corna.utils.errors import (
     IncorrectPasswordError, NoneExistingUserError, UserExistsError)
 

@@ -14,10 +14,9 @@ from marshmallow import Schema, fields
 
 from corna import enums
 from corna.controls import auth_control
+from corna.utils import secure, utils
 from corna.utils.errors import (
     IncorrectPasswordError, NoneExistingUserError, UserExistsError)
-from corna.utils import utils, secure
-
 
 auth = flask.Blueprint("auth", __name__)
 

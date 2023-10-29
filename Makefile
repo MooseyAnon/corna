@@ -3,10 +3,13 @@ current_dir := $(shell pwd)
 
 check: check-coding-standards
 
-check-coding-standards: check-pylint-main
+check-coding-standards: check-pylint-main check-isort
 
 check-pylint-main: venv
 	venv/bin/python -m pylint corna
+
+check-isort: venv
+	venv/bin/python -m isort corna --check --diff --skip venv
 
 requirements.txt: venv
 	venv/bin/python -m piptools compile --output-file $@ $<
@@ -21,3 +24,6 @@ venv/bin/activate:
 	venv/bin/python -m pip install pip-tools
 	venv/bin/python -m pip install -r $< --progress-bar off
 	touch $@
+
+.PHONY: check check-coding-standards check-pylint-main check-isort \
+	check-tests venv
