@@ -44,7 +44,7 @@ def decrypt_data(password: str, encrypted_data: bytes) -> Dict[str, Any]:
         raise RuntimeError("Invalid header - bad version")
     if header_fields[2] != "AES256":
         raise RuntimeError("Invalid header - bad cipher")
-    vaulttext = "".join(l.rstrip() for l in encrypted_data[1:])
+    vaulttext = "".join(letter.rstrip() for letter in encrypted_data[1:])
 
     vaulttext_split: bytes = unhexlify(vaulttext).split(b"\n")
 

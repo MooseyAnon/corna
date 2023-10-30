@@ -33,7 +33,7 @@ def get_sqlalchemy_url():
     """
     db_address = os.getenv("DB_ADDRESS")
     db_user = os.getenv("DB_USER")
-    if not(db_address and db_user):
+    if not (db_address and db_user):
         raise RuntimeError(
             "The environment variables DB_ADDRESS or DB_USER are not "
             "defined")

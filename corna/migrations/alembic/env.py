@@ -34,7 +34,7 @@ target_metadata = models.Base.metadata
 # url and override the value inside the alembic.ini config.
 db_address = os.getenv("DB_ADDRESS")
 db_user = os.getenv("DB_USER")
-if not(db_address and db_user):
+if not (db_address and db_user):
     raise RuntimeError(
         "The environment variables DB_ADDRESS or DB_USER are not "
         "defined")
@@ -46,6 +46,7 @@ sqlalchemy_url = (
     f"postgresql://{db_user}:{db_password}"
     f"@{db_address}:{db_port}/{db_name}"
 )
+
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
