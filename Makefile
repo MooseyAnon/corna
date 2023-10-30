@@ -1,7 +1,7 @@
 PYTHON := python3.6
 current_dir := $(shell pwd)
 
-check: check-coding-standards
+check: check-coding-standards check-tests
 
 check-coding-standards: check-pylint-main check-isort check-pycodestyle
 
@@ -16,6 +16,9 @@ check-isort: venv
 
 requirements.txt: venv
 	venv/bin/python -m piptools compile --output-file $@ $<
+
+check-tests: venv
+	venv/bin/python -m pytest -v
 
 venv: venv/bin/activate
 
