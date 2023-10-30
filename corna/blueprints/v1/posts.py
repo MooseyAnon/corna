@@ -137,7 +137,7 @@ def sec_headers(response: flask.Response) -> flask.Response:
             "description": "Corna or content type issues (check message)",
         },
         HTTPStatus.UNPROCESSABLE_ENTITY: {
-            "description": \
+            "description":
                 "File with wrong extension or photoset (check message)"
         },
         HTTPStatus.INTERNAL_SERVER_ERROR: {
@@ -193,7 +193,7 @@ def text_post(domain_name: str, **data: Dict[str, Any]):
             "description": "Corna or content type issues (check message)",
         },
         HTTPStatus.UNPROCESSABLE_ENTITY: {
-            "description": \
+            "description":
                 "File with wrong extension or photoset (check message)"
         },
         HTTPStatus.INTERNAL_SERVER_ERROR: {

@@ -1,5 +1,6 @@
 """Shared errors across the service."""
 
+
 class UserExistsError(ValueError):
     """ User exists error.
 

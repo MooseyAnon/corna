@@ -243,7 +243,7 @@ class PostTable(Base):
     images = relationship(
         "Images",
         back_populates="post",
-        )
+    )
 
 
 class TextContent(Base):

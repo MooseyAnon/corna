@@ -74,7 +74,6 @@ def random_short_string(length: int = 8) -> str:
     return "".join(random.choices(ALPHABET, k=length))
 
 
-
 def hash_to_dir(hash_32: str) -> str:
     """Construct directory structure from hash.
 

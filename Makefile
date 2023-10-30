@@ -3,10 +3,13 @@ current_dir := $(shell pwd)
 
 check: check-coding-standards
 
-check-coding-standards: check-pylint-main check-isort
+check-coding-standards: check-pylint-main check-isort check-pycodestyle
 
 check-pylint-main: venv
 	venv/bin/python -m pylint corna
+
+check-pycodestyle: venv
+	venv/bin/python -m pycodestyle corna
 
 check-isort: venv
 	venv/bin/python -m isort corna --check --diff --skip venv

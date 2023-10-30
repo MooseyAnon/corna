@@ -214,7 +214,7 @@ def verify(
         message=encodings.to_bytes(original_message),
     ).digest()
 
-    compare_result: bool =  hmac.compare_digest(
+    compare_result: bool = hmac.compare_digest(
         signature, signed_original_message
     )
     return compare_result
@@ -238,7 +238,7 @@ def unsign(signature: Union[bytes, str]) -> Tuple[bytes, bytes, bytes]:
     except EncodingError as e:
         raise BadSignature(e) from e
 
-    if not SPLITTR in signature:
+    if SPLITTR not in signature:
         raise BadSignature(f"no {SPLITTR!r} found in signature")
 
     expiry_date, message, hash_value = signature.rsplit(SPLITTR)

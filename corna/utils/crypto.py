@@ -25,7 +25,7 @@ try:
     from cryptography.hazmat.primitives.hmac import HMAC
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 except ImportError as error:
-    raise(error)
+    raise (error)
 
 
 class VaultAES256:
@@ -68,10 +68,10 @@ class VaultAES256:
         b_derivedkey = cls._create_key_cryptography(
             b_password, b_salt, key_length, iv_length
         )
-        b_iv = b_derivedkey[(key_length * 2) : (key_length * 2) + iv_length]
+        b_iv = b_derivedkey[(key_length * 2): (key_length * 2) + iv_length]
 
         b_key1 = b_derivedkey[:key_length]
-        b_key2 = b_derivedkey[key_length : (key_length * 2)]
+        b_key2 = b_derivedkey[key_length: (key_length * 2)]
 
         return b_key1, b_key2, b_iv
 
