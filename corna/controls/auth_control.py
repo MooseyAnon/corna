@@ -2,6 +2,9 @@
 import logging
 from typing import Optional
 
+from typing_extensions import TypedDict
+from werkzeug.local import LocalProxy
+
 from corna.db import models
 from corna.utils import get_utc_now, secure, utils
 from corna.utils.errors import (
@@ -10,14 +13,35 @@ from corna.utils.errors import (
 logger = logging.getLogger(__name__)
 
 
-def register_user(session: Any, user_data: Dict[str, str]) -> None:
+# **** types ****
+
+class _AuthTypesBase(TypedDict):
+    """Shared types."""
+
+    email_address: str
+    password: str
+
+
+class RegisterUser(_AuthTypesBase):
+    """Register user types."""
+
+    user_name: str
+
+
+class LoginUser(_AuthTypesBase):
+    """Login user types."""
+
+# **** types end ****
+
+
+def register_user(session: LocalProxy, user_data: RegisterUser) -> None:
     """Register a new user.
 
     :param sqlalchemy.Session session: session object
-    :param dict user_data: user data to register
+    :param RegisterUser user_data: user data to register
     :raises UserExistsError: if user details are already in use
     """
-    user_email: Optional[str] = (
+    user_email: Optional[models.EmailTable] = (
         session
         .query(models.EmailTable)
         .get(user_data["email_address"])
@@ -43,15 +67,15 @@ def register_user(session: Any, user_data: Dict[str, str]) -> None:
     logger.info("successfully registered a new user.")
 
 
-def login_user(session: Any, user_data: Dict[str, str]) -> bytes:
+def login_user(session: LocalProxy, user_data: LoginUser) -> bytes:
     """Login a user.
 
     :param sqlalchemy.Session session: session object
-    :param dict user_data: user data to login
+    :param LoginUser user_data: user data to login
     :raises NoneExistingUserError: if user details do not exist
     :raises IncorrectPasswordError: if password is wrong
     """
-    user_account: Optional[str] = (
+    user_account: Optional[models.EmailTable] = (
         session
         .query(models.EmailTable)
         .get(user_data["email_address"])
@@ -62,7 +86,7 @@ def login_user(session: Any, user_data: Dict[str, str]) -> bytes:
     if not user_account.is_password(user_data["password"]):
         raise IncorrectPasswordError("Wrong password")
 
-    user: str = (
+    user: models.UserTable = (
         session
         .query(models.UserTable)
         .filter(models.UserTable.email_address == user_data["email_address"])
@@ -91,13 +115,13 @@ def login_user(session: Any, user_data: Dict[str, str]) -> bytes:
     return secure.sign(cookie)
 
 
-def delete_user_session(session: Any, signed_cookie: str):
+def delete_user_session(session: LocalProxy, signed_cookie: str) -> None:
     """Delete user session.
 
     :param sqlalchemy.Session session: session object
     :param str signed_cookie: user cookie
     """
-    cookie_id = secure.decoded_message(signed_cookie)
+    cookie_id: str = secure.decoded_message(signed_cookie)
     (
         session
         .query(models.SessionTable)

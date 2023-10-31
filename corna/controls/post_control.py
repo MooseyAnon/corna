@@ -4,9 +4,9 @@ import logging
 import os
 import random
 import string
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional, Tuple, Union
 
-# for types
+from typing_extensions import TypedDict
 from werkzeug.datastructures import FileStorage
 from werkzeug.local import LocalProxy
 from werkzeug.utils import secure_filename
@@ -20,11 +20,14 @@ from corna.utils.utils import current_user
 logger = logging.Logger(__name__)
 
 
-PICTURE_DIR: str = os.environ.get("PICTURE_DIR")
+PICTURE_DIR: Optional[str] = os.environ.get("PICTURE_DIR")
 # to generate "unique-ish" short strings to use for URL extentions
-ALPHABET: List[str] = string.ascii_lowercase + string.digits
+ALPHABET: str = string.ascii_lowercase + string.digits
 
-POST_TYPES = tuple(post_type.value for post_type in ContentType)
+POST_TYPES: Tuple[str, ...] = tuple(
+    post_type.value
+    for post_type in ContentType
+)
 
 
 class NoneExistinCornaError(ValueError):
@@ -37,6 +40,81 @@ class InvalidContentType(ValueError):
 
 class PostDoesNotExist(ValueError):
     """Post does not exit."""
+
+
+# **** types ****
+
+class _TypesBase(TypedDict):
+    """Shared Type."""
+
+    type: str
+    domain_name: str
+    cookie: str
+
+
+class _TextContentRequired(_TypesBase):
+    """Required on text content."""
+
+    content: str
+
+
+class TextContent(_TextContentRequired, total=False):
+    """Text content type."""
+
+    title: str
+
+
+class _ImagesRequired(_TypesBase):
+    """Required on images."""
+
+    images: List[FileStorage]
+
+
+class ImagesUpload(_ImagesRequired, total=False):
+    """Image type."""
+
+    title: str
+    caption: str
+
+
+class Post(TypedDict):
+    """Shared Across all posts."""
+
+    type: str
+    created: str
+    post_url: str
+
+
+class _TextPostRequired(Post):
+    """Required on text posts."""
+
+    content: str
+
+
+class TextPost(_TextPostRequired, total=False):
+    """Text post specific type."""
+
+    title: str
+    image_urls: List[str]
+
+
+class _ImagePostRquired(Post):
+    """Required on image posts."""
+
+    image_urls: List[str]
+
+
+class ImagePost(_ImagePostRquired, total=False):
+    """Image post type."""
+
+    caption: str
+    title: str
+
+
+CreatePostCollection = Union[TextContent, ImagesUpload]
+PostCollection = Union[TextPost, ImagePost]
+
+# **** types end ****
 
 
 def get_corna(session: LocalProxy, domain_name: str) -> models.CornaTable:
@@ -95,7 +173,7 @@ def hash_to_dir(hash_32: str) -> str:
     return path
 
 
-def handle_pictures(picture: Any) -> str:
+def handle_pictures(picture: FileStorage) -> str:
     """Handle the saving of a picture.
 
     :param flask.FileStorage picture: the picture to save
@@ -103,6 +181,9 @@ def handle_pictures(picture: Any) -> str:
     :rtype: str
     :raises OSError: if picture cannot be saved
     """
+    if not picture.filename:
+        raise OSError("File needs name to be saved")
+
     secure_image_name: str = secure_filename(picture.filename)
     image_hash: str = image_proc.hash_image(picture)
     # combination of the root assets dir and the hash derived fs
@@ -133,18 +214,18 @@ def handle_pictures(picture: Any) -> str:
     return full_path
 
 
-def create(session: Any, data: Dict[Any, Any]) -> None:
+def create(session: LocalProxy, data: CreatePostCollection) -> None:
     """Create a new corna post.
 
     :param sqlalchemy.Session session: a db session
-    :param dict data: the incoming data to be saved
+    :param CreatePostCollectione data: the incoming data to be saved
     :raises CornaOwnerError: user does not own the corna
     :raises InvalidContentType: if the incoming content type
         is not correct.
     """
     user: models.UserTable = current_user(session, data["cookie"])
     corna: models.CornaTable = get_corna(session, data["domain_name"])
-    type_: str = data.get("type")
+    type_: str = data["type"]
 
     if not user.uuid == corna.user_uuid:
         raise CornaOwnerError("Current user does not own the Corna")
@@ -216,7 +297,7 @@ def save_image(
 
 def save_text(
     session: LocalProxy,
-    data: Dict[str, Any],
+    data: TextContent,
     post_uuid: Optional[str] = None,
 ) -> None:
     """Save textual information associated with a post.
@@ -225,7 +306,7 @@ def save_text(
     caller as it only saves if there is actually anything to save.
 
     :param LocalProxy session: db session
-    :param Dict[srt, Any] data: dict containing text 'stuff'
+    :param TextContent data: dict containing text 'stuff'
     :param Optional[str] post_uuid: post id for relationship, if
         text content is a part of a post.
     :param str post_uuid: post id for relationship
@@ -248,7 +329,10 @@ def save_text(
     )
 
 
-def get(session: Any, domain_name: str) -> Dict[str, List[Dict[str, Any]]]:
+def get(
+    session: LocalProxy,
+    domain_name: str
+) -> Dict[str, List[PostCollection]]:
     """Get all posts for a given corna.
 
     :param sqlalchemy.Session session: a db session
@@ -269,7 +353,7 @@ def get(session: Any, domain_name: str) -> Dict[str, List[Dict[str, Any]]]:
     return {"posts": [parse_post(post) for post in posts]}
 
 
-def parse_post(post: models.PostTable) -> Dict[str, Any]:
+def parse_post(post: models.PostTable) -> PostCollection:
     """Correctly parse the out going post.
 
     :param models.PostTable post: a row from the database
@@ -279,7 +363,7 @@ def parse_post(post: models.PostTable) -> Dict[str, Any]:
     domain_name: str = post.corna.domain_name
     url: str = build_url(post.url_extension, domain_name, post.type)
 
-    data: Dict[str, Any] = dict(
+    data: PostCollection = dict(
         type=post.type,
         created=post.created.isoformat(),
         post_url=url,
@@ -316,7 +400,7 @@ def build_url(extension: str, domain_name: str, type_: str) -> str:
     return url
 
 
-def get_image(session: Any, domain_name: str, url: str) -> str:
+def get_image(session: LocalProxy, domain_name: str, url: str) -> str:
     """Get the file path for an image.
 
     :param sqlalchemy.Session session: a db session
@@ -329,7 +413,7 @@ def get_image(session: Any, domain_name: str, url: str) -> str:
         or the post is not associated with the corna
     :raises InvalidContentType: if the post type is not an image
     """
-    image = (
+    image: Optional[models.Images] = (
         session
         .query(models.Images)
         .filter(models.Images.url_extension == url)
@@ -338,7 +422,7 @@ def get_image(session: Any, domain_name: str, url: str) -> str:
     if image is None:
         raise PostDoesNotExist("Post does not exist")
 
-    post = image.post
+    post: Optional[models.PostTable] = image.post
     if not post.corna.domain_name == domain_name:
         # not exactly right description, here we are testing
         # if the domain_name matches the corna associated with

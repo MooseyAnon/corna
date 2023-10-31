@@ -9,6 +9,7 @@ from typing import Any, Callable, Dict, Tuple, Union
 
 from dateutil.parser import parse
 from sqlalchemy import exists
+from werkzeug.local import LocalProxy
 
 from corna.utils import encodings, future, get_utc_now, vault_item
 from corna.utils.encodings import EncodingError
@@ -37,7 +38,7 @@ def session_token() -> str:
     return secrets.token_urlsafe()
 
 
-def token_unique(session: Any, column: Any, token: str) -> bool:
+def token_unique(session: LocalProxy, column: Any, token: str) -> bool:
     """Checks if token already exists.
 
     The secret modules `urlsafe` function isnt guaranteed to be
@@ -54,7 +55,10 @@ def token_unique(session: Any, column: Any, token: str) -> bool:
 
 
 def generate_unique_token(
-    session: Any, column: Any, tries: int = 10, func: Callable = session_token
+    session: LocalProxy,
+    column: Any,
+    tries: int = 10,
+    func: Callable = session_token
 ) -> str:
     """Generate unique token using a given function.
 
@@ -121,7 +125,7 @@ def cors_headers() -> Dict[str, str]:
 
 # this is lifted from and inspired by python pallets itsDangerous library
 # https://github.com/pallets/itsdangerous/tree/main
-def _sign(key: bytes, message: Union[bytes] = None) -> object:
+def _sign(key: bytes, message: bytes = None) -> object:
     """Return a new HMAC object ready to be signed.
 
     We dont do the signing here as there are occasions where the caller
@@ -281,7 +285,10 @@ def is_valid(signature: Union[bytes, str]) -> bool:
     return valid
 
 
-def decoded_message(signature: bytes, encoding: str = "utf-8") -> str:
+def decoded_message(
+    signature: Union[bytes, str],
+    encoding: str = "utf-8"
+) -> str:
     """Get original messaged decoded to a string.
 
     :param bytes signature: the signed message to decode

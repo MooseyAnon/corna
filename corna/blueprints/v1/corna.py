@@ -56,7 +56,7 @@ def login_required() -> None:
 
 
 @corna.after_request
-def sec_headers(response: flask.Response) -> flask.Response:
+def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     """Add security headers to every response.
 
     :param flask.Response response: a flask response object
@@ -82,7 +82,10 @@ def sec_headers(response: flask.Response) -> flask.Response:
         },
     }
 )
-def create_corna(domain_name: str, **data: Dict[str, Any]) -> flask.Response:
+def create_corna(
+    domain_name: str,
+    **data: Dict[str, Any]
+) -> flask.wrappers.Response:
     """Create a new Corna."""
     # we need to get the user identity via cookie
     cookie: Optional[str] = flask.request.cookies.get(
