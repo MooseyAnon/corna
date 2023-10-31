@@ -59,7 +59,7 @@ class LoginSchema(_BaseSchema):
 
 
 @auth.after_request
-def sec_headers(response: flask.Response) -> flask.Response:
+def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     """Add security headers to every response.
 
     :param flask.Response response:
@@ -73,7 +73,7 @@ def sec_headers(response: flask.Response) -> flask.Response:
 
 def create_response(
     data: str = "", status: HTTPStatus = HTTPStatus.OK
-) -> flask.Response:
+) -> flask.wrappers.Response:
     """Create a flask response object.
 
     :param str data: the data to send as part of the response
@@ -112,7 +112,7 @@ def set_cookie(response: flask.Response, **kwargs: Dict[str, Any]) -> None:
         },
     }
 )
-def register_user(**data: Dict) -> Union[flask.Response, str]:
+def register_user(**data: Dict) -> flask.wrappers.Response:
     """Register a user."""
     try:
         auth_control.register_user(session, data)
@@ -137,7 +137,7 @@ def register_user(**data: Dict) -> Union[flask.Response, str]:
         },
     }
 )
-def login_user(**data: Dict) -> Union[flask.Response, str]:
+def login_user(**data: Dict) -> flask.wrappers.Response:
     """Login a user."""
     # check if user is already logged in
     user_cookie: Optional[str] = flask.request.cookies.get(
@@ -173,7 +173,7 @@ def login_user(**data: Dict) -> Union[flask.Response, str]:
     tags=["Auth"],
     description="Log out a user session"
 )
-def logout_user() -> Union[flask.Response, HTTPStatus]:
+def logout_user() -> flask.wrappers.Response:
     """Logout a user."""
     # check if user is already logged in
     user_cookie: Optional[str] = flask.request.cookies.get(

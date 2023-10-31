@@ -66,7 +66,7 @@ def mkdir(path: Union[pathlib.Path, str], exists_ok: bool = True) -> None:
 def current_user(
     session: LocalProxy,
     cookie: str,
-    exception: Callable = NotLoggedInError,
+    exception: type = NotLoggedInError,
 ) -> models.UserTable:
     """Return the current user.
 
@@ -75,7 +75,7 @@ def current_user(
 
     :param LocalProxy session: a db session
     :param str cookie: a signed cookie
-    :param Exception exception: Custom exception to raise on failure
+    :param type exception: Custom exception to raise on failure
 
     :return: a user object
     :rtype: models.UserTable

@@ -112,7 +112,7 @@ def validate_images(images: List[FileStorage]) -> None:
 
 
 @posts.after_request
-def sec_headers(response: flask.Response) -> flask.Response:
+def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     """Add security headers to every response.
 
     :param flask.Response response: out going response
@@ -148,7 +148,10 @@ def sec_headers(response: flask.Response) -> flask.Response:
         },
     }
 )
-def text_post(domain_name: str, **data: Dict[str, Any]):
+def text_post(
+    domain_name: str,
+    **data: Dict[str, Any]
+) -> flask.wrappers.Response:
     """Create a text post."""
     # all images associated with the post should be named "images"
     # all extra form data should be sent together
@@ -204,7 +207,10 @@ def text_post(domain_name: str, **data: Dict[str, Any]):
         },
     }
 )
-def photo_post(domain_name: str, **data: Dict[str, Any]):
+def photo_post(
+    domain_name: str,
+    **data: Dict[str, Any]
+) -> flask.wrappers.Response:
     """Create photo post."""
 
     if not request.files.get("images"):
@@ -272,7 +278,7 @@ def get_all_posts(domain_name: str) -> Dict[Any, Any]:
         },
     },
 )
-def get_image(domain_name: str, url_extension: str):
+def get_image(domain_name: str, url_extension: str) -> flask.wrappers.Response:
     """Get an image file."""
     try:
         path: str = post_control.get_image(session, domain_name, url_extension)

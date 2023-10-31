@@ -8,6 +8,8 @@ furl
 gunicorn
 isort
 mock
+mypy
+typing_extensions
 psycopg2
 pylint
 pytest

@@ -4,6 +4,8 @@ import logging
 from typing import Any, Optional
 
 from sqlalchemy import exists
+from typing_extensions import TypedDict
+from werkzeug.local import LocalProxy
 
 from corna.db import models
 from corna.utils import get_utc_now, utils
@@ -18,7 +20,18 @@ class NoDomainError(ValueError):
     """When user has no domain."""
 
 
-def exists_(session: Any, table_column: Any, check_val: str) -> bool:
+# **** types ****
+
+class CornaCreate(TypedDict):
+    """Types for creating a new corna."""
+
+    domain_name: str
+    title: str
+
+# **** types end ****
+
+
+def exists_(session: LocalProxy, table_column: Any, check_val: str) -> bool:
     """Check if some value exists in a table
 
     :param sqlalchemy.Session session: a db session
@@ -35,7 +48,7 @@ def exists_(session: Any, table_column: Any, check_val: str) -> bool:
     ).scalar()
 
 
-def domain_unique(session: Any, domain: str) -> bool:
+def domain_unique(session: LocalProxy, domain: str) -> bool:
     """Validate domain name is unique.
 
     :param sqlalchemy.Session session: a db session
@@ -46,16 +59,16 @@ def domain_unique(session: Any, domain: str) -> bool:
     return not exists_(session, models.CornaTable.domain_name, domain)
 
 
-def create(session: Any, data: Dict[str, Any]) -> None:
+def create(session: LocalProxy, data: CornaCreate) -> None:
     """Create a new corna.
 
     :param sqlalchemy.Session session: db session
-    :param dict data: data required to create corna
+    :param CornaCreate data: data required to create corna
 
     :raises PreExistingCornaError: user has another corna already
     :raises DomainExistsError: domain name not unique
     """
-    user: object = current_user(
+    user: models.UserTable = current_user(
         session, data["cookie"],
         exception=NoneExistingUserError
     )
@@ -78,7 +91,7 @@ def create(session: Any, data: Dict[str, Any]) -> None:
     )
 
 
-def get_domain(session: Any, signed_cookie: str) -> str:
+def get_domain(session: LocalProxy, signed_cookie: str) -> str:
     """Get a users domain for their corna.
 
     :param sqlalchemy.Session session: a db session
@@ -89,12 +102,12 @@ def get_domain(session: Any, signed_cookie: str) -> str:
     :raises NoDomainError: no domain associated with user i.e. they
         have not created a corna
     """
-    user: object = current_user(
+    user: models.UserTable = current_user(
         session, signed_cookie,
         exception=NoneExistingUserError
     )
 
-    corna: Optional[object] = (
+    corna: Optional[models.CornaTable] = (
         session.
         query(models.CornaTable)
         .filter(models.CornaTable.user_uuid == user.user_uuid)
