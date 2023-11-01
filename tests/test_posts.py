@@ -158,16 +158,23 @@ def test_post_with_picture(session, client, corna, with_image, expected):
 
 
 @freeze_time(FROZEN_TIME)
-def test_get_all_posts(session, client, corna):
+@pytest.mark.parametrize("post_type,url_ext,holder",
+    [
+        ("text", "text", "content"),
+        ("picture", "photo", "caption"),
+    ]
+)
+def test_get_all_posts(session, client, corna, post_type, url_ext, holder):
     assets = post_control.PICTURE_DIR
     out_post = shared_data.mock_post(
+        type_=post_type,
         with_content=True,
         with_title=True,
         with_image=True,
     )
 
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/{url_ext}-post",
         data=out_post
     )
     assert resp.status_code == 201
@@ -176,7 +183,7 @@ def test_get_all_posts(session, client, corna):
     
     expected = {
         "posts": [{
-            "content": (
+            holder: (
                 "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed "
                 "do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut "
                 "enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi "
@@ -185,10 +192,10 @@ def test_get_all_posts(session, client, corna):
                 "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "
                 "culpa qui officia deserunt mollit anim id est laborum."
             ),
-            "type": "text",
+            "type": post_type,
             "title": "this is a title of a post",
             "created": FROZEN_TIME,
-            "post_url": "https://api.mycorna.com/v1/posts/some-fake-domain/text/abcdef",
+            "post_url": f"https://api.mycorna.com/v1/posts/some-fake-domain/{post_type}/abcdef",
             "image_urls": ["https://api.mycorna.com/v1/posts/some-fake-domain/image/abcdef"],
         }]
     }
