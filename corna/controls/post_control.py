@@ -251,13 +251,43 @@ def create(session: LocalProxy, data: CreatePostCollection) -> None:
         )
     )
 
+    _creat_artefacts(session, post_uuid, data)
+
+    logger.info("successfully added new post!")
+
+
+def _creat_artefacts(
+    session: LocalProxy,
+    post_uuid: str,
+    data: CreatePostCollection
+) -> None:
+    """Create individual post artefacts.
+
+    This function is delegated the responsibility of creating the
+    actual objects which make up the post. This allows us to do
+    more thorough checks before saving.
+
+    :param LocalProxy session: db session
+    :param CreatePostCollection data: incoming data
+    :raises InvalidContentType: if data does not contain required
+        fields.
+    """
+    post_type: str = data["type"]
+    text_content: str = data.get("content")
     images: Optional[List[FileStorage]] = data.get("images", [])
+
+    if post_type == ContentType.TEXT and not text_content:
+        raise InvalidContentType("Text post needs text")
+
+    if post_type == ContentType.PHOTO and not images:
+        raise InvalidContentType("Photo post needs images")
+
+    # save images, if any
     for image in images:
         save_image(session, image, post_uuid=post_uuid)
 
+    # save text content, if any
     save_text(session, data, post_uuid=post_uuid)
-
-    logger.info("successfully added new post!")
 
 
 def save_image(
@@ -350,40 +380,87 @@ def get(
         .filter(models.PostTable.corna_uuid == corna.uuid)
     )
 
-    return {"posts": [parse_post(post) for post in posts]}
+    return {"posts": [_parse_post(post) for post in posts]}
 
 
-def parse_post(post: models.PostTable) -> PostCollection:
+def _parse_post(post: models.PostTable) -> PostCollection:
     """Correctly parse the out going post.
 
     :param models.PostTable post: a row from the database
     :return: a dict with the required fields
     :rtype: dict
+    :raises InvalidContentType: if post type is unrecognised
+    """
+    if post.type == ContentType.TEXT:
+        return _construct_text_post(post)
+    if post.type == ContentType.PHOTO:
+        return _construct_image_post(post)
+    raise InvalidContentType("Unrecognised content Type")
+
+
+def _construct_text_post(post: models.PostTable) -> TextPost:
+    """Construct a text post.
+
+    Takes a post object and returns the data expected by the API.
+
+    :param models.PostTable post: a post object
+    :returns: post information for the caller.
+    :rtype: TextPost
     """
     domain_name: str = post.corna.domain_name
-    url: str = build_url(post.url_extension, domain_name, post.type)
+    post_url: str = build_url(post.url_extension, domain_name, post.type)
 
-    data: PostCollection = dict(
+    parsed_post: TextPost = dict(
         type=post.type,
         created=post.created.isoformat(),
-        post_url=url,
+        post_url=post_url,
+        content=post.text.content,
     )
 
     if post.text.title:
-        data["title"] = post.text.title
-
-    if post.text.content:
-        key: str = "content" if post.type == "text" else "caption"
-        data[key] = post.text.content
+        parsed_post["title"] = post.text.title
 
     if post.images:
         url_list: List[str] = [
             build_url(image.url_extension, domain_name, "image")
             for image in post.images
         ]
-        data["image_urls"] = url_list
+        parsed_post["image_urls"] = url_list
 
-    return data
+    return parsed_post
+
+
+def _construct_image_post(post: models.PostTable) -> ImagePost:
+    """Construct an image post.
+
+    Takes a post object and returns the data expected by the API.
+
+    :param models.PostTable post: a post object
+    :returns: formatted post data
+    :rtype: ImagePost
+    """
+    domain_name: str = post.corna.domain_name
+    post_url: str = build_url(post.url_extension, domain_name, post.type)
+    url_list: List[str] = [
+        build_url(image.url_extension, domain_name, "image")
+        for image in post.images
+    ]
+
+    parsed_post: ImagePost = dict(
+        type=post.type,
+        created=post.created.isoformat(),
+        post_url=post_url,
+        image_urls=url_list
+    )
+
+    if post.text:
+        if post.text.title:
+            parsed_post["title"] = post.text.title
+
+        if post.text.content:
+            parsed_post["caption"] = post.text.content
+
+    return parsed_post
 
 
 def build_url(extension: str, domain_name: str, type_: str) -> str:
