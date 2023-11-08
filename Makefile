@@ -14,15 +14,15 @@ check-pycodestyle: venv
 check-isort: venv
 	venv/bin/python -m isort corna --check --diff --skip venv
 
-requirements.txt: venv
-	venv/bin/python -m piptools compile --output-file $@ $<
+# requirements.txt: venv
+# 	venv/bin/python -m piptools compile --output-file $@ $<
 
 check-tests: venv
 	venv/bin/python -m pytest -v
 
 venv: venv/bin/activate
 
-venv/bin/activate:
+venv/bin/activate: requirements.txt
 	test -d venv || $(PYTHON) -m venv venv
 	# we need this version of pip to work with piptools
 	venv/bin/python -m pip install pip==20.0.2
