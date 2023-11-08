@@ -18,6 +18,7 @@ requests
 pycodestyle
 python-dateutil
 python-systemd
+pyYAML
 SQLAlchemy==1.4.*
 sqltap
 testing.postgresql

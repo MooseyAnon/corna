@@ -122,6 +122,8 @@ python-editor==1.0.4
     # via alembic
 python-systemd==0.0.9
     # via -r requirements.in
+pyyaml==6.0.1
+    # via -r requirements.in
 requests==2.27.1
     # via -r requirements.in
 scramp==1.4.1
