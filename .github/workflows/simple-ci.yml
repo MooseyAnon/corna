@@ -19,12 +19,20 @@ jobs:
   pylint:
 
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
+
+      - name: Install python3.6
+        run: |
+          sudo apt-get update
+          DEBIAN_FRONTEND=noninteractive sudo apt install software-properties-common -y
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev python3.6 python3.6-dev python3.6-venv
 
       # Runs a single command using the runners shell
       - name: Run pylint
@@ -32,12 +40,20 @@ jobs:
 
   pycodestyle:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
+
+      - name: Install python3.6
+        run: |
+          sudo apt-get update
+          DEBIAN_FRONTEND=noninteractive sudo apt install software-properties-common -y
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev python3.6 python3.6-dev python3.6-venv
 
       # Runs a single command using the runners shell
       - name: Run pycodestyle
@@ -45,12 +61,20 @@ jobs:
 
   pytests:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
+
+      - name: Install python3.6
+        run: |
+          sudo apt-get update
+          DEBIAN_FRONTEND=noninteractive sudo apt install software-properties-common -y
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev python3.6 python3.6-dev python3.6-venv
 
       # Runs a single command using the runners shell
       - name: Run tests
@@ -58,12 +82,20 @@ jobs:
 
   isort:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
+
+      - name: Install python3.6
+        run: |
+          sudo apt-get update
+          DEBIAN_FRONTEND=noninteractive sudo apt install software-properties-common -y
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev python3.6 python3.6-dev python3.6-venv 
 
       # Runs a single command using the runners shell
       - name: Run isort
