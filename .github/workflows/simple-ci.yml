@@ -148,3 +148,16 @@ jobs:
       # Runs a single command using the runners shell
       - name: Run isort
         run: make check-isort
+
+  eslint:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install npm modules
+        run: make node_modules
+
+      - name: Run eslint
+        run: make check-eslint
