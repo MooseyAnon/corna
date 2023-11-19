@@ -1,7 +1,19 @@
 {
   "dependencies": {
     "typescript": "^5.2.2"
+  "devDependencies": {
+    "@babel/core": "^7.23.2",
+    "@babel/preset-env": "^7.23.2",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@typescript-eslint/eslint-plugin": "^6.11.0",
+    "@typescript-eslint/parser": "^6.11.0",
+    "rollup": "^4.2.0"
   "scripts": {
+    "build": "tsc && rollup -c rollup.config.js",
     "tsc": "npx tsc",
+    "rollup": "rollup -c rollup.config.js",
   }
 }
