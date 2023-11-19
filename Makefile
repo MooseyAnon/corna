@@ -17,6 +17,13 @@ check-isort:
 check-tests:
 	/usr/bin/$(PYTHON) -m pytest -v
 
+node_modules:
+	test -d $(current_dir)/frontend/node_modules || npm install \
+		--prefix $(current_dir)/frontend
+
+check-eslint: node_modules
+	npm run lint --prefix $(current_dir)/frontend
+
 venv: venv/bin/activate
 
 venv/bin/activate: requirements.txt

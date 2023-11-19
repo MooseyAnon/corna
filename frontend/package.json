@@ -10,10 +10,12 @@
     "@rollup/plugin-terser": "^0.4.4",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
     "@typescript-eslint/parser": "^6.11.0",
+    "eslint": "^8.54.0",
     "rollup": "^4.2.0"
   "scripts": {
     "build": "tsc && rollup -c rollup.config.js",
     "tsc": "npx tsc",
     "rollup": "rollup -c rollup.config.js",
+    "lint": "eslint . --ext .ts"
   }
 }
