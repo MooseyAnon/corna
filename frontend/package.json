@@ -1,5 +1,7 @@
 {
   "dependencies": {
     "typescript": "^5.2.2"
+  "scripts": {
+    "tsc": "npx tsc",
   }
 }
