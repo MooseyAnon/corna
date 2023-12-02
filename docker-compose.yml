@@ -39,6 +39,7 @@ services:
         uid: '1000'
         gid: '1000'
         mode: 600
+    restart: always
     healthcheck:
       # this is temp, we'll change this to a proper health
       # endpoint once it has been created
@@ -65,6 +66,7 @@ services:
       - "80"
     networks:
       - backend-network
+    restart: always
     healthcheck:
       # there is no point running a healthy nginx container
       # so this health check is dependent on the corna-container
