@@ -7,9 +7,9 @@ services:
       dockerfile: dockerfiles/Dockerfile-corna
     image: corna:0.1.0
     ports:
-      # postgresql port
       # host-port:container-port
       - "25060:25060"
+      - "5432:5432"  # postgresql port
     expose:
       - "5001"
     deploy:
