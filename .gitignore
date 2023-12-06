@@ -19,7 +19,6 @@ framedebug__*.png
 user_config.py
 venv/
 node_modules/
-.docker*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
