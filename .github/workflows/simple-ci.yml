@@ -41,6 +41,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libpq-dev python3.6 python3.6-dev python3.6-venv
 
+      - name: Install Requirements
+        run: |
+          /usr/bin/python3.6 -m pip install --upgrade pip
+          /usr/bin/python3.6 -m pip install -r requirements.txt
+
       # Runs a single command using the runners shell
       - name: Run pylint
         run: make check-pylint-main
@@ -68,6 +73,11 @@ jobs:
           sudo add-apt-repository ppa:deadsnakes/ppa -y
           sudo apt-get update
           sudo apt-get install -y libpq-dev python3.6 python3.6-dev python3.6-venv
+
+      - name: Install Requirements
+        run: |
+          /usr/bin/python3.6 -m pip install --upgrade pip
+          /usr/bin/python3.6 -m pip install -r requirements.txt
 
       # Runs a single command using the runners shell
       - name: Run pycodestyle
@@ -97,6 +107,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libpq-dev python3.6 python3.6-dev python3.6-venv
 
+      - name: Install Requirements
+        run: |
+          /usr/bin/python3.6 -m pip install --upgrade pip
+          /usr/bin/python3.6 -m pip install -r requirements.txt
+
       # Runs a single command using the runners shell
       - name: Run tests
         run: make check-tests
@@ -124,6 +139,11 @@ jobs:
           sudo add-apt-repository ppa:deadsnakes/ppa -y
           sudo apt-get update
           sudo apt-get install -y libpq-dev python3.6 python3.6-dev python3.6-venv 
+
+      - name: Install Requirements
+        run: |
+          /usr/bin/python3.6 -m pip install --upgrade pip
+          /usr/bin/python3.6 -m pip install -r requirements.txt
 
       # Runs a single command using the runners shell
       - name: Run isort
