@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile-corna
-    image: corna:0.1.0
+    image: registry.digitalocean.com/corna-docker-reg/corna:0.0.1
     ports:
       # host-port:container-port
       - "25060:25060"
@@ -55,7 +55,7 @@ services:
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile-nginx
-    image: nginx:0.1.0
+    image: registry.digitalocean.com/corna-docker-reg/corna-nginx:0.0.1
     ports:
       # we only want ports for nginx and the rest of the containers
       # will be private
