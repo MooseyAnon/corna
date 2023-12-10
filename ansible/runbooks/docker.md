@@ -33,7 +33,8 @@ install docker
 `
 
 
-start docker service  
+start docker service 
+`sudo systemctl enable docker` 
 `sudo systemctl start docker`  
 
 
