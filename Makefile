@@ -14,22 +14,23 @@ check-pycodestyle:
 check-isort:
 	/usr/bin/$(PYTHON) -m isort corna --check --diff --skip venv
 
-# requirements.txt: venv
-# 	venv/bin/python -m piptools compile --output-file $@ $<
-
 check-tests:
 	/usr/bin/$(PYTHON) -m pytest -v
 
 venv: venv/bin/activate
 
 venv/bin/activate: requirements.txt
+	venv/bin/python -m pip install -r $< --progress-bar off
+	touch $@
+
+requirements.txt: | requirements.in
 	test -d venv || $(PYTHON) -m venv venv
 	# we need this version of pip to work with piptools
 	venv/bin/python -m pip install pip==20.0.2
 	# install piptools
 	venv/bin/python -m pip install pip-tools
-	venv/bin/python -m pip install -r $< --progress-bar off
-	touch $@
+	# generate requirements.txt
+	venv/bin/python -m piptools compile --output-file $@ $<
 
 .PHONY: check check-coding-standards check-pylint-main check-isort \
-	check-tests venv
+	check-tests venv requirements.txt venv/bin/activate
