@@ -26,7 +26,7 @@ venv/bin/activate: requirements.txt
 requirements.txt: | requirements.in
 	test -d venv || $(PYTHON) -m venv venv
 	# we need this version of pip to work with piptools
-	venv/bin/python -m pip install pip==20.0.2
+	venv/bin/python -m pip install --upgrade pip
 	# install piptools
 	venv/bin/python -m pip install pip-tools
 	# generate requirements.txt

@@ -29,7 +29,7 @@ RUN grep -v ^# yum-repos | xargs -rt yum install -y && \
     grep -v ^# yum-deps | xargs -rt yum install -y && \
     yum clean all
 
-RUN /usr/bin/python3.6 -m pip install pip==20.*
+RUN /usr/bin/python3.6 -m pip install --upgrade pip
 
 # Run as unprivileged user
 USER corna-user
