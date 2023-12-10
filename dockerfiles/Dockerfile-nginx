@@ -4,3 +4,5 @@ FROM nginx
 COPY nginx.conf /etc/nginx/conf.d/corna.nginx.conf
 COPY --chmod=600 tmp_fullchain.pem /etc/nginx/cert.pem
 COPY --chmod=600 tmp_private.pem /etc/nginx/key.pem
+
+COPY frontend/public /www/static
