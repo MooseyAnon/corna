@@ -19,6 +19,13 @@ def login_page():
         (utils.CORNA_ROOT / "frontend/public/html"), "login.html")
 
 
+@frontend.route("/frontend/register", methods=["GET"])
+def register_page():
+    """Server registration page."""
+    return flask.send_from_directory(
+        (utils.CORNA_ROOT / "frontend/public/html"), "signup.html")
+
+
 @frontend.route("/frontend/static/<path:path>", methods=["GET"])
 def get_static(path):
     """Serve static files.
