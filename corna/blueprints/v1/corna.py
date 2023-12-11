@@ -1,7 +1,7 @@
 """Corna management endpoints."""
 
 from http import HTTPStatus
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import flask
 from flask_apispec import doc, marshal_with, use_kwargs
@@ -41,6 +41,27 @@ class CornaCreateSchema(Schema):
 
 class DomainNameReturnSchema(_BaseSchema):
     """Schema for domain name return."""
+
+
+class DomainNameAvailableCheck(_BaseSchema):
+    """Schema for checking domain name exists."""
+
+    class Meta:  # pylint: disable=missing-class-docstring
+        strict = True
+
+
+class DomainNameCheckResultSchema(Schema):
+    """Result of domain name check schema."""
+
+    domain_name = fields.String(
+        metadata={
+            "description": "The original domain name being checked",
+        })
+
+    available = fields.Boolean(
+        metadata={
+            "description": "The result of the existence check",
+        })
 
 
 @corna.after_request
@@ -129,3 +150,20 @@ def get_domain() -> Dict[str, str]:
         utils.respond_json_error(str(e), HTTPStatus.NOT_FOUND)
 
     return {"domain_name": domain}
+
+
+@corna.route("/corna/domain/available", methods=["GET"])
+@use_kwargs(DomainNameAvailableCheck(), location="query")
+@marshal_with(DomainNameCheckResultSchema(), code=200)
+@doc(
+    tags=["Corna"],
+    description="Check if corna domain name is taken",
+)
+def check_domain_available(domain_name: str) -> flask.wrappers.Response:
+    """Check if domain name has been taken."""
+    taken: bool = corna_control.domain_unique(session, domain_name)
+    outcome: Dict[str: Union[str, bool]] = {
+        "domain_name": domain_name,
+        "available": taken
+    }
+    return outcome
