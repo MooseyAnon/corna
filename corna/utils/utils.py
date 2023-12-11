@@ -13,6 +13,7 @@ import apispec
 import flask
 from marshmallow import fields, missing as marshmallow_missing
 import requests
+from sqlalchemy import exists
 from werkzeug.local import LocalProxy
 
 from corna import enums
@@ -215,3 +216,24 @@ def nested_dict_update(dest, other):
         else:
             dest[key] = value
     return dest
+
+
+def exists_(
+    session: LocalProxy,
+    table_column: models.Base,
+    check_val: str
+) -> bool:
+    """Check if some value exists in a table
+
+    :param sqlalchemy.Session session: a db session
+    :param models.Table.column table_column: name of column to search on
+        e.g. UserTable.email_address
+    :param str check_val: the value to look for
+
+    :return: True if value exists, else False
+    :rtype: bool
+    """
+    # wrap this in a try and raise error
+    return session.query(
+        exists().where(table_column == check_val)
+    ).scalar()
