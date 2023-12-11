@@ -24,6 +24,8 @@ from corna.utils.errors import NotLoggedInError
 
 logger = logging.getLogger(__name__)
 
+CORNA_ROOT: pathlib.Path = pathlib.Path(__file__).parent.parent.parent
+
 
 def respond_json_error(message: str, code: int) -> None:
     """Respond to a request with a JSON error message.
