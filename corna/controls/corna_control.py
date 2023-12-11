@@ -1,9 +1,8 @@
 """Manage Corna's."""
 
 import logging
-from typing import Any, Optional
+from typing import Optional
 
-from sqlalchemy import exists
 from typing_extensions import TypedDict
 from werkzeug.local import LocalProxy
 
@@ -31,21 +30,15 @@ class CornaCreate(TypedDict):
 # **** types end ****
 
 
-def exists_(session: LocalProxy, table_column: Any, check_val: str) -> bool:
-    """Check if some value exists in a table
+def user_has_corna(session: LocalProxy, user_uuid: str) -> bool:
+    """Check is user has a Corna.
 
     :param sqlalchemy.Session session: a db session
-    :param sqlalchemy.Table.column table_column: name of column to search on
-        e.g. UserTable.email_address
-    :param str check_val: the value to look for
-
-    :return: True if value exists, else False
+    :param str user_uuid: user_uuid to search for
+    :returns: True if the user has a corna, else False
     :rtype: bool
     """
-    # wrap this in a try and raise error
-    return session.query(
-        exists().where(table_column == check_val)
-    ).scalar()
+    return utils.exists_(session, models.CornaTable.user_uuid, user_uuid)
 
 
 def domain_unique(session: LocalProxy, domain: str) -> bool:
@@ -56,7 +49,7 @@ def domain_unique(session: LocalProxy, domain: str) -> bool:
     :returns: True is domain is unique, else false
     :rtype: bool
     """
-    return not exists_(session, models.CornaTable.domain_name, domain)
+    return not utils.exists_(session, models.CornaTable.domain_name, domain)
 
 
 def create(session: LocalProxy, data: CornaCreate) -> None:
@@ -73,7 +66,7 @@ def create(session: LocalProxy, data: CornaCreate) -> None:
         exception=NoneExistingUserError
     )
 
-    if exists_(session, models.CornaTable.user_uuid, user.uuid):
+    if user_has_corna(session, user.uuid):
         # user already has a Corna
         raise PreExistingCornaError("User has pre-existing Corna")
 
