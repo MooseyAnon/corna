@@ -131,3 +131,28 @@ def test_relationships(session, client, login):
     assert corna.user is usr
     assert usr.corna[0] is corna
 
+
+
+def test_domain_name_available_check__when_not_avail(client, corna):
+    # the "corna" fixture creates this domain
+    domain_name = "some-fake-domain"
+    resp = client.get(f"/api/v1/corna/domain/available?domain_name={domain_name}")
+    assert resp.status_code == 200
+
+    expected = {
+        "domain_name": domain_name,
+        "available": False,
+    }
+    assert resp.json == expected
+
+
+def test_domain_name_available_check__when_avail(client):
+    domain_name = "some-fake-domain"
+    resp = client.get(f"/api/v1/corna/domain/available?domain_name={domain_name}")
+    assert resp.status_code == 200
+
+    expected = {
+        "domain_name": domain_name,
+        "available": True,
+    }
+    assert resp.json == expected
