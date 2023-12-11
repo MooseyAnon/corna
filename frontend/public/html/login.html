@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <link rel="stylesheet" href="static/css/login.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <background>
+      <div id="stars"></div>
+      <div id="stars2"></div>
+      <div id="stars3"></div>
+    </background>
+    <main>
+      <h1>
+        Your <br />
+        Corna
+      </h1>
+      <div class="inputs">
+        <input
+          type="email"
+          id="userEmailInput"
+          name="userEmailInput"
+          class="inputField"
+          placeholder="Email address"
+        />
+        <input
+          type="password"
+          id="userPasswordInput"
+          name="userPasswordInput"
+          class="inputField"
+          placeholder="Password"
+        />
+        <div class="validation" id="errorMessage"></div>
+      </div>
+      <div class="buttons">
+        <button class="filledButton" id="Login" type="button">ENTER</button>
+        <button class="textButton" id="createAccount" type="button">
+          SIGN UP
+        </button>
+      </div>
+    </main>
+    <script type="module" src="static/scripts/login-es6.js"></script>
+    <script nomodule src="static/scripts/login-es5.js" defer></script>
+  </body>
+</html>
