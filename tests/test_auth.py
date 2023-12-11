@@ -328,3 +328,27 @@ def test_username_available_check__when_avail(client):
         "available": True,
     }
     assert resp.json == expected
+
+
+def test_email_available_check__when_not_avail(client, user):
+    # the "user" fixture creates this user
+    email = "azor_ahi@starkentaprise.wstro"
+    resp = client.get(f"/api/v1/auth/email/available?email={email}")
+    assert resp.status_code == 200
+
+    expected = {
+        "email": email,
+        "available": False,
+    }
+    assert resp.json == expected
+
+
+def test_email_available_check__when_avail(client):
+    resp = client.get(f"/api/v1/auth/email/available?email=fake@email.com")
+    assert resp.status_code == 200
+
+    expected = {
+        "email": "fake@email.com",
+        "available": True,
+    }
+    assert resp.json == expected

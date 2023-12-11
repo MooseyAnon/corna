@@ -83,6 +83,35 @@ class UsernameCheckResultSchema(Schema):
         metadata={
             "description": "The result of the existence check",
         })
+
+
+class EmailCheckSchema(Schema):
+    """Schema for checking if an email address is already in use."""
+
+    email = fields.Email(
+        required=True,
+        metadata={
+            "description": "Check if email address is in use"
+        })
+
+    class Meta:  # pylint: disable=missing-class-docstring
+        strict = True
+
+
+class EmailCheckResultSchema(Schema):
+    """Result of username check schema."""
+
+    email = fields.Email(
+        metadata={
+            "description": "The original email being checked",
+        })
+
+    available = fields.Boolean(
+        metadata={
+            "description": "The result of the existence check",
+        })
+
+
 @auth.after_request
 def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     """Add security headers to every response.
@@ -238,5 +267,21 @@ def check_username_available(username: str) -> flask.wrappers.Response:
     outcome: Dict[str: Union[str, bool]] = {
         "username": username,
         "available": not auth_control.username_exists(session, username)
+    }
+    return outcome
+
+
+@auth.route("/auth/email/available", methods=["GET"])
+@use_kwargs(EmailCheckSchema(), location="query")
+@marshal_with(EmailCheckResultSchema(), code=200)
+@doc(
+    tags=["Auth"],
+    description="Check if email address is taken",
+)
+def check_email_available(email: str) -> flask.wrappers.Response:
+    """Check if email address is already taken."""
+    outcome: Dict[str: Union[str, bool]] = {
+        "email": email,
+        "available": not auth_control.email_exists(session, email)
     }
     return outcome

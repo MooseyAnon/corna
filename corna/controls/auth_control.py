@@ -45,6 +45,17 @@ def username_exists(session: LocalProxy, username: str) -> bool:
     return utils.exists_(session, models.UserTable.username, username)
 
 
+def email_exists(session: LocalProxy, email: str) -> bool:
+    """Check if email is already taken.
+
+    :param sqlalchemy.Session session: a db session
+    :param str email: email to search for
+    :returns: True if the email is already taken, else False
+    :rtype: bool
+    """
+    return utils.exists_(session, models.EmailTable.email_address, email)
+
+
 def register_user(session: LocalProxy, user_data: RegisterUser) -> None:
     """Register a new user.
 
