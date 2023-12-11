@@ -13,6 +13,7 @@ from corna.controls import corna_control
 from corna.utils import secure, utils
 from corna.utils.errors import (
     DomainExistsError, NoneExistingUserError, PreExistingCornaError)
+from corna.utils.utils import login_required
 
 corna = flask.Blueprint("corna", __name__)
 
@@ -42,19 +43,6 @@ class DomainNameReturnSchema(_BaseSchema):
     """Schema for domain name return."""
 
 
-@corna.before_request
-def login_required() -> None:
-    """Check user is logged in."""
-    signed_cookie: Optional[str] = flask.request.cookies.get(
-        enums.SessionNames.SESSION.value)
-
-    if not signed_cookie or not secure.is_valid(signed_cookie):
-        utils.respond_json_error(
-            "Login required for this action",
-            HTTPStatus.BAD_REQUEST
-        )
-
-
 @corna.after_request
 def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     """Add security headers to every response.
@@ -69,6 +57,7 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
 
 
 @corna.route("/corna/<domain_name>", methods=["POST"])
+@login_required
 @use_kwargs(CornaCreateSchema())
 @doc(
     tags=["corna"],
@@ -112,6 +101,7 @@ def create_corna(
 
 
 @corna.route("/corna", methods=["GET"])
+@login_required
 @marshal_with(DomainNameReturnSchema(), code=200)
 @doc(
     tags=["corna"],
