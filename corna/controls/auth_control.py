@@ -34,6 +34,17 @@ class LoginUser(_AuthTypesBase):
 # **** types end ****
 
 
+def username_exists(session: LocalProxy, username: str) -> bool:
+    """Check if username is taken.
+
+    :param sqlalchemy.Session session: a db session
+    :param str username: username to search for
+    :returns: True if the username is already taken, else False
+    :rtype: bool
+    """
+    return utils.exists_(session, models.UserTable.username, username)
+
+
 def register_user(session: LocalProxy, user_data: RegisterUser) -> None:
     """Register a new user.
 

@@ -303,3 +303,28 @@ def test_token_is_valid(session, client, login):
     unsigned_cookie = secure.decoded_message(cookie)
     db_cookie = session.query(models.SessionTable).all()[0].cookie_id
     assert db_cookie == unsigned_cookie
+
+
+def test_username_available_check__when_not_avail(client, user):
+    # the "user" fixture creates this user
+    username = "john_snow"
+    resp = client.get(f"/api/v1/auth/username/available?username={username}")
+    assert resp.status_code == 200
+
+    expected = {
+        "username": username,
+        "available": False,
+    }
+    assert resp.json == expected
+
+
+def test_username_available_check__when_avail(client):
+
+    resp = client.get("/api/v1/auth/username/available?username=fake-name")
+    assert resp.status_code == 200
+
+    expected = {
+        "username": "fake-name",
+        "available": True,
+    }
+    assert resp.json == expected

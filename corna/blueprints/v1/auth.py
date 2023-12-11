@@ -5,10 +5,10 @@ and then it will be hashed using `werkzeug.security`.
 """
 from http import HTTPStatus
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import flask
-from flask_apispec import doc, use_kwargs
+from flask_apispec import doc, marshal_with, use_kwargs
 from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields
 
@@ -58,6 +58,31 @@ class LoginSchema(_BaseSchema):
         strict = True
 
 
+class UsernameCheckSchema(Schema):
+    """Schema for checking if username exists."""
+
+    username = fields.String(
+        required=True,
+        metadata={
+            "description": "check if username is in use",
+        })
+
+    class Meta:  # pylint: disable=missing-class-docstring
+        strict = True
+
+
+class UsernameCheckResultSchema(Schema):
+    """Result of username check schema."""
+
+    username = fields.String(
+        metadata={
+            "description": "The original username being checked",
+        })
+
+    available = fields.Boolean(
+        metadata={
+            "description": "The result of the existence check",
+        })
 @auth.after_request
 def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     """Add security headers to every response.
@@ -196,3 +221,22 @@ def logout_user() -> flask.wrappers.Response:
         key=enums.SessionNames.SESSION.value,
     )
     return response
+
+
+@auth.route("/auth/username/available", methods=["GET"])
+@use_kwargs(UsernameCheckSchema(), location="query")
+@marshal_with(UsernameCheckResultSchema(), code=200)
+@doc(
+    tags=["Auth"],
+    description="Check if a username is taken",
+)
+def check_username_available(username: str) -> flask.wrappers.Response:
+    """Check if username is taken.
+
+    This can be used as a quick check during user registration.
+    """
+    outcome: Dict[str: Union[str, bool]] = {
+        "username": username,
+        "available": not auth_control.username_exists(session, username)
+    }
+    return outcome
