@@ -6,7 +6,7 @@ from functools import lru_cache, wraps
 from http import HTTPStatus
 import logging
 import pathlib
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 import uuid
 
 import apispec
@@ -43,27 +43,6 @@ def get_uuid() -> str:
     :rtype: str
     """
     return str(uuid.uuid4())
-
-
-def mkdir(path: Union[pathlib.Path, str], exists_ok: bool = True) -> None:
-    """Recursively make directories in a path.
-
-    Note: this is only here to make logging a bit cleaner.
-
-    :param pathlib.Path path: path or directory to make
-    :param bool exists_ok: Its useful to overwrite the exists_ok option
-        when attempting to do existence checks during directory creation.
-    :raises FileExistsError: when ran with exists_ok=False and the dir
-        exists.
-    """
-    if not isinstance(path, pathlib.Path):
-        logger.warning(
-            "path must a pathlib.Path object, attempting to convert"
-        )
-        path: pathlib.Path = pathlib.Path(path)
-
-    # attempt to recursively make path
-    path.mkdir(parents=True, exist_ok=exists_ok)
 
 
 def current_user(
