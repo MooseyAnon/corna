@@ -9,7 +9,7 @@ import werkzeug
 from corna import enums
 from corna.controls import post_control
 from corna.db import models
-from corna.utils import utils
+from corna.utils import utils, image_proc
 from tests import shared_data
 
 
@@ -40,7 +40,7 @@ def _all_post_based_stubs(tmpdir, mocker, monkeypatch):
         return_value="thisisafakehash12345",
     )
     monkeypatch.setattr(
-        post_control,
+        image_proc,
         "PICTURE_DIR",
         tmpdir.mkdir("assets"),
     )
@@ -101,7 +101,7 @@ def test_create_post(session, client, corna, with_image):
 @freeze_time(FROZEN_TIME)
 @pytest.mark.parametrize("with_image,expected", [(False, 400), (True, 201)])
 def test_post_with_picture(session, client, corna, with_image, expected):
-    assets = post_control.PICTURE_DIR
+    assets = image_proc.PICTURE_DIR
     out_post = shared_data.mock_post(
         type_="picture",
         with_content=True,
@@ -165,7 +165,7 @@ def test_post_with_picture(session, client, corna, with_image, expected):
     ]
 )
 def test_get_all_posts(session, client, corna, post_type, url_ext, holder):
-    assets = post_control.PICTURE_DIR
+    assets = image_proc.PICTURE_DIR
     out_post = shared_data.mock_post(
         type_=post_type,
         with_content=True,
@@ -207,7 +207,7 @@ def test_get_all_posts(session, client, corna, post_type, url_ext, holder):
 
 @freeze_time(FROZEN_TIME)
 def test_get_image(session, client, corna):
-    assets = post_control.PICTURE_DIR
+    assets = image_proc.PICTURE_DIR
     out_post = shared_data.mock_post(
         type_="picture",
         with_content=True,
@@ -234,7 +234,7 @@ def test_get_image(session, client, corna):
 
 
 def test_path_collision(session, client, capsys, corna):
-    assets = post_control.PICTURE_DIR
+    assets = image_proc.PICTURE_DIR
     out_post = shared_data.mock_post(
         type_="picture",
         with_content=True,
@@ -263,7 +263,7 @@ def test_path_collision(session, client, capsys, corna):
     # but should still be saved
     from werkzeug.datastructures import FileStorage
     file = FileStorage(filename=str(assets / "same-pic-different-name.jpg"))
-    post_control.handle_pictures(file)
+    image_proc.save(file)
 
     captured = capsys.readouterr()
     assert "Photo directory exists, duplicate?" in captured.err
