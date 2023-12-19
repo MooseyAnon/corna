@@ -5,6 +5,11 @@ unnecessary code duplication.
 """
 
 import datetime
+import logging
+import pathlib
+from typing import Union
+
+logger = logging.Logger(__name__)
 
 
 def get_utc_now() -> datetime.datetime:
@@ -26,3 +31,24 @@ def future(days: int = 14) -> datetime.datetime:
     now = get_utc_now()
     skip = datetime.timedelta(days=days)
     return now + skip
+
+
+def mkdir(path: Union[pathlib.Path, str], exists_ok: bool = True) -> None:
+    """Recursively make directories in a path.
+
+    Note: this is only here to make logging a bit cleaner.
+
+    :param pathlib.Path path: path or directory to make
+    :param bool exists_ok: Its useful to overwrite the exists_ok option
+        when attempting to do existence checks during directory creation.
+    :raises FileExistsError: when ran with exists_ok=False and the dir
+        exists.
+    """
+    if not isinstance(path, pathlib.Path):
+        logger.warning(
+            "path must a pathlib.Path object, attempting to convert"
+        )
+        path: pathlib.Path = pathlib.Path(path)
+
+    # attempt to recursively make path
+    path.mkdir(parents=True, exist_ok=exists_ok)

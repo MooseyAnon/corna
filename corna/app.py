@@ -11,7 +11,7 @@ from flask_apispec import FlaskApiSpec
 from flask_sqlalchemy_session import flask_scoped_session
 
 from .blueprints import frontend
-from .blueprints.v1 import auth, corna, dummy, posts
+from .blueprints.v1 import auth, corna, dummy, posts, themes
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,8 @@ def create_app(session_class):
     register_blueprint_with_docs(
         api_spec, posts, "posts", url_prefix="/api/v1")
     register_blueprint_with_docs(api_spec, frontend, "frontend")
+    register_blueprint_with_docs(
+        api_spec, themes, "themes", url_prefix="/api/v1")
 
     # Handle argument errors
     # app.register_error_handler(

@@ -2,14 +2,11 @@
 
 import logging
 import os
-import random
-import string
 from typing import Dict, List, Optional, Tuple, Union
 
 from typing_extensions import TypedDict
 from werkzeug.datastructures import FileStorage
 from werkzeug.local import LocalProxy
-from werkzeug.utils import secure_filename
 
 from corna.db import models
 from corna.enums import ContentType
@@ -19,10 +16,6 @@ from corna.utils.utils import current_user
 
 logger = logging.Logger(__name__)
 
-
-PICTURE_DIR: Optional[str] = os.environ.get("PICTURE_DIR")
-# to generate "unique-ish" short strings to use for URL extentions
-ALPHABET: str = string.ascii_lowercase + string.digits
 
 POST_TYPES: Tuple[str, ...] = tuple(
     post_type.value
@@ -141,79 +134,6 @@ def get_corna(session: LocalProxy, domain_name: str) -> models.CornaTable:
     return corna
 
 
-# from: https://stackoverflow.com/q/13484726
-def random_short_string(length: int = 8) -> str:
-    """Random-ish short string generator.
-
-    :param int length: length of string
-    :return: random-ish short string
-    :rtype: str
-    """
-    return "".join(random.choices(ALPHABET, k=length))
-
-
-def hash_to_dir(hash_32: str) -> str:
-    """Construct directory structure from hash.
-
-    This function expects the hexadecimal representation of _at least_ a
-    128bit (i.e 16 bytes) hash function output. Typically 128bit to hex
-    results in at least 32 hexadecimal digits (2 digits per byte).
-
-    :param str hash_32: the image hash to use for the directory structure.
-    :returns: The hash broken down into a directory structure e.g.
-        in: b064a10c720babc723728f9ffd58f472
-        out: b06/4a1/0c7/20babc723728f9ffd58f472
-    rtype: str
-    """
-    # This directory structure allows us to "balance" pictures more
-    # uniformly rather relying on something that does not have great
-    # distribution like directories prefixed with user IDs or something.
-    # More discussion: https://stackoverflow.com/a/900528
-    path: str = f"{hash_32[:3]}/{hash_32[3:6]}/{hash_32[6:9]}/{hash_32[9:]}"
-    return path
-
-
-def handle_pictures(picture: FileStorage) -> str:
-    """Handle the saving of a picture.
-
-    :param flask.FileStorage picture: the picture to save
-    :returns: the full path of the picture
-    :rtype: str
-    :raises OSError: if picture cannot be saved
-    """
-    if not picture.filename:
-        raise OSError("File needs name to be saved")
-
-    secure_image_name: str = secure_filename(picture.filename)
-    image_hash: str = image_proc.hash_image(picture)
-    # combination of the root assets dir and the hash derived fs
-    directory_path: str = f"{PICTURE_DIR}/{hash_to_dir(image_hash)}"
-
-    # Eventually we will replace this with either a `phash` or `dhash`
-    # to check for similarity but this is a useful initial tool to use
-    # in monitoring and obvious duplicates
-    try:
-        utils.mkdir(directory_path, exists_ok=False)
-
-    except FileExistsError as error_message:
-        logger.warning(
-            "Photo directory exists, duplicate? Dir path: %s. "
-            "Name of image: %s. Error: %s",
-            directory_path,
-            secure_image_name,
-            error_message,
-        )
-
-    full_path: str = f"{directory_path}/{secure_image_name}"
-    # save picture
-    try:
-        picture.save(full_path)
-    except OSError as e:
-        raise e
-
-    return full_path
-
-
 def create(session: LocalProxy, data: CreatePostCollection) -> None:
     """Create a new corna post.
 
@@ -236,7 +156,7 @@ def create(session: LocalProxy, data: CreatePostCollection) -> None:
     url: str = secure.generate_unique_token(
         session=session,
         column=models.PostTable.url_extension,
-        func=random_short_string
+        func=utils.random_short_string
     )
     post_uuid: str = utils.get_uuid()
 
@@ -306,12 +226,12 @@ def save_image(
     :param Optional[str] post_uuid: uuid of post, if image
         is a part of a post.
     """
-    path: str = handle_pictures(image)
+    path: str = image_proc.save(image)
     uuid: str = utils.get_uuid()
     url_extension: str = secure.generate_unique_token(
         session=session,
         column=models.Images.url_extension,
-        func=random_short_string
+        func=utils.random_short_string
     )
     session.add(
         models.Images(

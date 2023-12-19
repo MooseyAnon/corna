@@ -6,7 +6,9 @@ from functools import lru_cache, wraps
 from http import HTTPStatus
 import logging
 import pathlib
-from typing import Callable, Optional, Union
+import random
+import string
+from typing import Callable, Optional
 import uuid
 
 import apispec
@@ -24,6 +26,8 @@ from corna.utils.errors import NotLoggedInError
 
 logger = logging.getLogger(__name__)
 
+# to generate "unique-ish" short strings to use for URL extentions
+ALPHABET: str = string.ascii_lowercase + string.digits
 CORNA_ROOT: pathlib.Path = pathlib.Path(__file__).parent.parent.parent
 
 
@@ -43,27 +47,6 @@ def get_uuid() -> str:
     :rtype: str
     """
     return str(uuid.uuid4())
-
-
-def mkdir(path: Union[pathlib.Path, str], exists_ok: bool = True) -> None:
-    """Recursively make directories in a path.
-
-    Note: this is only here to make logging a bit cleaner.
-
-    :param pathlib.Path path: path or directory to make
-    :param bool exists_ok: Its useful to overwrite the exists_ok option
-        when attempting to do existence checks during directory creation.
-    :raises FileExistsError: when ran with exists_ok=False and the dir
-        exists.
-    """
-    if not isinstance(path, pathlib.Path):
-        logger.warning(
-            "path must a pathlib.Path object, attempting to convert"
-        )
-        path: pathlib.Path = pathlib.Path(path)
-
-    # attempt to recursively make path
-    path.mkdir(parents=True, exist_ok=exists_ok)
 
 
 def current_user(
@@ -239,3 +222,15 @@ def exists_(
     return session.query(
         exists().where(table_column == check_val)
     ).scalar()
+
+
+def random_short_string(length: int = 8) -> str:
+    """Random-ish short string generator.
+
+    :param int length: length of string
+    :return: random-ish short string
+    :rtype: str
+
+    From: https://stackoverflow.com/q/13484726
+    """
+    return "".join(random.choices(ALPHABET, k=length))

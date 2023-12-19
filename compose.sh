@@ -99,7 +99,7 @@ rsync \
 if [[ -n $RUN_CI ]]; then
     if ! docker compose run --rm corna make check; then
         echo "CI: FAILED!"
-        clean
+        cleanup
         exit 1
     fi
     echo "CI: PASSED!"

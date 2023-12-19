@@ -19,3 +19,12 @@ class ContentType(EnumWrapper):
 class SessionNames(EnumWrapper):
     """Session names."""
     SESSION = "corna-sesh"
+
+
+class ThemeReviewState(enum.Enum):
+    """States of theme PR."""
+    UNKNOWN = "unknown"
+    MERGED = "merged"
+
+    def __eq__(self, other):
+        return self.value == other
