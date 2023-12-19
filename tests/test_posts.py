@@ -32,7 +32,7 @@ def _all_post_based_stubs(tmpdir, mocker, monkeypatch):
     related testing.
     """
     mocker.patch(
-        "corna.controls.post_control.random_short_string",
+        "corna.utils.utils.random_short_string",
         return_value="abcdef",
     )
     mocker.patch(

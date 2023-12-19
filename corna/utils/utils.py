@@ -6,6 +6,8 @@ from functools import lru_cache, wraps
 from http import HTTPStatus
 import logging
 import pathlib
+import random
+import string
 from typing import Callable, Optional
 import uuid
 
@@ -24,6 +26,8 @@ from corna.utils.errors import NotLoggedInError
 
 logger = logging.getLogger(__name__)
 
+# to generate "unique-ish" short strings to use for URL extentions
+ALPHABET: str = string.ascii_lowercase + string.digits
 CORNA_ROOT: pathlib.Path = pathlib.Path(__file__).parent.parent.parent
 
 
@@ -218,3 +222,15 @@ def exists_(
     return session.query(
         exists().where(table_column == check_val)
     ).scalar()
+
+
+def random_short_string(length: int = 8) -> str:
+    """Random-ish short string generator.
+
+    :param int length: length of string
+    :return: random-ish short string
+    :rtype: str
+
+    From: https://stackoverflow.com/q/13484726
+    """
+    return "".join(random.choices(ALPHABET, k=length))
