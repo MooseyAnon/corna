@@ -2,8 +2,6 @@
 
 import logging
 import os
-import random
-import string
 from typing import Dict, List, Optional, Tuple, Union
 
 from typing_extensions import TypedDict
@@ -19,10 +17,6 @@ from corna.utils.utils import current_user
 
 logger = logging.Logger(__name__)
 
-
-PICTURE_DIR: Optional[str] = os.environ.get("PICTURE_DIR")
-# to generate "unique-ish" short strings to use for URL extentions
-ALPHABET: str = string.ascii_lowercase + string.digits
 
 POST_TYPES: Tuple[str, ...] = tuple(
     post_type.value
@@ -141,17 +135,6 @@ def get_corna(session: LocalProxy, domain_name: str) -> models.CornaTable:
     return corna
 
 
-# from: https://stackoverflow.com/q/13484726
-def random_short_string(length: int = 8) -> str:
-    """Random-ish short string generator.
-
-    :param int length: length of string
-    :return: random-ish short string
-    :rtype: str
-    """
-    return "".join(random.choices(ALPHABET, k=length))
-
-
 def hash_to_dir(hash_32: str) -> str:
     """Construct directory structure from hash.
 
@@ -236,7 +219,7 @@ def create(session: LocalProxy, data: CreatePostCollection) -> None:
     url: str = secure.generate_unique_token(
         session=session,
         column=models.PostTable.url_extension,
-        func=random_short_string
+        func=utils.random_short_string
     )
     post_uuid: str = utils.get_uuid()
 
@@ -311,7 +294,7 @@ def save_image(
     url_extension: str = secure.generate_unique_token(
         session=session,
         column=models.Images.url_extension,
-        func=random_short_string
+        func=utils.random_short_string
     )
     session.add(
         models.Images(
