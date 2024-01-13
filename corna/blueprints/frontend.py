@@ -26,6 +26,13 @@ def register_page():
         (utils.CORNA_ROOT / "frontend/public/html"), "signup.html")
 
 
+@frontend.route("/frontend/editor", methods=["GET"])
+def editor():
+    """Serve rich text editor."""
+    return flask.send_from_directory(
+        (utils.CORNA_ROOT / "frontend/public/html"), "editor.html")
+
+
 @frontend.route("/frontend/static/<path:path>", methods=["GET"])
 def get_static(path):
     """Serve static files.
