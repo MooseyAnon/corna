@@ -214,7 +214,7 @@ export async function processUserInput(): Promise<void> {
 
     switch(key) {
         case QuestionKeys.EMAIL: {
-            const emailAvailable = await emailIsAvailable(clean(userRaply))
+            const emailAvailable = await emailIsAvailable(clean(userReply))
             registerConfig.blocked = !emailAvailable ? true : !isValidEmail(userReply);
             break;
         }
@@ -574,7 +574,7 @@ export async function emailIsAvailable(email: string): Promise<boolean> {
 
     await (async () => {
         const [error, response] = await handlePromise(
-            request(`v1/auth/email/available?email=${username}`)
+            request(`v1/auth/email/available?email=${email}`)
         ) as [(AxiosError | undefined), (AxiosResponse | undefined)];
 
         if (response) { emailAvailable = response.data.available; }
