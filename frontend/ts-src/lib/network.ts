@@ -4,10 +4,10 @@
 import axios from "axios";
 import {
     AxiosError,
-    AxiosHeaders,
     AxiosPromise,
     AxiosRequestConfig,
     AxiosResponse,
+    RawAxiosRequestHeaders
 } from "axios";
 
 import { handlePromise } from "./utils.js";
@@ -33,7 +33,7 @@ export function request<T>(
     urlExtension: string,
     method: ("get" | "delete" | "post" | "put") = "get",
     payload?: T,
-    headers?: AxiosHeaders,
+    headers?: RawAxiosRequestHeaders,
 ): AxiosPromise {
     /* Generalised requestion function that wraps axios.request.
     *
