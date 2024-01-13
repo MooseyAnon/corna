@@ -1,0 +1,450 @@
+@font-face {
+  font-family: spaceInvaders;
+  src: url(../fonts/spaceinvaders.otf);
+}
+
+@keyframes hoverInLink {
+  0% {
+    background-color: transparent;
+  }
+  100% {
+    background-color: #ececec;
+    border-radius: 2px;
+  }
+}
+@keyframes hoverOutLink {
+  0% {
+    background-color: #ececec;
+    border-radius: 2px;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+@keyframes hoverIn {
+  0% {
+    background-color: transparent;
+  }
+  100% {
+    background-color: #ececec;
+    border-radius: 2px;
+  }
+}
+@keyframes hoverOut {
+  0% {
+    background-color: #ececec;
+    border-radius: 2px;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+@keyframes widthExpansion {
+  0% {
+    width: inherit;
+  }
+  100% {
+    width: 100%;
+  }
+}
+@keyframes widthShrink {
+  0% {
+    width: 100%;
+  }
+  100% {
+    width: inherit;
+  }
+}
+.scrim {
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.modalContainer {
+  width: 70vw;
+  max-width: 700px;
+  height: 50vh;
+  background-color: white;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.content h4,
+.content p,
+.content h3,
+.content h1,
+.content h2 {
+  margin: 0px;
+}
+
+.footer {
+  display: flex;
+  flex-direction: row;
+  padding: 14px;
+  justify-content: space-between;
+  align-items: center;
+  font-family: spaceInvaders;
+  width: -webkit-fill-available;
+}
+
+.divider {
+  background-color: #dddddd;
+  width: 100%;
+  height: 1px;
+}
+.footerDivider {
+  background-color: #dddddd;
+  width: 100%;
+  height: 1px;
+}
+.insertDivider {
+  background-color: #dddddd;
+  width: 1px;
+  height: 24px;
+  display: none;
+}
+.content {
+  border-width: 0px;
+  border-style: none;
+  overflow: scroll;
+  resize: none;
+  margin: 20px 14px 20px 20px;
+  font-family: spaceInvaders;
+  font-size: 12pt;
+  height: inherit;
+  caret-color: rgb(0, 0, 0);
+  outline: none;
+  width: 100%;
+  width: -moz-available;          /* WebKit-based browsers will ignore this. */
+  width: -webkit-fill-available;  /* Mozilla-based browsers will ignore this. */
+}
+
+.create {
+  color: white;
+  font-family: spaceInvaders;
+  background: black;
+  font-size: 12pt;
+  border: 2px solid black;
+  outline: 2px solid white;
+  outline-offset: -5px;
+  border-radius: 6px;
+  padding: 8px 16px 5px 16px;
+  width: fit-content;
+}
+
+.tag {
+  border: 1px solid #e3e3e3;
+  border-radius: 4px;
+  padding: 6px 10px 4px 10px;
+}
+
+.editor {
+  background-color: white;
+  flex-direction: column;
+  font-family: spaceInvaders;
+  color: black;
+  column-gap: 10px;
+  align-items: flex-start;
+  display: flex;
+  width: -webkit-fill-available;
+  height: -webkit-fill-available;
+}
+.textStyle {
+  display: flex;
+  flex-direction: row;
+  column-gap: 2px;
+  border: 1px solid #e3e3e3;
+  border-radius: 4px;
+  padding: 4px 4px;
+  align-items: center;
+}
+
+.editor .divider {
+  background-color: #dddddd;
+  width: 1px;
+  height: 24px;
+}
+
+.selectTypeface {
+  fill: white;
+  stroke: black;
+  cursor: pointer;
+  width: 140px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  column-gap: 4px;
+  border: 1px solid #e3e3e3;
+  border-radius: 4px;
+  padding: 6px 10px 2px 6px;
+  font-family: "spaceInvaders";
+
+  height: -webkit-fill-available;
+}
+
+.textAlignment {
+  padding: 5px 5px 1px 5px;
+  fill: white;
+  stroke: black;
+  cursor: pointer;
+  width: fit-content;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
+  column-gap: 2px;
+  border: 1px solid #e3e3e3;
+  border-radius: 4px;
+  padding: 4px 4px;
+}
+
+.textAlignment button {
+  padding: 4px 2px;
+}
+.textDecoration {
+  padding: 5px 5px 1px 5px;
+  fill: white;
+  stroke: black;
+  cursor: pointer;
+  width: fit-content;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
+  column-gap: 2px;
+  border: 1px solid #e3e3e3;
+  border-radius: 4px;
+  padding: 4px 4px;
+}
+.textColour {
+  padding: 5px 5px 1px 5px;
+  fill: white;
+  stroke: black;
+  cursor: pointer;
+  width: fit-content;
+  height: -webkit-fill-available;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
+  column-gap: 2px;
+  border: 1px solid #e3e3e3;
+  border-radius: 4px;
+  padding: 3px 4px;
+}
+input[type="color"]::-webkit-color-swatch {
+  border-radius: 1px;
+}
+input[type="color"]::-moz-color-swatch {
+  border-radius: 1px;
+}
+
+.colour {
+  background-color: transparent;
+  border-radius: 2px;
+  border: none;
+  padding: 0px;
+  height: -webkit-fill-available;
+  width: 22px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+.extra {
+  fill: white;
+  stroke: black;
+  cursor: pointer;
+  width: fit-content;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  column-gap: 2px;
+  border: 1px solid #e3e3e3;
+  border-radius: 4px;
+  padding: 4px 4px;
+}
+#activeFont {
+  overflow: hidden;
+  width: -webkit-fill-available;
+  text-wrap: nowrap;
+}
+.picture {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 2px;
+}
+.link {
+  text-align-last: center;
+  stroke: black;
+  display: flex;
+  padding: 4px 2px;
+}
+
+button {
+  padding: none;
+  border: none;
+  background-color: transparent;
+  font-family: "spaceInvaders";
+  padding-block: revert;
+  padding-inline: 0px;
+  display: flex;
+  width: 27px;
+  justify-content: center;
+  align-items: baseline;
+}
+button svg {
+  width: 16px;
+}
+
+button:hover {
+  animation: hoverInLink 0.5s ease forwards;
+}
+.bold {
+  width: 27px;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  align-content: center;
+  color: black;
+  overflow: hidden;
+  padding: 3px 0px 0px 0px;
+}
+
+ul,
+ol {
+  padding-inline-start: 20px;
+  margin: 0px;
+}
+ul span,
+ol span {
+  color: inherit;
+}
+
+.italic {
+  width: 27px;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  align-content: center;
+  color: black;
+  overflow: hidden;
+  padding: 3px 0px 0px 0px;
+  font-style: italic;
+}
+
+.underline {
+  width: 27px;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  align-content: center;
+  color: black;
+  overflow: hidden;
+  padding: 3px 0px 0px 0px;
+  text-decoration: underline;
+}
+
+.noHover {
+  cursor: default;
+  animation: none !important;
+}
+
+.arrow {
+  padding-bottom: 2px;
+  transition: transform 0.4s ease; /* Optional: Add a smooth transition effect */
+}
+.textContainer {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  column-gap: 8px;
+  align-items: center;
+  margin: 14px 20px 0px 20px;
+}
+.typefaceOptions {
+  list-style-type: none;
+  padding: 8px;
+  position: absolute;
+  color: black;
+  z-index: 1;
+  overflow: scroll;
+  display: none;
+  flex-direction: column;
+  row-gap: 5px;
+  left: 0;
+  top: 100%;
+  margin-top: 4px;
+  width: -webkit-fill-available;
+  margin-bottom: 0px;
+  border: 1px solid #e3e3e3;
+  border-radius: 4px;
+  background: white;
+}
+.regular {
+  font-size: 10px;
+}
+.caption {
+  font-size: 8px;
+}
+.typefaceOptions li {
+  padding: 4px 0px 0px 5px;
+}
+
+.accept {
+  font-family: spaceInvaders;
+  border-radius: 2px;
+  color: black;
+  background-color: white;
+  padding: 7px 4px 4px 4px;
+  border: none;
+  font-size: 9pt;
+  display: none;
+}
+
+.selectTypefaceActive {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  stroke: white;
+  animation: widthExpansion 5s ease forwards;
+}
+
+.arrowActive {
+  transform: rotate(-180deg);
+  transition: transform 0.4s ease; /* Optional: Add a smooth transition effect */
+  padding-bottom: 0px;
+  padding-top: 2px;
+}
+
+.typefaceOptions li:hover {
+  animation: hoverIn 0.5s ease forwards;
+}
+
+::-webkit-scrollbar {
+  height: 0px;
+  width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 2px;
+  background: #ececec;
+  height: 10%;
+}
+
+.linkField {
+  background-color: transparent;
+  border: none;
+  width: 100%;
+  color: white;
+  caret-color: white;
+  font-family: spaceInvaders;
+  display: none;
+
+  outline: white;
+}
