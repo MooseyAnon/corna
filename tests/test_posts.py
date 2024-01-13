@@ -26,15 +26,33 @@ def convert_bytes(num):
         num /= 1024.0
 
 
+def _upload_single_image(session, client):
+    """Post a single image to the db/filesystem."""
+
+    image = (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb")
+    resp = client.post("/api/v1/media/upload", data={ "image": image })
+
+    assert resp.status_code == 201
+    assert session.query(models.Images).count() > 0
+
+    return resp.json
+
+
 @pytest.fixture(autouse=True)
-def _all_post_based_stubs(tmpdir, mocker, monkeypatch):
+def _all_post_based_stubs(request, tmpdir, mocker, monkeypatch):
     """Environment variable and function mocks needed for post
     related testing.
     """
-    mocker.patch(
-        "corna.utils.utils.random_short_string",
-        return_value="abcdef",
-    )
+    # this allows us to selectively create mocks, more info on request
+    # objects go to link[1] and ctrl + f for "Using markers to pass data to
+    # fixtures".
+    #
+    # [1] https://docs.pytest.org/en/7.4.x/how-to/fixtures.html
+    if not ("nostubs" in request.keywords):
+        mocker.patch(
+            "corna.utils.utils.random_short_string",
+            return_value="abcdef",
+        )
     mocker.patch(
         "corna.utils.image_proc.hash_image",
         return_value="thisisafakehash12345",
@@ -303,3 +321,124 @@ def test_user_attempt_with_invalid_cookie(session, client, corna):
     )
     assert resp.status_code == 400
     assert "Login required for this action" in resp.json["message"]
+
+
+def test_linking_preloaded_images(session, client, corna):
+    # create image
+    _upload_single_image(session, client)
+
+    out_post = shared_data.mock_post(
+        with_content=True,
+        with_title=True,
+    )
+    out_post.update({"uploaded_images": ["abcdef"]})
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        data=out_post,
+    )
+    assert resp.status_code == 201
+
+    # ensure we only still have one image and one post saved
+    assert session.query(models.Images).count() == 1
+    assert session.query(models.PostTable).count() == 1
+
+    # ensure relationships are correct
+    post = session.query(models.PostTable).first()
+    assert post is not None
+    assert len(post.images) == 1
+
+    image = post.images[0]
+    assert image.url_extension == "abcdef"
+    assert image.orphaned == False
+
+
+@pytest.mark.nostubs
+def test_linking_multiple_images(session, client, corna):
+    # create multiple image
+    image_urls = []
+    for _ in range(2):
+        data = _upload_single_image(session, client)
+        image_urls.append(data["url_extension"])
+
+    out_post = shared_data.mock_post(
+        with_content=True,
+        with_title=True,
+    )
+    out_post.update({"uploaded_images": image_urls})
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        data=out_post,
+    )
+    assert resp.status_code == 201
+
+    # ensure we two images and one post saved
+    assert session.query(models.Images).count() == 2
+    assert session.query(models.PostTable).count() == 1
+
+    # ensure relationships are correct
+    post = session.query(models.PostTable).first()
+    assert post is not None
+    assert len(post.images) == 2
+
+    for image in post.images:
+        assert image.url_extension in image_urls
+        assert image.orphaned == False
+
+
+@pytest.mark.nostubs
+def test_mix_of_linking_and_direct_file_uploead(session, client, corna):
+    # create image
+    image_data = _upload_single_image(session, client)
+
+    out_post = shared_data.mock_post(
+        with_content=True,
+        with_title=True,
+        with_image=True,
+    )
+    out_post.update({"uploaded_images": image_data["url_extension"]})
+
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        data=out_post,
+    )
+    assert resp.status_code == 201
+
+    # ensure we two images and one post saved
+    assert session.query(models.Images).count() == 2
+    assert session.query(models.PostTable).count() == 1
+
+    # ensure relationships are correct
+    post = session.query(models.PostTable).first()
+    assert post is not None
+    assert len(post.images) == 2
+
+    for image in post.images:
+        assert image.orphaned == False
+
+
+def test_nothing_saved_in_database_if_image_save_fails(
+    session,
+    client,
+    mocker,
+    corna
+):
+    mocker.patch(
+        "corna.utils.image_proc.save",
+        side_effect=OSError("error!"))
+
+    out_post = shared_data.mock_post(
+        with_content=True,
+        with_title=True,
+        with_image=True,
+    )
+
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        data=out_post,
+    )
+    assert resp.status_code == 500
+    assert resp.json["message"] == "Unable to save picture"
+
+    assert session.query(models.PostTable).count() == 0
+    assert session.query(models.Images).count() == 0
+    assert session.query(models.TextContent).count() == 0

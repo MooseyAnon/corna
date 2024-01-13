@@ -90,6 +90,7 @@ class TextPost(_TextPostRequired, total=False):
     title: str
     image_urls: List[str]
     inner_html: str
+    uploaded_images: List[str]
 
 
 class _ImagePostRquired(Post):
@@ -210,6 +211,13 @@ def _creat_artefacts(
     # save text content, if any
     save_text(session, data, post_uuid=post_uuid)
 
+    # link any preloaded images
+    link(
+        session=session,
+        post_uuid=post_uuid,
+        uploaded_images=data.get("uploaded_images")
+    )
+
 
 def save_image(
     session: LocalProxy,
@@ -281,6 +289,42 @@ def save_text(
             created=get_utc_now(),
         )
     )
+
+
+def link(
+    session: LocalProxy,
+    post_uuid: str,
+    uploaded_images: List[str] = None,
+) -> None:
+    """Link preloaded media to a new post.
+
+    There are cases where we want to link pre-loaded, orphaned images
+    to a post.
+
+    :param LocalProxy session: db session
+    :param str post_uuid: The uuid of the post to link to i.e. parent post
+    :param List[str] uploaded_images: a list of url_extensions pointing to
+        orphaned images already existing in the database.
+
+    :raises PostDoesNotExist: if no image associated with the url exists
+    """
+
+    if not uploaded_images:
+        return
+
+    for url_extension in uploaded_images:
+        image: Optional[models.Images] = (
+            session
+            .query(models.Images)
+            .filter(models.Images.url_extension == url_extension)
+            .one_or_none()
+        )
+
+        if not image or (image.orphaned is not True):
+            raise PostDoesNotExist("Unable to find file")
+
+        image.post_uuid = post_uuid
+        image.orphaned = False
 
 
 def get(

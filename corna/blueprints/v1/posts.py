@@ -57,6 +57,13 @@ class TextPost(_BaseSchema):
         }
     )
 
+    uploaded_images = fields.List(
+        fields.String,
+        metadata={
+            "description":
+                "A list of pre-uploaded images that are part of the post."
+        })
+
     class Meta:  # pylint: disable=missing-class-docstring
         strict = True
 
