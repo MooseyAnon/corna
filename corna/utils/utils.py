@@ -8,7 +8,7 @@ import logging
 import pathlib
 import random
 import string
-from typing import Callable, Optional
+from typing import Callable, List, Optional, Tuple
 import uuid
 
 import apispec
@@ -16,6 +16,7 @@ import flask
 from marshmallow import fields, missing as marshmallow_missing
 import requests
 from sqlalchemy import exists
+from werkzeug.datastructures import FileStorage
 from werkzeug.local import LocalProxy
 
 from corna import enums
@@ -25,6 +26,11 @@ from corna.utils import secure
 from corna.utils.errors import NotLoggedInError
 
 logger = logging.getLogger(__name__)
+
+ALLOWED_EXTENSIONS: Tuple[str, ...] = tuple(
+    extension.value
+    for extension in enums.AllowedExtensions
+)
 
 # to generate "unique-ish" short strings to use for URL extentions
 ALPHABET: str = string.ascii_lowercase + string.digits
@@ -234,3 +240,44 @@ def random_short_string(length: int = 8) -> str:
     From: https://stackoverflow.com/q/13484726
     """
     return "".join(random.choices(ALPHABET, k=length))
+
+
+def is_allowed(filename: str) -> bool:
+    """Check if file extension is valid.
+
+    This is lifted straigh out of the flask docs for handling
+    file upload.
+
+    :param str filename: the name of the file being uploaded
+    :return: True if extension is valid
+    :rtype: bool
+    """
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def validate_files(
+    files: List[FileStorage],
+    minimum: int = None,
+    maximum: int = None,
+) -> None:
+    """Ensure incoming files are valid."""
+
+    if minimum and len(files) < minimum:
+        respond_json_error(
+            f"This URI expects at least {minimum} files",
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+
+    if maximum and len(files) > maximum:
+        respond_json_error(
+            f"This URI expects no greater than {maximum} file(s)",
+            HTTPStatus.UNPROCESSABLE_ENTITY
+        )
+
+    for file in files:
+        if not is_allowed(file.filename):
+            respond_json_error(
+                "Illegal file type",
+                HTTPStatus.UNPROCESSABLE_ENTITY
+            )

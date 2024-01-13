@@ -28,3 +28,13 @@ class ThemeReviewState(enum.Enum):
 
     def __eq__(self, other):
         return self.value == other
+
+
+class AllowedExtensions(EnumWrapper):
+    """Allowed file extensions."""
+
+    GIF = "gif"
+    JPG = "jpg"
+    JPEG = "jpeg"
+    PDF = "pdf"
+    PNG = "png"
