@@ -316,6 +316,15 @@ class Images(Base):
         DateTime,
         doc="image creation timestamp",
     )
+    orphaned = Column(
+        Boolean,
+        nullable=False,
+        doc="Describes if the image is 'loose'. Essentially a boolean values "
+            "which will be used to clean up the database/image storage. There "
+            "are situations where we may upload an image but its not used "
+            "e.g. for image preview on the client but the user subsequently "
+            "deletes the image before creating the post."
+    )
     post_uuid = Column(
         UUID,
         ForeignKey("posts.uuid"),

@@ -242,6 +242,7 @@ def save_image(
             size=os.stat(path).st_size,
             created=get_utc_now(),
             url_extension=url_extension,
+            orphaned=False,
         )
     )
 
