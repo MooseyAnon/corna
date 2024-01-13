@@ -51,6 +51,12 @@ class TextPost(_BaseSchema):
         },
     )
 
+    inner_html = fields.String(
+        metadata={
+            "description": "The html representation of the post"
+        }
+    )
+
     class Meta:  # pylint: disable=missing-class-docstring
         strict = True
 
