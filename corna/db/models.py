@@ -263,6 +263,11 @@ class TextContent(Base):
         Text,
         doc="Any text content associated with the post.",
     )
+    inner_html = Column(
+        Text,
+        doc="HTML representation of the content, this will come from browsers "
+            "so not all posts will have this."
+    )
     created = Column(
         DateTime,
         doc="Text creation timestamp",

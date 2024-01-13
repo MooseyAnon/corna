@@ -89,6 +89,7 @@ class TextPost(_TextPostRequired, total=False):
 
     title: str
     image_urls: List[str]
+    inner_html: str
 
 
 class _ImagePostRquired(Post):
@@ -264,6 +265,7 @@ def save_text(
 
     content: bool = data.get("content") or data.get("caption")
     title: Optional[str] = data.get("title")
+    inner_html: Optional[str] = data.get("inner_html")
 
     if not title and not content:
         return
@@ -274,6 +276,7 @@ def save_text(
             uuid=utils.get_uuid(),
             title=title,
             content=content,
+            inner_html=inner_html,
             created=get_utc_now(),
         )
     )
