@@ -117,7 +117,7 @@ def add_theme(**data: Dict[str, str]) -> flask.wrappers.Response:
     """Add new theme."""
 
     if request.files.get("thumbnail"):
-        thumbnails = request.files.getlist("thumbnail")
+        thumbnails: List[FileStorage] = request.files.getlist("thumbnail")
         # Marshmallow doesn't want to work with binary blobs/files so
         # we have to do the validation separately
         utils.validate_files(thumbnails, maximum=1)
