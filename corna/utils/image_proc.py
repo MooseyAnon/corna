@@ -38,6 +38,8 @@ def hash_image(image_path: FileStorage) -> str:
             break
         digest.update(nxt)
 
+    # reset read pointer to start of file
+    image_path.seek(0)
     return digest.hexdigest()
 
 
