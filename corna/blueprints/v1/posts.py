@@ -20,8 +20,6 @@ from corna.utils.utils import login_required
 
 posts = flask.Blueprint("posts", __name__)
 
-ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif'}
-
 
 class _BaseSchema(Schema):
     """Any shared fields."""
@@ -76,41 +74,6 @@ class PhotoPost(_BaseSchema):
         strict = True
 
 
-def is_allowed(filename: str) -> bool:
-    """Check if file extension is valid.
-
-    This is lifted straigh out of the flask docs for handling
-    file upload.
-
-    :param str filename: the name of the file being uploaded
-    :return: True if extension is valid
-    :rtype: bool
-    """
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def validate_images(images: List[FileStorage]) -> None:
-    """Validate incoming images.
-
-    :param List[FileStorage] images: images to validate
-    """
-    # we only want to deal with single picture posts
-    # for now but this pattern will be used for multiple
-    # pictures for a single post
-    if len(images) > 1:
-        utils.respond_json_error(
-            "Post can only contain a single picture",
-            HTTPStatus.UNPROCESSABLE_ENTITY
-        )
-    for image in images:
-        if not is_allowed(image.filename):
-            utils.respond_json_error(
-                "Illegal file extension",
-                HTTPStatus.UNPROCESSABLE_ENTITY
-            )
-
-
 @posts.after_request
 def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     """Add security headers to every response.
@@ -160,7 +123,7 @@ def text_post(
         images: List[FileStorage] = request.files.getlist("images")
         # Marshmallow doesn't want to work with binary blobs/files so
         # we have to do the validation separately
-        validate_images(images)
+        utils.validate_files(images, maximum=1)
         data.update(dict(images=images))
 
     data.update(
@@ -222,7 +185,7 @@ def photo_post(
     images: List[Any] = request.files.getlist("images")
     # Marshmallow doesn't want to work with binary blobs/files so
     # we have to do the validation separately
-    validate_images(images)
+    utils.validate_files(images, maximum=1)
     data.update(dict(images=images))
 
     data.update(

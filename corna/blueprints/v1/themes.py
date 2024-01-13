@@ -18,8 +18,6 @@ from corna.utils.errors import NoneExistingUserError
 
 themes = flask.Blueprint("themes", __name__)
 
-ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif'}
-
 
 class Base(Schema):
     """Shared fields for themes endpoints."""
@@ -75,39 +73,6 @@ class ThemeUpdateStatusSend(Base):
         strict = True
 
 
-def is_allowed(filename: str) -> bool:
-    """Check if file extension is valid.
-
-    This is lifted straight out of the flask docs for handling
-    file upload.
-
-    :param str filename: the name of the file being uploaded
-    :return: True if extension is valid
-    :rtype: bool
-    """
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def validate_thumbnails(images: List[FileStorage]) -> bool:
-    """Validate incoming images.
-
-    :param List[FileStorage] images: images to validate
-    """
-    # there should be only 1 thumbnail for a theme
-    if len(images) > 1:
-        utils.respond_json_error(
-            "Theme can only have a single thumbnail",
-            HTTPStatus.UNPROCESSABLE_ENTITY
-        )
-    for image in images:
-        if not is_allowed(image.filename):
-            utils.respond_json_error(
-                "Illegal file extension",
-                HTTPStatus.UNPROCESSABLE_ENTITY
-            )
-
-
 @themes.before_request
 def login_required() -> None:
     """Check if user is logged in."""
@@ -155,7 +120,7 @@ def add_theme(**data: Dict[str, str]) -> flask.wrappers.Response:
         thumbnails = request.files.getlist("thumbnail")
         # Marshmallow doesn't want to work with binary blobs/files so
         # we have to do the validation separately
-        validate_thumbnails(thumbnails)
+        utils.validate_files(thumbnails, maximum=1)
         data.update(dict(thumbnail=thumbnails[0]))
 
     cookie: str = flask.request.cookies[enums.SessionNames.SESSION.value]

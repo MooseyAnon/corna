@@ -247,7 +247,7 @@ def test_create_theme_multiple_thumbnail(session, client, login):
             ]
         ))
     assert resp.status_code == 422
-    assert resp.json["message"] == "Theme can only have a single thumbnail"
+    assert resp.json["message"] == "This URI expects no greater than 1 file(s)"
 
 
 def test_add_theme_duplicate(client, session, login):
