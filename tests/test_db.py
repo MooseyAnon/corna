@@ -30,6 +30,7 @@ def test_image_nullable_fk(session):
             path="some/fake/path",
             created=FROZEN_TIME,
             size=8096,
+            orphaned=False,
         )
     )
 
@@ -44,6 +45,7 @@ def test_image_nullable_fk(session):
     assert image.path == "some/fake/path"
     assert image.created.isoformat() == FROZEN_TIME
     assert image.size == 8096
+    assert image.orphaned == False
     assert image.post_uuid is None
     assert image.post is None
 
@@ -80,6 +82,7 @@ def test_post_with_multiple_images(session, corna):
                 created=FROZEN_TIME,
                 size=8096,
                 post_uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                orphaned=False,
             )
         )
 

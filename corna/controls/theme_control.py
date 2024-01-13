@@ -164,7 +164,8 @@ def thumbnail(session: LocalProxy, image: FileStorage) -> str:
             path=path,
             size=os.stat(path).st_size,
             created=get_utc_now(),
-            url_extension=url_extension
+            url_extension=url_extension,
+            orphaned=False,
         )
     )
 
