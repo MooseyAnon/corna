@@ -217,6 +217,7 @@ def login_user(**data: Dict) -> flask.wrappers.Response:
         secure=True,
         httponly=True,
         samesite="Lax",
+        domain="mycorna.com",
         key=enums.SessionNames.SESSION.value,
     )
     return response
@@ -247,6 +248,7 @@ def logout_user() -> flask.wrappers.Response:
         secure=True,
         httponly=True,
         samesite="Lax",
+        domain="mycorna.com",
         key=enums.SessionNames.SESSION.value,
     )
     return response
