@@ -95,7 +95,7 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     :return: response with security headers
     :rtype: flask.Response
     """
-    headers: Dict[str, str] = secure.secure_headers()
+    headers: Dict[str, str] = secure.secure_headers(flask.request)
     response.headers.update(headers)
     return response
 
