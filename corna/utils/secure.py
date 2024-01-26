@@ -19,6 +19,14 @@ logger = logging.getLogger(__name__)
 SPLITTR: bytes = b"||"
 # hashing function used in HMAC signature
 DIGESTMOD: Callable = hashlib.sha256
+# list of allowed request headers
+ACCESS_CONTROL_ALLOWED_HEADERS = [
+    "Accept",
+    "Authorization",
+    "Content-Type",
+    "Origin",
+    "X-Requested-With",
+]
 
 
 class UnableToGenerateUnqiqueToken(ValueError):
@@ -90,7 +98,7 @@ def generate_unique_token(
     raise UnableToGenerateUnqiqueToken("Unable to generate unique token")
 
 
-def secure_headers() -> Dict[str, str]:
+def secure_headers(request) -> Dict[str, str]:
     """Secure headers map.
 
     :returns: a mapping of secure headers
@@ -116,6 +124,7 @@ def secure_headers() -> Dict[str, str]:
 
     # add cors stuff
     headers.update(cors_headers())
+    headers.update(origin(request))
     return headers
 
 
@@ -126,10 +135,41 @@ def cors_headers() -> Dict[str, str]:
     :rtype: dict[str, str]
     """
     headers: Dict[str, str] = {}
-    headers["Access-Control-Allow-Origin"] = "*"
-    headers["Access-Control-Allow-Credentials"] = True
-    headers["Access-Control-Allow-Headers"] = "*"
-    headers["Access-Control-Allow-Methods"] = True
+    headers["Access-Control-Allow-Credentials"] = "true"
+    headers["Access-Control-Allow-Headers"] = ACCESS_CONTROL_ALLOWED_HEADERS
+    headers["Access-Control-Allow-Methods"] = ["GET", "POST", "PUT", "DELETE"]
+
+    return headers
+
+
+def origin(request):
+    """Dynamically set `Origin` header.
+
+    Due to our use of subdomains, we tend to have issues making a request from
+    one subdomain to another. In order to avoid this we can set the ACAO
+    header dynamically depending on where the request is coming from.
+
+    Note: Most requests do not contain an Origin header[1] for cases where it
+    is not set, we user a default.
+
+    [1] https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin
+
+    :param flask.request.wrapper: a flask request
+    :return: a dict with Access-Control-Allow-Origin header set
+    :rtype: Dict[str, str]
+    """
+    # this has to be the origin the request is _coming from_ so in prod
+    # this should be the full url. It cannot be a "*" as we need to us
+    # { withCredentials: true } on the frontend to ferry the session tokens
+    # back and forth, CORs blocks it without us specifically accepting the
+    # origin.
+    headers = {}
+    headers["Access-Control-Allow-Origin"] = "https://mycorna.com"
+
+    orig = request.headers.get("Origin")
+    if orig and "mycorna.com" in orig:
+        headers["Access-Control-Allow-Origin"] = orig
+
     return headers
 
 

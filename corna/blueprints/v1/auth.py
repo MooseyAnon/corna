@@ -120,7 +120,7 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     :returns: flask response object with updated headers
     :rtype: flask.Response
     """
-    headers: Dict = secure.secure_headers()
+    headers: Dict = secure.secure_headers(flask.request)
     response.headers.update(headers)
     return response
 
