@@ -7,9 +7,22 @@ will handle serving static files.
 
 import flask
 
-from corna.utils import utils
+from corna.utils import secure, utils
 
 frontend = flask.Blueprint("frontend", __name__)
+
+
+@frontend.after_request
+def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
+    """Add security headers to every response.
+
+    :param flask.Response response:
+    :returns: flask response object with updated headers
+    :rtype: flask.Response
+    """
+    headers = secure.secure_headers(flask.request)
+    response.headers.update(headers)
+    return response
 
 
 @frontend.route("/frontend/login", methods=["GET"])
