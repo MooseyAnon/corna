@@ -98,10 +98,20 @@ def secure_headers() -> Dict[str, str]:
     """
     headers: Dict[str, str] = {}
     # default security headers
-    headers['Content-Security-Policy'] = "default-src 'self'"
+    headers['Content-Security-Policy'] = (
+        "default-src 'self' "
+        "http://*.localhost http://localhost "
+        "https://mycorna.com https://*.mycorna.com "
+        "https://*.googleapis.com https://*.gstatic.com "
+        "https://cdnjs.cloudflare.com; "
+        "frame-ancestors 'self' https://*.mycorna.com/;"
+        "script-src 'self' https://mycorna.com https://cdnjs.cloudflare.com;"
+        "style-src 'self' 'unsafe-inline' https://mycorna.com "
+        "https://*.mycorna.com https://*.googleapis.com https://*.gstatic.com;"
+    )
     headers['Strict-Transport-Security'] = "max-age=31536000; includeSubDomains"
     headers['X-Content-Type-Options'] = "nosniff"
-    headers['X-Frame-Options'] = "SAMEORIGIN"
+    headers['X-Frame-Options'] = "allow-from https://mycorna.com/"
     headers['X-XSS-Protection'] = "1; mode=block"
 
     # add cors stuff
