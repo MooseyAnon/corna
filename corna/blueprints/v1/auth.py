@@ -141,7 +141,11 @@ def create_response(
     return response
 
 
-def set_cookie(response: flask.Response, **kwargs: Dict[str, Any]) -> None:
+def set_cookie(
+    response: flask.Response,
+    cookie: str,
+    **kwargs: Dict[str, Any]
+) -> None:
     """Set a cookie on a response object.
 
     This is essentially a wrapper around flasks own `set_cookie`
@@ -150,9 +154,25 @@ def set_cookie(response: flask.Response, **kwargs: Dict[str, Any]) -> None:
     mock this out.
 
     :param flask.Response response: response object
+    :param str cookie: cookie token to set
     :param dict kwargs: optional params to pass into `set_cookie`
     """
-    response.set_cookie(**kwargs)
+    # pylint: disable-next=import-outside-toplevel
+    from flask import current_app as app
+    cookie_attrs = dict(
+        httponly=True,
+        key=enums.SessionNames.SESSION.value,
+        samesite="Lax",
+        secure=True,
+        value=cookie,
+    )
+
+    testing = app.config.get("TESTING")
+    if not testing:
+        cookie_attrs.update({"domain": "mycorna.com"})
+    if kwargs:
+        cookie_attrs.update(**kwargs)
+    response.set_cookie(**cookie_attrs)
 
 
 @auth.route("/auth/register", methods=["POST"])
@@ -211,15 +231,7 @@ def login_user(**data: Dict) -> flask.wrappers.Response:
 
     response: flask.Response = create_response()
     # ensure cookie is secured
-    set_cookie(
-        response,
-        value=cookie,
-        secure=True,
-        httponly=True,
-        samesite="Lax",
-        domain="mycorna.com",
-        key=enums.SessionNames.SESSION.value,
-    )
+    set_cookie(response=response, cookie=cookie)
     return response
 
 
@@ -240,17 +252,7 @@ def logout_user() -> flask.wrappers.Response:
     session.commit()
 
     response = create_response()
-    # set empty cookie
-    set_cookie(
-        response,
-        value="",
-        expires=0,
-        secure=True,
-        httponly=True,
-        samesite="Lax",
-        domain="mycorna.com",
-        key=enums.SessionNames.SESSION.value,
-    )
+    set_cookie(response=response, cookie="", expires=0)
     return response
 
 
