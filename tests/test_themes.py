@@ -230,9 +230,9 @@ def test_create_theme_with_thumbnail(session, client, login):
 
     thumbnail_uuid = theme.thumbnail
     image = session.query(models.Images).first()
-
+    basename = expected_path.listdir()[0].basename
     assert image.uuid == thumbnail_uuid
-    assert image.path == expected_path.listdir()[0]
+    assert image.path == f"thi/sis/afa/kehash12345/{basename}"
 
 
 

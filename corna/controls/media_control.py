@@ -84,4 +84,4 @@ def download(session: LocalProxy, url_extension: str) -> str:
     if image is None:
         raise FileNotFoundError("File not found")
 
-    return image.path
+    return f"{image_proc.PICTURE_DIR}/{image.path}"
