@@ -77,8 +77,9 @@ def save(image: FileStorage) -> str:
 
     secure_image_name: str = secure_filename(image.filename)
     image_hash: str = hash_image(image)
+    hashed_dir: str = hash_to_dir(image_hash)
     # combination of the root assets dir and the hash derived fs
-    directory_path: str = f"{PICTURE_DIR}/{hash_to_dir(image_hash)}"
+    directory_path: str = f"{PICTURE_DIR}/{hashed_dir}"
 
     # Eventually we will replace this with either a `phash` or `dhash`
     # to check for similarity but this is a useful initial tool to use
@@ -102,4 +103,9 @@ def save(image: FileStorage) -> str:
     except OSError as e:
         raise e
 
-    return full_path
+    # we do not want to save the full path to the image which includes
+    # `PICTURE_DIR` because `PICTURE_DIR` is not guaranteed to always be
+    # in the same place. However, the hashed fs will always exits so we can
+    # defer the responsibility of finding the correct `PICUTRE_DIR` to the
+    # download code.
+    return f"{hashed_dir}/{secure_image_name}"

@@ -142,6 +142,7 @@ def test_post_with_picture(session, client, corna, with_image, expected):
         # assert we've saved some data successfully
         assert os.stat(file).st_size >= 1024
 
+    image_basename = expected_path.listdir()[0].basename
     # ensure database relationships are correct
     posts = session.query(models.PostTable).all()
     assert len(posts) == 1
@@ -171,7 +172,7 @@ def test_post_with_picture(session, client, corna, with_image, expected):
 
     assert text.content == out_post["caption"]
     assert pic.size >= 1024
-    assert pic.path == expected_path.listdir()[0]
+    assert pic.path == f"thi/sis/afa/kehash12345/{image_basename}"
     assert pic.url_extension == "abcdef"
 
 
@@ -242,7 +243,7 @@ def test_get_image(session, client, corna):
     expected_path = assets / "thi/sis/afa/kehash12345"
     assert expected_path.exists()
 
-    expected = expected_path.listdir()[0]
+    expected = f"thi/sis/afa/kehash12345/{expected_path.listdir()[0].basename}"
     actual = post_control.get_image(
         session,
         shared_data.corna_info['domain_name'],
