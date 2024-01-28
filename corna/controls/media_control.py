@@ -1,7 +1,6 @@
 """Control layer for dealing with media files."""
 
 import logging
-import os
 from typing import Optional
 
 from typing_extensions import TypedDict
@@ -38,7 +37,7 @@ def upload(session: LocalProxy, image: FileStorage) -> UploadResponse:
         func=utils.random_short_string
     )
     path: str = image_proc.save(image)
-    size: int = os.stat(path).st_size
+    size: int = image_proc.size(path)
     uuid: str = utils.get_uuid()
 
     session.add(

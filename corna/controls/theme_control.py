@@ -1,7 +1,6 @@
 """Manage working with Corna themes."""
 
 import logging
-import os
 from typing import Optional
 
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
@@ -162,7 +161,7 @@ def thumbnail(session: LocalProxy, image: FileStorage) -> str:
         models.Images(
             uuid=thumbnail_uuid,
             path=path,
-            size=os.stat(path).st_size,
+            size=image_proc.size(path),
             created=get_utc_now(),
             url_extension=url_extension,
             orphaned=False,

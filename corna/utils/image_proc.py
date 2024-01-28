@@ -109,3 +109,27 @@ def save(image: FileStorage) -> str:
     # defer the responsibility of finding the correct `PICUTRE_DIR` to the
     # download code.
     return f"{hashed_dir}/{secure_image_name}"
+
+
+def size(path: str) -> int:
+    """Get file size of an image.
+
+    Due to `PICTURE_DIR` potentially moving at any point we
+    only want to save the hashed fs in our db. To figure out the
+    full path we need to access to `PICTURE_DIR`, so in order to
+    simplify this process its best to have this in one place.
+
+    :param str path: the hashed fs path to the file
+    :returns: size of file
+    :rtype: int
+    :raises OSError: if file does not exist
+    """
+    full_path: str = f"{PICTURE_DIR}/{path}"
+    try:
+        result: int = os.stat(full_path).st_size
+
+    except OSError as e:
+        logger.error(e)
+        raise e
+
+    return result
