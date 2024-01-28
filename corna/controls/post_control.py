@@ -1,7 +1,6 @@
 """Manage Corna posts."""
 
 import logging
-import os
 from typing import Dict, List, Optional, Tuple, Union
 
 from typing_extensions import TypedDict
@@ -247,7 +246,7 @@ def save_image(
             uuid=uuid,
             path=path,
             post_uuid=post_uuid,
-            size=os.stat(path).st_size,
+            size=image_proc.size(path),
             created=get_utc_now(),
             url_extension=url_extension,
             orphaned=False,
