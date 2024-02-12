@@ -204,6 +204,11 @@ class CornaTable(Base):
         nullable=True,
         doc="Corna about/bio",
     )
+    theme = Column(
+        UUID,
+        nullable=True,
+        doc="Theme for Corna",
+    )
 
     ForeignKeyConstraint(
         ["about"],
@@ -212,6 +217,12 @@ class CornaTable(Base):
         ondelete="SET NULL",
     )
 
+    ForeignKeyConstraint(
+        ["theme"],
+        ["theme.uuid"],
+        use_alter=True,
+        ondelete="SET NULL",
+    )
 
 
 class PostTable(Base):
