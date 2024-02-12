@@ -156,3 +156,40 @@ def test_domain_name_available_check__when_avail(client):
         "available": True,
     }
     assert resp.json == expected
+
+
+def test_corna_with_about(session, client, login):
+
+    resp = client.post(
+        f"/api/v1/corna/{corna_info['domain_name']}",
+        json={
+            "title": corna_info["title"],
+            "about": "Hey this is my cool new Corna!",
+        },
+    )
+    assert resp.status_code == 201
+    
+    # check everything saved correctly in db
+    assert len(session.query(models.CornaTable).all()) == 1
+    corna = (
+        session.query(models.CornaTable)
+        .filter(models.CornaTable.domain_name == corna_info["domain_name"])
+        .one_or_none()
+    )
+    assert corna is not None
+    user = single_user()
+    assert corna.user.username == user["user_name"]
+    assert corna.about is not None
+
+    assert len(session.query(models.TextContent).all()) == 1
+    about = (
+        session
+        .query(models.TextContent)
+        .filter(models.TextContent.uuid == corna.about)
+        .one_or_none()
+    )
+
+    assert about is not None
+    assert about.post_uuid is None
+    assert about.post is None
+    assert about.content == "Hey this is my cool new Corna!"

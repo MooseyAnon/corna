@@ -26,6 +26,7 @@ class CornaCreate(TypedDict):
 
     domain_name: str
     title: str
+    about: str
 
 # **** types end ****
 
@@ -73,6 +74,12 @@ def create(session: LocalProxy, data: CornaCreate) -> None:
     if not domain_unique(session, data["domain_name"]):
         raise DomainExistsError("Domain name in use")
 
+    about_: Optional[str] = about(
+        session=session,
+        about_content=data.get("about"),
+    )
+
+
     session.add(
         models.CornaTable(
             uuid=utils.get_uuid(),
@@ -80,8 +87,37 @@ def create(session: LocalProxy, data: CornaCreate) -> None:
             title=data["title"],
             date_created=get_utc_now(),
             user_uuid=user.uuid,
+            about=about_,
         )
     )
+
+
+def about(session: LocalProxy, about_content: str = None) -> str:
+    """Save Corna 'about me' content.
+
+    Underneath the hood, 'about me' is saved as a block of
+    text content. This allows us to easily edit/update this
+    content in the future, while also giving the flexibility of
+    a full text object.
+
+    :params LocalProxy session: db session
+    :params Optional[str] about_content: the content to save
+    :return: uuid of saved data
+    :rtype: str
+    """
+    if not about_content:
+        return None
+
+    uuid = utils.get_uuid()
+    session.add(
+        models.TextContent(
+            uuid=uuid,
+            content=about_content,
+            created=get_utc_now(),
+            post_uuid=None,
+        )
+    )
+    return uuid
 
 
 def get_domain(session: LocalProxy, signed_cookie: str) -> str:
