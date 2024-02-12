@@ -56,6 +56,17 @@ def email_exists(session: LocalProxy, email: str) -> bool:
     return utils.exists_(session, models.EmailTable.email_address, email)
 
 
+def session_exists(session, user_uuid):
+    """Check a user session exists.
+
+    :param sqlalchemy.Session session: a db session
+    :param str user_uuid: user uuid to search for
+    :returns: True if the user already has a session
+    :rtype: bool
+    """
+    return utils.exists_(session, models.SessionTable.user_uuid, user_uuid)
+
+
 def register_user(session: LocalProxy, user_data: RegisterUser) -> None:
     """Register a new user.
 
@@ -114,6 +125,14 @@ def login_user(session: LocalProxy, user_data: LoginUser) -> bytes:
         .filter(models.UserTable.email_address == user_data["email_address"])
         .one()
     )
+
+    # There are situations where the client has deleted the cookie but it is
+    # still present in the database. In order to avoid errors we need to ensure
+    # the we remove any uncleared sessions. This is due to our constraint that
+    # each user can only have one on-going session at a time.
+    if session_exists(session, user.uuid):
+        delete_prexisting_session(session, user.uuid)
+
     cookie: str = secure.generate_unique_token(
         session, models.SessionTable.cookie_id)
     session_id: str = secure.generate_unique_token(
@@ -152,3 +171,19 @@ def delete_user_session(session: LocalProxy, signed_cookie: str) -> None:
     )
 
     logger.info("successfully deleted session")
+
+
+def delete_prexisting_session(session: LocalProxy, user_uuid: str) -> None:
+    """Delete session via user UUID.
+
+    :param LocalProxy session: db session
+    :param str user_uuid: The user uuid to delete
+    """
+    (
+        session
+        .query(models.SessionTable)
+        .filter(models.SessionTable.user_uuid == user_uuid)
+        .delete(synchronize_session=False)
+    )
+
+    logger.info("successfully deleted pre-existing session")
