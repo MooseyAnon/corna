@@ -35,6 +35,11 @@ class CornaCreateSchema(Schema):
             "description": "title of the corna"
         })
 
+    about = fields.String(
+        metadata={
+            "description": "User bio/about information",
+        })
+
     class Meta:  # pylint: disable=missing-class-docstring
         strict = True
 

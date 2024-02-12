@@ -1,7 +1,8 @@
 """Models for the Corna app."""
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey, Integer, String, Text)
+    Boolean, Column, DateTime, ForeignKey, ForeignKeyConstraint, Integer,
+    String, Text)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.inspection import inspect
@@ -198,6 +199,19 @@ class CornaTable(Base):
         "PostTable",
         back_populates="corna"
     )
+    about = Column(
+        UUID,
+        nullable=True,
+        doc="Corna about/bio",
+    )
+
+    ForeignKeyConstraint(
+        ["about"],
+        ["text.uuid"],
+        use_alter=True,
+        ondelete="SET NULL",
+    )
+
 
 
 class PostTable(Base):
