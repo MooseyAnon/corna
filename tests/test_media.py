@@ -29,7 +29,7 @@ def _all_media_based_stubs(tmpdir, mocker, monkeypatch):
     )
 
 
-def test_upload(session, client, mocker):
+def test_upload(session, client, mocker, login):
     mocker.patch(
         "corna.utils.utils.get_uuid",
         return_value="00000000-0000-0000-0000-000000000000",
@@ -68,7 +68,7 @@ def test_upload(session, client, mocker):
     assert image.orphaned == True
 
 
-def test_file_not_saved_properly(session, client, mocker):
+def test_file_not_saved_properly(session, client, mocker, login):
     mocker.patch(
         "corna.utils.image_proc.save",
         side_effect=OSError("Failure")
@@ -83,7 +83,7 @@ def test_file_not_saved_properly(session, client, mocker):
     assert session.query(models.Images).count() == 0
 
 
-def test_download(session, client):
+def test_download(session, client, login):
     # add image
     image = (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb")
     resp = client.post("/api/v1/media/upload", data={ "image": image })
