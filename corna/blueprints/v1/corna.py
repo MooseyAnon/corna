@@ -40,6 +40,11 @@ class CornaCreateSchema(Schema):
             "description": "User bio/about information",
         })
 
+    theme_uuid = fields.UUID(
+        metadata={
+            "description": "UUID of chosen theme",
+        })
+
     class Meta:  # pylint: disable=missing-class-docstring
         strict = True
 

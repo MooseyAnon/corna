@@ -79,6 +79,11 @@ def create(session: LocalProxy, data: CornaCreate) -> None:
         about_content=data.get("about"),
     )
 
+    theme: Optional[str] = (
+        str(data.get("theme_uuid"))
+        if data.get("theme_uuid")
+        else None
+    )
 
     session.add(
         models.CornaTable(
@@ -88,6 +93,7 @@ def create(session: LocalProxy, data: CornaCreate) -> None:
             date_created=get_utc_now(),
             user_uuid=user.uuid,
             about=about_,
+            theme=theme,
         )
     )
 

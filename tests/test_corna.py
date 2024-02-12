@@ -1,11 +1,52 @@
+import pathlib
+
 import pytest
 
 from corna import enums
 from corna.controls import corna_control as control
+from corna.controls import theme_control
 from corna.db import models
 from corna.utils.errors import NoneExistingUserError
-from corna.utils import secure
-from tests.shared_data import corna_info, single_user
+from corna.utils import image_proc, secure
+from tests.shared_data import ASSET_DIR, corna_info, single_user
+
+
+@pytest.fixture(name="theme")
+def _theme(client, tmpdir, mocker, monkeypatch, login):
+    # create a theme for tests
+
+    mocker.patch(
+        "corna.utils.utils.random_short_string",
+        return_value="abcdef",
+    )
+    mocker.patch(
+        "corna.utils.image_proc.hash_image",
+        return_value="thisisafakehash12345",
+    )
+    monkeypatch.setattr(
+        image_proc,
+        "PICTURE_DIR",
+        tmpdir.mkdir("assets"),
+    )
+    monkeypatch.setattr(
+        theme_control,
+        "THEMES_DIR",
+        tmpdir.mkdir("themes")
+    )
+
+    path = pathlib.Path(theme_control.THEMES_DIR) / "index.html"
+    path.touch()
+
+    theme_data = {
+        "creator": "john_snow",
+        "name": "new fancy theme",
+        "description": "This theme does super cool theme stuff.",
+        "path": "index.html",
+        "thumbnail": (ASSET_DIR / "anders-jilden.jpg").open("rb"),
+    }
+
+    resp = client.post("api/v1/themes", data=theme_data)
+    assert resp.status_code == 201
 
 
 def test_corna_create(session, client, login):
@@ -193,3 +234,53 @@ def test_corna_with_about(session, client, login):
     assert about.post_uuid is None
     assert about.post is None
     assert about.content == "Hey this is my cool new Corna!"
+
+
+def test_create_corna_with_theme(session, client, login, theme):
+
+    theme = session.query(models.Themes).first()
+    print(theme.uuid)
+    resp = client.post(
+        f"/api/v1/corna/{corna_info['domain_name']}",
+        json={
+            "title": corna_info["title"],
+            "about": "Hey this is my cool new Corna!",
+            "theme_uuid": theme.uuid,
+        },
+    )
+    assert resp.status_code == 201
+
+    # check everything saved correctly in db
+    assert len(session.query(models.CornaTable).all()) == 1
+    corna = (
+        session.query(models.CornaTable)
+        .filter(models.CornaTable.domain_name == corna_info["domain_name"])
+        .one_or_none()
+    )
+    assert corna is not None
+    user = single_user()
+    assert corna.user.username == user["user_name"]
+    assert corna.about is not None
+
+    assert len(session.query(models.TextContent).all()) == 1
+    about = (
+        session
+        .query(models.TextContent)
+        .filter(models.TextContent.uuid == corna.about)
+        .one_or_none()
+    )
+
+    assert about is not None
+    assert about.post_uuid is None
+    assert about.post is None
+    assert about.content == "Hey this is my cool new Corna!"
+
+    theme = (
+        session
+        .query(models.Themes)
+        .filter(models.Themes.uuid == corna.theme)
+        .one_or_none()
+    )
+
+    assert theme is not None
+    assert theme.name == "new fancy theme"
