@@ -381,3 +381,37 @@ def test_anon_user_update_status(client):
     resp = client.put("/api/v1/themes/status", json=data)
     assert resp.status_code == 401
     assert resp.json["message"] == "Login required for this action"
+
+
+def test_get_theme_list(client, mocker, login):
+
+    mocker.patch(
+        "corna.utils.utils.get_uuid",
+        return_value="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    )
+
+    path = pathlib.Path(theme_control.THEMES_DIR) / "index.html"
+    path.touch()
+
+    create_theme_helper(
+        client, path="index.html",
+        thumbnail=(ASSET_DIR / "anders-jilden.jpg").open("rb"),
+    )
+
+    expected = {"themes": [
+        {
+            "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            "name": "new fancy theme",
+            "creator": "john_snow",
+            "thumbnail": "https://api.mycorna.com/v1/media/download/abcdef",
+            "description": "This theme does super cool theme stuff.",
+        }
+    ]}
+
+    resp = client.get("/api/v1/themes")
+    assert resp.status_code == 200
+
+    actual = resp.json
+    import pprint
+    pprint.pprint(actual)
+    assert actual == expected

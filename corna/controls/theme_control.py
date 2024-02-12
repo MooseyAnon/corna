@@ -1,7 +1,7 @@
 """Manage working with Corna themes."""
 
 import logging
-from typing import Optional
+from typing import Dict, List, Optional
 
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from typing_extensions import TypedDict
@@ -229,3 +229,79 @@ def update(session: LocalProxy, cookie: str, data: Theme) -> None:
         "updated status for %s from %s -> %s",
         theme.name, prev_status, theme.status
     )
+
+
+def thumbnail_url(session: LocalProxy, uuid: str) -> str:
+    """Get theme thumbnail URL.
+
+    :param LocalProxy session: db session
+    :param str uuid: uuid of the thumbnail
+    :returns: a url to the thumbnail image
+    :rtype: str
+    """
+    # this returns a tuple e.g. ("abcdef",)
+    url_extension: Optional[models.Images] = (
+        session
+        .query(models.Images.url_extension)
+        .filter(models.Images.uuid == uuid)
+        .one_or_none()
+    )
+
+    if not url_extension:
+        logger.warning("No theme with uuid %s", uuid)
+        return ""
+
+    url: str = (
+        f"{utils.UNVERSIONED_API_URL}"
+        f"/v1/media/download/{url_extension[0]}"
+    )
+    return url
+
+
+def creator(session: LocalProxy, uuid: str) -> str:
+    """Get the username of theme creator.
+
+    :param LocalProxy session: db session
+    :param str uuid: user uuid
+    :returns: username of theme creator
+    :rtype: str
+    """
+    # this return a tuple e.g. ("john_snow",)
+    username: Optional[models.UserTable] = (
+        session
+        .query(models.UserTable.username)
+        .filter(models.UserTable.uuid == uuid)
+        .one_or_none()
+    )
+
+    if not username:
+        logger.warning("No user matching uuid %s", uuid)
+        return ""
+
+    return username[0]
+
+
+def get(session: LocalProxy) -> List[Optional[Dict[str, str]]]:
+    """Get all merged and available themes.
+
+    :param LocalProxy session: db session
+    :returns: a list of available themes
+    :rtype: List[Optional[Dict[str, str]]]
+    """
+    themes: Optional[models.Themes] = (
+        session
+        .query(models.Themes)
+        .filter(models.Themes.status == ThemeReviewState.MERGED.value)
+        .all()
+    )
+
+    theme_list: List[Optional[Dict[str, str]]] = [
+        {
+            "name": theme.name,
+            "description": theme.description,
+            "thumbnail": thumbnail_url(session, theme.thumbnail),
+            "creator": creator(session, theme.creator_user_id),
+            "id": theme.uuid,
+        } for theme in themes]
+
+    return theme_list

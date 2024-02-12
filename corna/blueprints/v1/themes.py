@@ -5,7 +5,7 @@ from typing import Dict, List
 
 import flask
 from flask import request
-from flask_apispec import doc, use_kwargs
+from flask_apispec import doc, marshal_with, use_kwargs
 from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields, validate
 # for types
@@ -67,6 +67,49 @@ class ThemeUpdateStatusSend(Base):
             "description":
                 "The current status of the PR associated with the "
                 "theme. I.e. this is essentially a state change."
+        })
+
+    class Meta:  # pylint: disable=missing-class-docstring
+        strict = True
+
+
+class ThemeReturn(Schema):
+    """Theme information for clients."""
+
+    name = fields.String(
+        metadata={
+            "description": "Theme name",
+        })
+
+    description = fields.String(
+        metadata={
+            "description": "Theme description",
+        })
+
+    thumbnail = fields.String(
+        metadata={
+            "description": "Thumbnail URL",
+        })
+
+    creator = fields.String(
+        metadata={
+            "description": "Username of theme creator",
+        })
+
+    id = fields.String(
+        metadata={
+            "description": "UUID of theme",
+        })
+
+
+class ThemeListReturn(Schema):
+    """Theme list return schema."""
+
+    themes = fields.Nested(
+        ThemeReturn,
+        many=True,
+        metadata={
+            "description": "List of themes",
         })
 
     class Meta:  # pylint: disable=missing-class-docstring
@@ -158,3 +201,15 @@ def update_status(**data) -> flask.wrappers.Response:
 
     session.commit()
     return "", HTTPStatus.OK
+
+
+@themes.route("/themes", methods=["GET"])
+@marshal_with(ThemeListReturn(), code=200)
+@doc(
+    tags=["themes"],
+    description="Get a list currently available themes",
+)
+def themes_list() -> flask.wrappers.Response:
+    """Get a list of currently available themes."""
+    theme_list = control.get(session)
+    return {"themes": theme_list}
