@@ -11,7 +11,7 @@ from marshmallow import Schema, fields
 from werkzeug.datastructures import FileStorage
 
 from corna.controls import media_control
-from corna.utils import utils
+from corna.utils import secure, utils
 
 media = flask.Blueprint("media", __name__)
 
@@ -48,6 +48,19 @@ class FileUploadReturn(Schema):
             "description": "URL extension for file",
         },
     )
+
+
+@media.after_request
+def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
+    """Add security headers to every response.
+
+    :param flask.Response response:
+    :returns: flask response object with updated headers
+    :rtype: flask.Response
+    """
+    headers = secure.secure_headers(flask.request)
+    response.headers.update(headers)
+    return response
 
 
 @media.route("/media/upload", methods=["POST"])
