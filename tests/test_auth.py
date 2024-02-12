@@ -352,3 +352,19 @@ def test_email_available_check__when_avail(client):
         "available": True,
     }
     assert resp.json == expected
+
+
+def test_login_status_check__loggedin(client, login):
+    resp = client.get("/api/v1/auth/login_status")
+    assert resp.status_code == 200
+
+    expected = { "is_loggedin": True }
+    assert resp.json == expected
+
+
+def test_login_status_check__loggedout(client):
+    resp = client.get("/api/v1/auth/login_status")
+    assert resp.status_code == 200
+
+    expected = { "is_loggedin": False }
+    assert resp.json == expected
