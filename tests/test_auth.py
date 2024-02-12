@@ -368,3 +368,28 @@ def test_login_status_check__loggedout(client):
 
     expected = { "is_loggedin": False }
     assert resp.json == expected
+
+
+def test_preexisting_session_creates_restart(client, session, login):
+
+    assert session.query(models.SessionTable).count() == 1
+    prev_sesh = session.query(models.SessionTable).first().session_id
+
+    client.cookie_jar.clear()
+    # ensure we are not longer logged in
+    resp = client.get("/api/v1/auth/login_status")
+    assert resp.status_code == 200
+    assert resp.json["is_loggedin"] == False
+
+    # login again
+    user_deets = single_user()
+    resp = client.post("/api/v1/auth/login", json={
+            "email_address": user_deets["email_address"],
+            "password": user_deets["password"],
+        }
+    )
+    assert resp.status_code == 200
+
+    curr_sesh = session.query(models.SessionTable).first()
+
+    assert curr_sesh.session_id != prev_sesh
