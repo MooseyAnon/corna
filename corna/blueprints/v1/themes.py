@@ -1,7 +1,7 @@
 """Theme management endpoints."""
 
 from http import HTTPStatus
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import flask
 from flask import request
@@ -73,19 +73,6 @@ class ThemeUpdateStatusSend(Base):
         strict = True
 
 
-@themes.before_request
-def login_required() -> None:
-    """Check if user is logged in."""
-    signed_cookie: Optional[str] = flask.request.cookies.get(
-        enums.SessionNames.SESSION.value)
-
-    if not signed_cookie or not secure.is_valid(signed_cookie):
-        utils.respond_json_error(
-            "Login required for this action",
-            HTTPStatus.UNAUTHORIZED,
-        )
-
-
 @themes.after_request
 def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     """Add security headers to every response.
@@ -100,6 +87,7 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
 
 
 @themes.route("/themes", methods=["POST"])
+@utils.login_required
 @use_kwargs(ThemeAddSend(), location="form")
 @doc(
     tags=["themes"],
@@ -138,6 +126,7 @@ def add_theme(**data: Dict[str, str]) -> flask.wrappers.Response:
 
 
 @themes.route("/themes/status", methods=["PUT"])
+@utils.login_required
 @use_kwargs(ThemeUpdateStatusSend())
 @doc(
     tags=["themes"],
