@@ -16,7 +16,8 @@ from corna import enums
 from corna.controls import auth_control
 from corna.utils import secure, utils
 from corna.utils.errors import (
-    IncorrectPasswordError, NoneExistingUserError, UserExistsError)
+    IncorrectPasswordError, NoneExistingUserError, NotLoggedInError,
+    UserExistsError)
 
 auth = flask.Blueprint("auth", __name__)
 
@@ -109,6 +110,15 @@ class EmailCheckResultSchema(Schema):
     available = fields.Boolean(
         metadata={
             "description": "The result of the existence check",
+        })
+
+
+class LoggedInResultSchema(Schema):
+    """Result of login status check."""
+
+    is_loggedin = fields.Boolean(
+        medtadata={
+            "description": "Thee result of login status check",
         })
 
 
@@ -289,3 +299,31 @@ def check_email_available(email: str) -> flask.wrappers.Response:
         "available": not auth_control.email_exists(session, email)
     }
     return outcome
+
+
+@auth.route("/auth/login_status", methods=["GET"])
+@marshal_with(LoggedInResultSchema(), code=200)
+@doc(
+    tags=["Auth"],
+    description="Check if current user is logged in",
+)
+def loging_status():
+    """Check if current user it logged in."""
+    user_cookie: Optional[str] = (
+        flask
+        .request
+        .cookies
+        .get(enums.SessionNames.SESSION.value)
+    )
+    login_status = {"is_loggedin": False}
+
+    try:
+        if user_cookie and utils.current_user(session, user_cookie):
+            login_status["is_loggedin"] = True
+
+    except NotLoggedInError:
+        # This just confirms that the user is not logged in
+        # there is nothing to do.
+        pass
+
+    return login_status
