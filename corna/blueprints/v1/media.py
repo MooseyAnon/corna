@@ -51,6 +51,7 @@ class FileUploadReturn(Schema):
 
 
 @media.route("/media/upload", methods=["POST"])
+@utils.login_required
 @marshal_with(FileUploadReturn(), code=200)
 @doc(
     tags=["media"],
