@@ -98,13 +98,17 @@ def login_required(func: Callable):
     @wraps(func)
     def inner(*args, **kwargs):
         """Check user is logged in."""
-        signed_cookie: Optional[str] = flask.request.cookies.get(
-            enums.SessionNames.SESSION.value)
+        signed_cookie: Optional[str] = (
+            flask
+            .request
+            .cookies
+            .get(enums.SessionNames.SESSION.value)
+        )
 
         if not signed_cookie or not secure.is_valid(signed_cookie):
             respond_json_error(
                 "Login required for this action",
-                HTTPStatus.BAD_REQUEST
+                HTTPStatus.UNAUTHORIZED,
             )
 
         return func(*args, **kwargs)
