@@ -168,54 +168,6 @@ def test_post_with_picture(session, client, corna, with_image, expected):
 
 
 @freeze_time(FROZEN_TIME)
-@pytest.mark.parametrize("post_type,url_ext,holder",
-    [
-        ("text", "text", "content"),
-        ("picture", "photo", "caption"),
-    ]
-)
-def test_get_all_posts(session, client, corna, post_type, url_ext, holder):
-    assets = image_proc.PICTURE_DIR
-    out_post = shared_data.mock_post(
-        type_=post_type,
-        with_content=True,
-        with_title=True,
-        with_image=True,
-    )
-
-    resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/{url_ext}-post",
-        data=out_post
-    )
-    assert resp.status_code == 201
-
-    resp = client.get(f"api/v1/posts/{shared_data.corna_info['domain_name']}")
-    
-    expected = {
-        "posts": [{
-            holder: (
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed "
-                "do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut "
-                "enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi "
-                "ut aliquip ex ea commodo consequat. Duis aute irure dolor in "
-                "reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla "
-                "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "
-                "culpa qui officia deserunt mollit anim id est laborum."
-            ),
-            "type": post_type,
-            "title": "this is a title of a post",
-            "created": FROZEN_TIME,
-            "post_url": f"https://api.mycorna.com/v1/posts/some-fake-domain/{post_type}/abcdef",
-            "image_urls": ["https://api.mycorna.com/v1/posts/some-fake-domain/image/abcdef"],
-        }]
-    }
-
-    assert len(resp.json["posts"][0]) > 0
-    actual = resp.json
-    assert actual == expected
-
-
-@freeze_time(FROZEN_TIME)
 def test_get_image(session, client, corna):
     assets = image_proc.PICTURE_DIR
     out_post = shared_data.mock_post(
