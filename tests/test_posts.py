@@ -214,6 +214,7 @@ def test_when_user_not_logged_in_client_text_post(session, client):
         f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
         json=out_post
     )
+    assert resp.status_code == 401
     assert "Login required for this action" in resp.json["message"]
 
 
@@ -227,7 +228,7 @@ def test_when_user_not_logged_in_client(session, client):
         f"/api/v1/posts/{shared_data.corna_info['domain_name']}/photo-post",
         data=out_post
     )
-    assert resp.status_code == 400
+    assert resp.status_code == 401
     assert "Login required for this action" in resp.json["message"]
 
 
@@ -246,7 +247,7 @@ def test_user_attempt_with_invalid_cookie(session, client, corna):
         f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
         json=out_post
     )
-    assert resp.status_code == 400
+    assert resp.status_code == 401
     assert "Login required for this action" in resp.json["message"]
 
 

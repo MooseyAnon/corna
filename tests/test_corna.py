@@ -91,7 +91,7 @@ def test_when_user_not_logged_in_client(client):
         f"/api/v1/corna/{corna_info['domain_name']}",
         json={"title": corna_info["title"]},
     )
-    assert resp.status_code == 400
+    assert resp.status_code == 401
     assert "Login required for this action" in resp.json["message"]
 
 
@@ -105,7 +105,7 @@ def test_user_attempt_with_invalid_cookie(client):
         f"/api/v1/corna/{corna_info['domain_name']}",
         json={"title": corna_info["title"]},
     )
-    assert resp.status_code == 400
+    assert resp.status_code == 401
     assert "Login required for this action" in resp.json["message"]
 
 
