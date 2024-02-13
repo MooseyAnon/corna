@@ -368,6 +368,8 @@ class Images(Base):
 class Themes(Base):
     """Table for managing corna themes."""
 
+    __tablename__ = "themes"
+
     uuid = Column(
         UUID,
         primary_key=True,
