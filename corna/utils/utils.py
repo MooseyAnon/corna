@@ -35,6 +35,8 @@ ALLOWED_EXTENSIONS: Tuple[str, ...] = tuple(
 # to generate "unique-ish" short strings to use for URL extentions
 ALPHABET: str = string.ascii_lowercase + string.digits
 CORNA_ROOT: pathlib.Path = pathlib.Path(__file__).parent.parent.parent
+# Base API url for clients to call
+UNVERSIONED_API_URL = "https://api.mycorna.com"
 
 
 def respond_json_error(message: str, code: int) -> None:
