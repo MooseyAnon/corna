@@ -145,7 +145,7 @@ def get_domain(session: LocalProxy, signed_cookie: str) -> str:
     corna: Optional[models.CornaTable] = (
         session.
         query(models.CornaTable)
-        .filter(models.CornaTable.user_uuid == user.user_uuid)
+        .filter(models.CornaTable.user_uuid == user.uuid)
         .one_or_none()
     )
     if not corna:
