@@ -7,8 +7,6 @@ from flask import request
 from flask_apispec import doc, use_kwargs
 from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields, validate
-# for types
-from werkzeug.datastructures import FileStorage
 
 from corna.controls import post_control
 from corna.controls.post_control import (
@@ -104,7 +102,7 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
 # https://github.com/marshmallow-code/webargs/blob/dev/src/webargs/core.py#L158
 @posts.route("/posts/<domain_name>/text-post", methods=["POST"])
 @login_required
-@use_kwargs(TextPost(), location="form")
+@use_kwargs(TextPost())
 @doc(
     tags=["posts"],
     description="Create a new text post",
@@ -129,15 +127,6 @@ def text_post(
     **data: Dict[str, Any]
 ) -> flask.wrappers.Response:
     """Create a text post."""
-    # all images associated with the post should be named "images"
-    # all extra form data should be sent together
-    # this is optional for text posts
-    if request.files.get("images"):
-        images: List[FileStorage] = request.files.getlist("images")
-        # Marshmallow doesn't want to work with binary blobs/files so
-        # we have to do the validation separately
-        utils.validate_files(images, maximum=1)
-        data.update(dict(images=images))
 
     data.update(
         dict(

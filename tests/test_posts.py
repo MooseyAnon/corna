@@ -65,16 +65,15 @@ def _all_post_based_stubs(request, tmpdir, mocker, monkeypatch):
 
 
 @freeze_time(FROZEN_TIME)
-@pytest.mark.parametrize("with_image", [False, True])
-def test_create_post(session, client, corna, with_image):
+def test_create_post(session, client, corna):
     out_post = shared_data.mock_post(
         with_content=True,
         with_title=True,
-        with_image=with_image,
+        with_image=False,
     )
     resp = client.post(
         f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
-        data=out_post,
+        json=out_post,
     )
     assert resp.status_code == 201
 
@@ -106,14 +105,6 @@ def test_create_post(session, client, corna, with_image):
 
     assert text.content == out_post["content"]
     assert text.title == out_post["title"]
-
-    if with_image:
-        assert len(post.images) == 1
-        image = post.images[0]
-        # check relationships
-        assert image.post_uuid == post.uuid
-        assert image.size >= 1024
-        assert image.url_extension == "abcdef"
 
 
 @freeze_time(FROZEN_TIME)
@@ -290,15 +281,26 @@ def test_path_collision(session, client, capsys, corna):
     assert len((assets / "thi/sis/afa/kehash12345").listdir()) == 2
 
 
-@pytest.mark.parametrize("type_", ["text", "photo"])
-def test_when_user_not_logged_in_client(session, client, type_):
+def test_when_user_not_logged_in_client_text_post(session, client):
+    out_post = shared_data.mock_post(
+        with_content=True,
+        with_title=True,
+    )
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        json=out_post
+    )
+    assert "Login required for this action" in resp.json["message"]
+
+
+def test_when_user_not_logged_in_client(session, client):
     out_post = shared_data.mock_post(
         with_content=True,
         with_title=True,
         with_image=False,
     )
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/{type_}-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/photo-post",
         data=out_post
     )
     assert resp.status_code == 400
@@ -318,7 +320,7 @@ def test_user_attempt_with_invalid_cookie(session, client, corna):
     )
     resp = client.post(
         f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
-        data=out_post
+        json=out_post
     )
     assert resp.status_code == 400
     assert "Login required for this action" in resp.json["message"]
@@ -335,7 +337,7 @@ def test_linking_preloaded_images(session, client, corna):
     out_post.update({"uploaded_images": ["abcdef"]})
     resp = client.post(
         f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
-        data=out_post,
+        json=out_post,
     )
     assert resp.status_code == 201
 
@@ -368,7 +370,7 @@ def test_linking_multiple_images(session, client, corna):
     out_post.update({"uploaded_images": image_urls})
     resp = client.post(
         f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
-        data=out_post,
+        json=out_post,
     )
     assert resp.status_code == 201
 
@@ -386,37 +388,6 @@ def test_linking_multiple_images(session, client, corna):
         assert image.orphaned == False
 
 
-@pytest.mark.nostubs
-def test_mix_of_linking_and_direct_file_uploead(session, client, corna):
-    # create image
-    image_data = _upload_single_image(session, client)
-
-    out_post = shared_data.mock_post(
-        with_content=True,
-        with_title=True,
-        with_image=True,
-    )
-    out_post.update({"uploaded_images": image_data["url_extension"]})
-
-    resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
-        data=out_post,
-    )
-    assert resp.status_code == 201
-
-    # ensure we two images and one post saved
-    assert session.query(models.Images).count() == 2
-    assert session.query(models.PostTable).count() == 1
-
-    # ensure relationships are correct
-    post = session.query(models.PostTable).first()
-    assert post is not None
-    assert len(post.images) == 2
-
-    for image in post.images:
-        assert image.orphaned == False
-
-
 def test_nothing_saved_in_database_if_image_save_fails(
     session,
     client,
@@ -428,13 +399,14 @@ def test_nothing_saved_in_database_if_image_save_fails(
         side_effect=OSError("error!"))
 
     out_post = shared_data.mock_post(
+        type_="picture",
         with_content=True,
         with_title=True,
         with_image=True,
     )
 
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/photo-post",
         data=out_post,
     )
     assert resp.status_code == 500

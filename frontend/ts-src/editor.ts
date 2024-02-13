@@ -172,8 +172,8 @@ export function createPost(): void {
     }
 
     const method: ("get" | "delete" | "post" | "put") = "post";
-    const headers: { [key: string]: string } = {"Content-Type": "multipart/form-data"};
     const urlExtension: string = "v1/posts/some-domain/text-post";
+    const headers: { [key: string]: string } = {"Content-Type": "application/json"};
 
     request(urlExtension, method, payload, headers)
     .catch((error: AxiosError) => {
