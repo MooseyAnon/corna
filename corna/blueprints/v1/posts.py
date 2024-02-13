@@ -231,24 +231,3 @@ def get_all_posts(domain_name: str) -> Dict[Any, Any]:
         utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
 
     return flask.jsonify(all_posts)
-
-
-@posts.route("/posts/<domain_name>/image/<url_extension>", methods=["GET"])
-@doc(
-    tags=["posts"],
-    description="Get an image file",
-    responses={
-        HTTPStatus.BAD_REQUEST: {
-            "description": "Post does not exist",
-        },
-    },
-)
-def get_image(domain_name: str, url_extension: str) -> flask.wrappers.Response:
-    """Get an image file."""
-    try:
-        path: str = post_control.get_image(session, domain_name, url_extension)
-
-    except PostDoesNotExist as e:
-        utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
-
-    return flask.send_file(path)
