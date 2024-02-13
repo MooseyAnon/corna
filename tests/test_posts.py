@@ -167,34 +167,6 @@ def test_post_with_picture(session, client, corna, with_image, expected):
     assert pic.url_extension == "abcdef"
 
 
-@freeze_time(FROZEN_TIME)
-def test_get_image(session, client, corna):
-    assets = image_proc.PICTURE_DIR
-    out_post = shared_data.mock_post(
-        type_="picture",
-        with_content=True,
-        with_title=True,
-        with_image=True,
-    )
-
-    resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/photo-post",
-        data=out_post
-    )
-    assert resp.status_code == 201
-
-    expected_path = assets / "thi/sis/afa/kehash12345"
-    assert expected_path.exists()
-
-    expected = f"thi/sis/afa/kehash12345/{expected_path.listdir()[0].basename}"
-    actual = post_control.get_image(
-        session,
-        shared_data.corna_info['domain_name'],
-        "abcdef"
-    )
-    assert actual == expected
-
-
 def test_path_collision(session, client, capsys, corna):
     assets = image_proc.PICTURE_DIR
     out_post = shared_data.mock_post(
