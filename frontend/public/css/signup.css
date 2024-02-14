@@ -103,10 +103,10 @@ input[type="text"] {
   overflow: hidden;
   caret-color: white;
   caret-shape: 2px;
-  @keyframes caret {
-    20% {
-      border-color: yellow;
-    }
+}
+@keyframes caret {
+  20% {
+    border-color: yellow;
   }
 }
 
