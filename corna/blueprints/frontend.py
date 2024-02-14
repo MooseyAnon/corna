@@ -53,6 +53,13 @@ def create_button():
         (utils.CORNA_ROOT / "frontend/public/html"), "createButton.html")
 
 
+@frontend.route("/frontend/loginButton", methods=["GET"])
+def login_button():
+    """Serve create post button."""
+    return flask.send_from_directory(
+        (utils.CORNA_ROOT / "frontend/public/html"), "loginButton.html")
+
+
 @frontend.route("/frontend/static/<path:path>", methods=["GET"])
 def get_static(path):
     """Serve static files.
