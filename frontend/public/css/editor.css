@@ -273,7 +273,7 @@ input[type="color"]::-moz-color-swatch {
   text-wrap: nowrap;
 }
 .picture {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 4px 2px;
@@ -447,4 +447,8 @@ ol span {
   display: none;
 
   outline: white;
+}
+
+.textColorButton {
+  height: -webkit-fill-available;
 }
