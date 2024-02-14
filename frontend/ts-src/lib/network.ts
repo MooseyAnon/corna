@@ -22,7 +22,7 @@ export function getApiUrl(): string {
     const currUrl: string = window.location.hostname;
     const apiUrl: string = (
         (currUrl === "localhost" || currUrl === "127.0.0.1")
-        ? "http://127.0.0.1:8080/api"
+        ? "http://api.localhost"
         : "https://api.mycorna.com"
     )
     return apiUrl;
