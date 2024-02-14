@@ -78,6 +78,9 @@ function rollupConf(filename) {
 // Add any new files to be bundled here
 // note the lack of '.js' extension
 // that is on purpose!
-const files = ["login", "signup"];
-
+const files = [
+    "createButton",
+    "login",
+    "signup",
+];
 export default files.map((file)=> rollupConf(file));
