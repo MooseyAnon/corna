@@ -9,6 +9,12 @@ html {
   src: url(../fonts/spaceinvaders.otf);
 }
 
+@keyframes caret {
+  20% {
+    border-color: yellow;
+  }
+}
+
 .inputs {
   display: flex;
   flex-direction: column;
@@ -49,11 +55,6 @@ h1 {
   overflow: hidden;
   caret-color: white;
   caret-shape: 2px;
-  @keyframes caret {
-    20% {
-      border-color: yellow;
-    }
-  }
 }
 
 .buttons {
