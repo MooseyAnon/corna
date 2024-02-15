@@ -31,13 +31,13 @@ import {
 enum QuestionKeys {
     /* Object key for each question. */
 
-    BIO = "bio",
-    DOMAINNAME = "domainName",
-    EMAIL = "email",
+    ABOUT = "about",
+    DOMAINNAME = "domain_name",
+    EMAIL = "email_address",
     PASSWORD = "password",
     THEME = "theme",
     TITLE = "title",
-    USERNAME = "username",
+    USERNAME = "user_name",
 }
 
 
@@ -48,6 +48,7 @@ interface RegisterConfig {
     * This is a global object
     */
     blocked: boolean;
+    completed: boolean;
     displayUserInput: HTMLDivElement;
     questionIndex: number;
     typingSpeed: number;
@@ -58,11 +59,14 @@ interface RegisterConfig {
 }
 
 
-interface ThemeOptions {
+interface ThemeOption {
     /* For displaying theme options during setup. */
 
-    imgUrl: string;
+    thumbnail: string;
     name: string;
+    creator: string;
+    id: string;
+    description?: string;
 }
 
 
@@ -71,7 +75,6 @@ interface SetupQuestion {
 
     answer?: string;
     key: string;
-    options?: ThemeOptions[];
     text: string;
 }
 
@@ -79,18 +82,18 @@ interface SetupQuestion {
 interface RegisterUser {
     /* Parameters for registering a new user. */
 
-    email: string;
+    email_address: string;
     password: string;
-    username: string;
+    user_name: string;
 }
 
 
 interface CreateCorna {
     /* Parameters for creating a new Corna. */
 
-    bio?: string;
-    domainName: string;
-    theme?: string;
+    about?: string;
+    domain_name: string;
+    theme_uuid?: string;
     title: string;
 }
 
@@ -102,12 +105,12 @@ interface UserResponses extends CreateCorna, RegisterUser {
 
 const questions: SetupQuestion[] = [
     {
-        key: "username",
+        key: "user_name",
         text: "Welcome to Corna, lets get you started by picking a username",
         answer: "",
     },
     {
-        key: "email",
+        key: "email_address",
         text: "Please choose your email address",
         answer: "",
     },
@@ -117,7 +120,7 @@ const questions: SetupQuestion[] = [
         answer: "",
     },
     {
-        key: "domainName",
+        key: "domain_name",
         text: "Pick a domain name for your Corna (you can change this later)",
         answer: "",
     },
@@ -127,30 +130,12 @@ const questions: SetupQuestion[] = [
         answer: "",
     },
     {
-        key: "theme",
+        key: "theme_uuid",
         text: "Please enter the name of your theme (you can change this later)",
         answer: "",
-        options: [
-            {
-                name: "Theme 1",
-                imgUrl: "https://images.unsplash.com/photo-1682685796002-e05458d61f07?ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3271&q=80",
-            },
-            {
-                name: "Theme 2",
-                imgUrl: "https://images.unsplash.com/photo-1682685796002-e05458d61f07?ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3271&q=80",
-            },
-            {
-                name: "Theme 3",
-                imgUrl: "https://images.unsplash.com/photo-1682685796002-e05458d61f07?ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3271&q=80",
-            },
-            {
-                name: "Theme 4",
-                imgUrl: "https://images.unsplash.com/photo-1682685796002-e05458d61f07?ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3271&q=80",
-            },
-        ],
     },
     {
-        key: "bio",
+        key: "about",
         text: "Add your bio (you can change this later)",
         answer: "",
     },
@@ -175,6 +160,8 @@ export function init(): RegisterConfig {
         the next question does not get asked.
         */
         blocked: false,
+        /* We can mark as completed when there are no more question to ask. */
+        completed: false,
         displayUserInput: displayUserInput,
         questionIndex: 0,
         typingSpeed: 100,
@@ -197,6 +184,32 @@ export function nextQuestion(): void {
         const currentQuestion: SetupQuestion = questions[registerConfig.questionIndex];
         displayMessage("system", currentQuestion.text);
     }
+    else {
+        registerConfig.completed = true;
+    }
+}
+
+
+export function processTheme(name: string, id: string): void {
+
+    if (
+        registerConfig.questionIndex < questions.length
+        && questions[registerConfig.questionIndex].key === "theme_uuid"
+    ) {
+        questions[registerConfig.questionIndex].answer = id;
+        registerConfig.questionIndex++;
+    }
+    else {
+        const themeQuestion: SetupQuestion | undefined = questions.find(
+            (q: SetupQuestion) => q.key === "theme_uuid");
+        if (themeQuestion) {
+            themeQuestion.answer = id;
+        }
+    }
+
+    updateUserResponses("theme_uuid", id);
+    displayMessage("system", `You've chosen ${name}`);
+    nextQuestion();
 }
 
 
@@ -238,9 +251,9 @@ export async function processUserInput(): Promise<void> {
         case QuestionKeys.TITLE: {
             break;
         }
-        case QuestionKeys.BIO: {
-                break;
-            }
+        case QuestionKeys.ABOUT: {
+            break;
+        }
     }
 
     // we always want to reset these regardless of what happens
@@ -250,11 +263,17 @@ export async function processUserInput(): Promise<void> {
     if (!registerConfig.blocked) {
         updateUserResponses(key, userReply);
 
-        displayMessage("user", userReply);
         registerConfig.questionIndex++;
         currentQuestion.answer = userReply;
 
+        displayMessage("user", userReply);
         nextQuestion();
+    }
+
+    // send data if we have no more questions to ask
+    if (registerConfig.completed) {
+
+        registerNewUser(registerConfig.userResponses as UserResponses);
     }
  
 }
@@ -302,7 +321,7 @@ export function updateUserResponses(field: string, userReply: string): void {
             userReply = clean(userReply);
             break;
         case QuestionKeys.TITLE:
-        case QuestionKeys.BIO:
+        case QuestionKeys.ABOUT:
             userReply.trim()
             break;
     }
@@ -340,29 +359,52 @@ export function buildUserReply(
 }
 
 
-export function buildOptions(): HTMLDivElement {
+export async function buildOptions(element: HTMLDivElement): Promise<void> {
     /* Build HTML elements for questions with options.
     *
     * This is needed for multiple choice questions e.g. picking a theme.
     *
     * @returns { HTMLDivElement }
     */
-
-    const options = questions[registerConfig.questionIndex].options as ThemeOptions[];
+    const options = await themeList() as ThemeOption[];
     const optionsContainer: HTMLDivElement = createDivElement(["theme"]);
 
     for (let i = 0; i < options.length; i++) {
-        const singleOption: HTMLDivElement = createDivElement(["theme-option"]);
+        const opt: ThemeOption = options[i];
 
-        const imgElement: HTMLImageElement = createImageElement([], options[i].imgUrl);
+        const singleOption: HTMLDivElement = createDivElement(["theme-option"]);
+        singleOption.id = opt.id
+
+        const imgElement: HTMLImageElement = createImageElement([], opt.thumbnail);
         singleOption.appendChild(imgElement);
 
-        const nameElement: HTMLDivElement = createDivElement([], options[i].name);
+        const nameElement: HTMLDivElement = createDivElement([], opt.name);
         singleOption.appendChild(nameElement);
+
+        singleOption.addEventListener("click", function(e: MouseEvent) {
+            const tar = e.target || e.srcElement;
+            (tar as HTMLElement).style.borderColor = "green";
+            processTheme(opt.name, opt.id);
+        })
+
+        singleOption.addEventListener("mouseover", function(e) {
+            const tar = e.target || e.srcElement;
+            if ((tar as HTMLElement).style.borderColor !== "green") {
+                (tar as HTMLElement).style.borderColor = "red";
+            }
+        })
+
+        singleOption.addEventListener("mouseout", function(e) {
+            const tar = e.target || e.srcElement;
+            if ((tar as HTMLElement).style.borderColor !== "green") {
+                (tar as HTMLElement).style.borderColor = "white";
+            }
+        })
 
         optionsContainer.appendChild(singleOption);
     }
-    return optionsContainer;
+    // return optionsContainer;
+    element.appendChild(optionsContainer);
 }
 
 
@@ -387,6 +429,7 @@ export function typeCharacter(
         * some buggy UI behaviour.
         */
         element.textContent += message.slice(index);
+        index = message.length;
     }
 
     else if (index < message.length) {
@@ -408,14 +451,14 @@ export function typeCharacter(
         );
     }
 
-    else {
-        // display any options from the "system" for the user e.g. themes
-        if (questions[registerConfig.questionIndex].options) {
-            const optionsContainer: HTMLDivElement = buildOptions();
-            element.appendChild(optionsContainer);
-        }
+    // display any options from the "system" for the user e.g. themes
+    if (index >= message.length && questions[registerConfig.questionIndex].key === "theme_uuid") {
+        // const optionsContainer: HTMLDivElement = buildOptions();
+        // element.appendChild(optionsContainer);
 
+        buildOptions(element);
     }
+
 }
 
 
@@ -616,6 +659,33 @@ export async function domainIsAvailable(domainName: string): Promise<boolean> {
 }
 
 
+export async function themeList(): Promise<ThemeOption[]> {
+
+    let hasErrd: boolean = false;
+    let errMsg: string = "There was a problem fetching theme list";
+
+    let themeList: ThemeOption[] = [];
+
+    await (async () => {
+        const [error, response] = await handlePromise(
+            request("v1/themes")) as [(AxiosError | undefined), (AxiosResponse | undefined)];
+
+        if (response) {
+    
+            themeList = response.data.themes;
+        }
+        else if (error) {
+            errMsg = handleNetworkError(error as AxiosError);
+            hasErrd = true;
+        }
+    })();
+
+    if (hasErrd) { displayMessage("system", errMsg); }
+
+    return themeList;
+}
+
+
 export async function registerNewUser(userData: UserResponses): Promise<void> {
     /* Register a new user.
     *
@@ -625,17 +695,23 @@ export async function registerNewUser(userData: UserResponses): Promise<void> {
     */
 
     await postData({
-        username: userData.username,
-        email: userData.email,
+        user_name: userData.user_name,
+        email_address: userData.email_address,
         password: userData.password,
     } as RegisterUser, "v1/auth/register", typeSystemMessage);
 
     await postData({
-        domainName: userData.domainName,
+        email_address: userData.email_address,
+        password: userData.password, 
+    },"v1/auth/login", typeSystemMessage);
+
+    await postData({
         title: userData.title,
-        theme: undefined ?? userData.theme,
-        bio: undefined ?? userData.bio,
-    } as CreateCorna, "v1/corna", typeSystemMessage);
+        theme_uuid: undefined ?? userData.theme_uuid,
+        about: undefined ?? userData.about,
+    } as CreateCorna, `v1/corna/${userData.domain_name}`, typeSystemMessage);
+
+    await handlePromise(request("v1/auth/logout", "post"));
 
 }
 
