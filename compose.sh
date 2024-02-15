@@ -18,6 +18,48 @@ help() {
 }
 
 
+ci() {
+    if ! docker compose run --rm corna make check; then
+        echo "CI: FAILED!"
+        cleanup
+        exit 1
+    fi
+    echo "CI: PASSED!"
+}
+
+
+compose() {
+    local opt="${1}"
+    if [[ "${opt}" = "up" ]]; then
+        # run docker compose and detach container (-d).
+        # Wait till all containers are healthy (--wait)
+        docker compose up -d --wait
+    elif [[ "${opt}" = "logs" ]]; then
+        docker compose logs
+    elif [[ "${opt}" = "down" ]]; then
+        docker compose down
+    elif [[ "${opt}" = "status" ]]; then
+        docker compose ps
+    fi
+}
+
+
+build() {
+    local opt="${1}"
+
+    if [[ "${opt}" = "both" ]]; then
+        docker compose up -d --build
+    else
+        echo "Building ${opt} container..."
+        # this command rebuilds the container (or pulls it)
+        # and then replaces the current running container once
+        # the build is complete.
+        # more info: https://stackoverflow.com/q/42529211
+        docker compose up -d --no-deps --build "${opt}"
+    fi
+}
+
+
 my_ip() {
     # we want to dynampically get our local host IP address to
     # connect to postgres from inside the container. The reason
@@ -28,6 +70,19 @@ my_ip() {
     INTERFACE=${1:-"en0"}
     ifconfig $INTERFACE | sed -En \
         's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'
+}
+
+
+run() {
+    # run compose
+    if [[ -n "${BUILD}" ]] && [[ -n "${COMPOSE}" ]]; then
+        echo "You can not both build and run other compose commands"
+        exit 1
+    fi
+
+    if [[ -n "${RUN_CI}" ]]; then ci; fi
+    if [[ -n "${BUILD}" ]]; then build "${BUILD}"; fi
+    if [[ -n "${COMPOSE}" ]]; then compose "${COMPOSE}"; fi
 }
 
 
@@ -71,11 +126,6 @@ while getopts ":ihb:c:" option; do
    esac
 done
 
-if [[ -n "${BUILD}" ]] && [[ -n "${COMPOSE}" ]]; then
-    echo "You can not both build and run other compose commands"
-    exit 1
-fi
-
 
 cat <<EOT>> .env
 ANSIBLE_VAULT_PATH=/home/corna-user/workspace/corna/utils/vault
@@ -95,41 +145,7 @@ rsync \
     --chmod=Fu=rw \
     "${ANSIBLE_VAULT_PASSWORD_FILE}" .vault-password
 
-
-if [[ -n $RUN_CI ]]; then
-    if ! docker compose run --rm corna make check; then
-        echo "CI: FAILED!"
-        cleanup
-        exit 1
-    fi
-    echo "CI: PASSED!"
-fi
-
-
-if [[ -n "$COMPOSE" ]] && [[ "$COMPOSE" = "up" ]]; then
-    # run docker compose and detach container (-d).
-    # Wait till all containers are healthy (--wait)
-    docker compose up -d --wait
-    # docker compose up --abort-on-container-exit
-elif [[ -n "$COMPOSE" ]] && [[ "$COMPOSE" = "logs" ]]; then
-    docker compose logs
-elif [[ -n "$COMPOSE" ]] && [[ "$COMPOSE" = "down" ]]; then
-    docker compose down
-fi
-
-
-# build containers
-if [[ -n "$BUILD" ]] && [[ "$BUILD" = "both" ]]; then
-    docker compose up -d --no-deps
-elif [[ -n "$BUILD" ]]; then
-    echo "Building $BUILD container..."
-    # this command rebuilds the container (or pulls it)
-    # and then replaces the current running container once
-    # the build is complete.
-    # more info: https://stackoverflow.com/q/42529211
-    docker-compose up -d --no-deps --build $BUILD
-fi
-
-echo "docker compose up complete"
+run
 # clean up
 cleanup
+echo "docker compose up complete"
