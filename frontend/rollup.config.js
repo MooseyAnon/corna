@@ -80,6 +80,7 @@ function rollupConf(filename) {
 // that is on purpose!
 const files = [
     "createButton",
+    "editor",
     "login",
     "signup",
 ];
