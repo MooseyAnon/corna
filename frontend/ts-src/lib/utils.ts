@@ -159,6 +159,23 @@ export function createImageElement(
 }
 
 
+export function createIframeElement(
+    src: string,
+    classList: string[] = [],
+): HTMLIFrameElement {
+    /* Create a new iframe element.
+    *
+    * @param { string } src: iframe source href
+    * @param { string[] } classList: CSS classes to add to new element
+    * @returns { HTMLIFrameElement }
+    */
+    const newIframe = createElement("iframe", classList) as HTMLIFrameElement;
+    newIframe.src = src;
+    newIframe.frameBorder = "0";  // remove all borders
+    return newIframe
+}
+
+
 // This is copied from here:
 // - https://github.com/tysoncadenhead/cartesian-js/blob/master/src/handle.ts
 export function handlePromise<E, T>(
