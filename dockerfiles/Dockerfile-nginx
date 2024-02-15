@@ -6,3 +6,4 @@ COPY --chmod=600 tmp_fullchain.pem /etc/nginx/cert.pem
 COPY --chmod=600 tmp_private.pem /etc/nginx/key.pem
 
 COPY frontend/public /www/static
+COPY themes/ /themes/static
