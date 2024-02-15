@@ -12,7 +12,7 @@ access_log_format = '%(h)s "%(r)s" %(s)s'
 
 bind = "0.0.0.0:{}".format(os.environ['CORNA_PORT'])
 chdir = _this_dir
-# logconfig = os.path.join(_this_dir, "gunicorn.logging.ini")
+logconfig = os.path.join(_this_dir, "gunicorn.logging.ini")
 
 worker_type = 'sync'
 workers = 5
