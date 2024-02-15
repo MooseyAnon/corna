@@ -60,7 +60,12 @@ export function parseForm(): void {
         email_address: clean(emailInput.value),
         password: passwordInput.value,
     }
-    postData(dataToSend,"v1/auth/login", errorMessage);
+    postData(dataToSend,"v1/auth/login", errorMessage)
+    .then(() => {
+        // clear inputs
+        emailInput.value = "";
+        passwordInput.value = "";
+    });
 }
 
 
