@@ -79,6 +79,7 @@ function rollupConf(filename) {
 // note the lack of '.js' extension
 // that is on purpose!
 const files = [
+    "cornaCore",
     "createButton",
     "editor",
     "login",
