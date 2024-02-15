@@ -1,7 +1,7 @@
 /* Corna login page. */
 
 
-import { getApiUrl, postData } from "./lib/network.js";
+import { postData } from "./lib/network.js";
 import {
     clean,
     isEmail,
@@ -30,6 +30,17 @@ export function onPageLoad(): void {
         e.preventDefault();
         parseForm();
     })
+
+    const inputs = document.getElementsByClassName("inputs") as HTMLCollectionOf<HTMLInputElement>;
+    if (inputs) {
+        const input = inputs[0]
+        input.addEventListener("keydown", function(e: KeyboardEvent) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                parseForm();
+            }
+        })
+    }
 }
 
 
@@ -116,6 +127,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (!regButton) { return; }
     regButton.addEventListener("click", function() {
-        window.location.href = `${getApiUrl()}/register`;
+        window.location.href = "/register";
     });
 });
