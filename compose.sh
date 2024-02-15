@@ -86,7 +86,7 @@ DB_USER=cornauser
 DB_PORT=5432
 DB_NAME=corna
 CORNA_PORT=5001
-PICTURE_DIR=/var/www/assets
+PICTURE_DIR=$(pwd)/tmp-assets
 SSL_MODE=prefer
 EOT
 
