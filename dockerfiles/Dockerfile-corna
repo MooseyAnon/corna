@@ -40,5 +40,27 @@ COPY requirements.txt ./
 RUN /usr/bin/python3.6 -m pip install --user -r requirements.txt
 
 # copy over source and set permissions
-COPY --chown=corna-user:corna-user . /home/corna-user/workspace
+COPY --chown=corna-user:corna-user \
+    corna /home/corna-user/workspace/corna
+
+COPY --chown=corna-user:corna-user \
+    tests /home/corna-user/workspace/tests
+
+COPY --chown=corna-user:corna-user \
+    frontend /home/corna-user/workspace/frontend
+
+COPY --chown=corna-user:corna-user \
+    themes /home/corna-user/workspace/themes
+
+COPY --chown=corna-user:corna-user \
+    .isort.cfg \
+    .pylintrc \
+    gunicorn_conf.py \
+    gunicorn.logging.ini \
+    Makefile \
+    mypy.ini \
+    pytest.ini \
+    setup.cfg \
+    /home/corna-user/workspace/
+
 WORKDIR /home/corna-user/workspace
