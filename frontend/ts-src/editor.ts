@@ -19,7 +19,7 @@
 
 import { AxiosError, AxiosPromise, AxiosResponse } from "axios";
 import { getApiUrl, request, handleNetworkError } from "./lib/network";
-import { createElement, createImageElement } from "./lib/utils";
+import { createElement, createImageElement, handlePromise } from "./lib/utils";
 
 interface ToolBar {
     /* Toolbar elements */
@@ -54,6 +54,7 @@ interface State {
     previousRange: Range | null;
     uploadedImages: string[];
     editorConfig: EditorConfig;
+    domainName: string | null;
 }
 
 
@@ -64,6 +65,7 @@ interface PostData {
     type: string;
     uploaded_images: string[];
 }
+
 
 export function handleIndents(e: KeyboardEvent): void {
 
@@ -134,6 +136,27 @@ export function parseImageExtension(): string[] {
 }
 
 
+export async function getDomainName(): Promise<string | null> {
+
+    let domainName: string | null = null;
+
+    await (async () => {
+        const [error, response] = await handlePromise(
+            request("v1/corna")
+        ) as [(AxiosError | undefined), (AxiosResponse | undefined)]; 
+
+        if (response) {
+            domainName = response.data.domain_name;
+        }
+        else if (error) {
+            const errMsg: string = handleNetworkError(error);
+            state.editorConfig.modalContent.textContent = errMsg;
+        }
+    })();
+    return domainName;
+}
+
+
 export function createPost(): void {
     /*
     * Traditionally you would not want to use innerText because
@@ -146,7 +169,7 @@ export function createPost(): void {
     * any more but for not it should be fine as this gets called only
     * once during the post creation process.
     */
-    const content: string | null = state.editorConfig.modalContent.innerText;
+    const content: string | null = state.editorConfig.modalContent.textContent;
     if (!content) {
         return;
     }
@@ -172,12 +195,19 @@ export function createPost(): void {
     }
 
     const method: ("get" | "delete" | "post" | "put") = "post";
-    const urlExtension: string = "v1/posts/some-domain/text-post";
     const headers: { [key: string]: string } = {"Content-Type": "application/json"};
+    const urlExtension: string = `v1/posts/${state.domainName}/text-post`;
 
     request(urlExtension, method, payload, headers)
+    .then((response: AxiosResponse) => {
+        if (response.status === 201) {
+            const successText: string = "YOUR POST WAS CREATED SUCCESSFULLY!! :)";
+            state.editorConfig.modalContent.textContent = successText;
+        }
+    })
     .catch((error: AxiosError) => {
         const errMsg: string = handleNetworkError(error);
+        state.editorConfig.modalContent.textContent = errMsg;
     })
 }
 
@@ -195,11 +225,11 @@ export function toggleTextDecoration(style: string | undefined): boolean {
     }
 
     catch (e) {
-        console.error("Error with execCommand: ", e);
+        console.error("Error with execCommand: ", e);  // eslint-disable-line no-console
     }
 
     if (!success) {
-        console.error(
+        console.error(  // eslint-disable-line no-console
             "Unable able to toggle style, execCommand not supported. "
             + "Attempted to toggle to: ", style);
     }
@@ -475,6 +505,7 @@ export function insertImage() {
     })
     .catch((e: AxiosError) => {
         const errMsg: string = handleNetworkError(e);
+        console.error(errMsg);  // eslint-disable-line no-console
     })
 
 }
@@ -556,12 +587,13 @@ export function initEditor(): EditorConfig {
 }
 
 
-export function init(): State {
+export async function init(): Promise<State> {
 
     const createButton = document.getElementById("create") as HTMLDivElement;
     createButton.addEventListener("click", createPost);
 
     const editorConfig: EditorConfig = initEditor();
+    const domainName: string | null = await getDomainName();
 
     return {
         /*
@@ -589,9 +621,15 @@ export function init(): State {
         */
         previousKey: "",
         editorConfig: editorConfig,
+        domainName: domainName,
     }
 
 }
 
+
+document.addEventListener("DOMContentLoaded", async function() {
+    state = await init();
+});
+
 // holds the global state of the editor during its lifetime
-const state: State = init();
+let state: State;
