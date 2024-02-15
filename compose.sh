@@ -58,7 +58,7 @@ while getopts ":ihb:c:" option; do
             ;;
         c) # compose
             COMPOSE=$OPTARG
-            [[ ! $COMPOSE =~ ^("up"|"down"|"logs")$ ]] && {
+            [[ ! $COMPOSE =~ ^("up"|"down"|"logs"|"status")$ ]] && {
                 echo "Error Invalid option: -c $COMPOSE"
                 exit 1
             }
