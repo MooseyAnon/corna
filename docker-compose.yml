@@ -34,11 +34,7 @@ services:
     networks:
       - backend-network
     secrets:
-      - source: vault_password
-        target: /run/secrets/vault_password
-        uid: '1000'
-        gid: '1000'
-        mode: 600
+      - vault_password
     restart: always
     healthcheck:
       # this is temp, we'll change this to a proper health
