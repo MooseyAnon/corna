@@ -313,6 +313,25 @@ def test_linking_multiple_images(session, client, corna):
         assert image.orphaned == False
 
 
+def test_linking_to_none_existing_image(session, client, corna):
+    """We should raise error and not save anything."""
+
+    out_post = shared_data.mock_post(
+        with_content=True,
+        with_title=True,
+    )
+    out_post.update({"uploaded_images": ["defghi"]})
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        json=out_post,
+    )
+    assert resp.status_code == 400
+    assert resp.json["message"] == "Unable to find file"
+
+    # ensure nothing is saved
+    assert session.query(models.PostTable).count() == 0
+
+
 def test_nothing_saved_in_database_if_image_save_fails(
     session,
     client,
