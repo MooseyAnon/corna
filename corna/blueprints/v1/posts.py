@@ -138,7 +138,12 @@ def text_post(
     try:
         post_control.create(session, data=data)
 
-    except (CornaOwnerError, InvalidContentType, NoneExistinCornaError) as e:
+    except (
+        CornaOwnerError,
+        InvalidContentType,
+        NoneExistinCornaError,
+        PostDoesNotExist,
+    ) as e:
         utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
 
     # only happens on picture saving failure
