@@ -359,3 +359,17 @@ def test_nothing_saved_in_database_if_image_save_fails(
     assert session.query(models.PostTable).count() == 0
     assert session.query(models.Images).count() == 0
     assert session.query(models.TextContent).count() == 0
+
+
+def test_post_with_no_title(session, client, corna):
+    out_post = shared_data.mock_post(
+        with_content=True,
+    )
+
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        json=shared_data.mock_post(with_content=True),
+    )
+    assert resp.status_code == 201
+    assert session.query(models.PostTable).count() == 1
+    assert session.query(models.TextContent).count() == 1
