@@ -112,12 +112,29 @@ run_ci() {
 }
 
 
+run_eslint() {
+    if [ ! -d $PROJECT_ROOT/frontend/node_modules ]; then
+        echo "ERROR: Can not run eslint because node_modules not found"
+        exit 1
+    fi
+
+    if ! npm run lint --prefix $PROJECT_ROOT/frontend ; then
+        echo "ERROR: ESLINT FAIL!!"
+        exit 1
+    fi
+
+    echo "ESLINT PASSED!!"
+}
+
+
 # Compile typescript and rollup
 compile_typescript() {
     # build node_modules if needed
     if [ ! -d $PROJECT_ROOT/frontend/node_modules ]; then
         npm install --prefix $PROJECT_ROOT/frontend
     fi
+
+    run_eslint
 
     if ! npm run build --prefix $PROJECT_ROOT/frontend ; then
         echo "Failed to compile JS"
