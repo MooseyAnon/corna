@@ -36,10 +36,25 @@ remove_tags() {
 }
 
 
+remove_js_artifacts() {
+    echo "Deleting js artifacts..."
+    # delete non-es{5,6} files
+    # useful cheetsheat on find: \
+    #    - https://math2001.github.io/article/bashs-find-command/
+    find $PROJECT_ROOT/frontend/public/scripts \
+        -not -name "*es5*" \
+        -and  -not -name "*es6*" \
+        -type f \
+        -delete
+}
+
+
 remove_node() {
     if [ -d $PROJECT_ROOT/frontend/node_modules ]; then
         rm -r $PROJECT_ROOT/frontend/node_modules
     fi
+    # remove js files
+    remove_js_artifacts
 }
 
 
@@ -140,15 +155,6 @@ compile_typescript() {
         echo "Failed to compile JS"
         exit 1
     fi
-
-    # delete non-es{5,6} files
-    # useful cheetsheat on find: \
-    #    - https://math2001.github.io/article/bashs-find-command/
-    find $PROJECT_ROOT/frontend/public/scripts \
-        -not -name "*es5*" \
-        -and  -not -name "*es6*" \
-        -type f \
-        -delete
 }
 
 
