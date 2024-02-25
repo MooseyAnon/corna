@@ -216,6 +216,10 @@ PYTHON=python3.6
 build() {
     build_ci_container
     run_ci
+    # The reason we compile our js after building main contianer is
+    # because our nginx container is where all our none HTML static
+    # files live and are served from, we do not need them to be in
+    # the main backend container.
     compile_typescript
     build_nginx_continer
     tag_and_push_corna_container
