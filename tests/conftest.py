@@ -71,6 +71,7 @@ def _engine():
     with test_db_engine() as engine:
         yield engine
 
+
 @pytest.fixture(name='session_class')
 def _session_class(engine, request):
     """Session fixture.
