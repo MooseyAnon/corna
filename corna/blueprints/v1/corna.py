@@ -35,7 +35,7 @@ class CornaCreateSchema(Schema):
             "description": "title of the corna"
         })
 
-    about = fields.String(
+    about_me = fields.String(
         metadata={
             "description": "User bio/about information",
         })
@@ -116,7 +116,7 @@ def create_corna(
         "domain_name": domain_name,
     })
     try:
-        corna_control.create(session, data)
+        corna_control.create(session, **data)
     except NoneExistingUserError as e:
         utils.respond_json_error(str(e), HTTPStatus.NOT_FOUND)
     except PreExistingCornaError as e:

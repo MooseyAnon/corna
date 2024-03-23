@@ -1,7 +1,7 @@
 """Manage working with Corna themes."""
 
 import logging
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from typing_extensions import TypedDict
@@ -21,20 +21,16 @@ logger = logging.getLogger(__name__)
 
 # ***** types ******
 
-class _Required(TypedDict):
-    """Required fields across all types."""
-
-    creator: str
+class Theme(TypedDict):
+    """Theme object."""
     name: str
-
-
-class Theme(_Required, total=False):
-    """Type for a single theme"""
-
     description: str
-    path: str
-    status: str
-    thumbnail: FileStorage
+    thumbnail: str
+    creator: str
+    id: str
+
+
+ThemeList = List[Optional[Theme]]
 
 
 def is_allowed(filename: str) -> bool:
@@ -75,12 +71,24 @@ def sanitize_path(path: str = None) -> Optional[str]:
     return path
 
 
-def add(session: LocalProxy, cookie: str, data: Theme) -> None:
+def add(
+    session: LocalProxy,
+    cookie: str,
+    creator: str,
+    name: str,
+    description: Optional[str] = None,
+    path: Optional[str] = None,
+    thumbnail_blob: Optional[FileStorage] = None,
+) -> None:
     """Add a new theme.
 
     :param LocalProxy session: database connection
     :param str cookie: current user cookie
-    :param dict data: theme information
+    :param str creator: theme creator
+    :param str name: name of theme
+    :param Optional[str] description: theme description
+    :param Optional[str] path: path to theme html
+    :param Optional[FileStorage] thumbnail_blob: theme thumbnail
 
     :raises NoneExistingUserError: if user session cannot be found
     :raises ValueError: if the user has already made a theme with the
@@ -96,7 +104,7 @@ def add(session: LocalProxy, cookie: str, data: Theme) -> None:
     user: Optional[models.UserTable] = (
         session
         .query(models.UserTable)
-        .filter(models.UserTable.username == data["creator"])
+        .filter(models.UserTable.username == creator)
         .one_or_none()
     )
     if not user:
@@ -108,23 +116,22 @@ def add(session: LocalProxy, cookie: str, data: Theme) -> None:
         session
         .query(models.Themes)
         .filter(models.Themes.creator_user_id == user.uuid)
-        .filter(models.Themes.name == data["name"])
+        .filter(models.Themes.name == name)
     )
 
     if session.query(query.exists()).scalar():
         raise ValueError("Theme already exists")
 
-    path: Optional[str] = sanitize_path(path=data.get("path"))
+    path: Optional[str] = sanitize_path(path=path)
     status: str = (
         ThemeReviewState.MERGED.value
         if path else
         ThemeReviewState.UNKNOWN.value
     )
 
-    thumbnail_: Optional[str] = data.get("thumbnail")
     thumnail_uuid: Optional[str] = (
-        thumbnail(session, thumbnail_)
-        if thumbnail_ else
+        thumbnail(session, thumbnail_blob)
+        if thumbnail_blob else
         None
     )
 
@@ -132,8 +139,8 @@ def add(session: LocalProxy, cookie: str, data: Theme) -> None:
         models.Themes(
             uuid=utils.get_uuid(),
             created=get_utc_now(),
-            name=data.get("name"),
-            description=data.get("description"),
+            name=name,
+            description=description,
             path=path,
             status=status,
             creator_user_id=user.uuid,
@@ -258,7 +265,7 @@ def thumbnail_url(session: LocalProxy, uuid: str) -> str:
     return url
 
 
-def creator(session: LocalProxy, uuid: str) -> str:
+def creator_(session: LocalProxy, uuid: str) -> str:
     """Get the username of theme creator.
 
     :param LocalProxy session: db session
@@ -281,7 +288,7 @@ def creator(session: LocalProxy, uuid: str) -> str:
     return username[0]
 
 
-def get(session: LocalProxy) -> List[Optional[Dict[str, str]]]:
+def get(session: LocalProxy) -> ThemeList:
     """Get all merged and available themes.
 
     :param LocalProxy session: db session
@@ -295,12 +302,12 @@ def get(session: LocalProxy) -> List[Optional[Dict[str, str]]]:
         .all()
     )
 
-    theme_list: List[Optional[Dict[str, str]]] = [
+    theme_list: ThemeList = [
         {
             "name": theme.name,
             "description": theme.description,
             "thumbnail": thumbnail_url(session, theme.thumbnail),
-            "creator": creator(session, theme.creator_user_id),
+            "creator": creator_(session, theme.creator_user_id),
             "id": theme.uuid,
         } for theme in themes]
 

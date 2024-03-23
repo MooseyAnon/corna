@@ -79,7 +79,7 @@ def test_when_user_not_logged_in(session):
 
     # an exception should be raised
     try:
-        control.create(session, data)
+        control.create(session, **data)
         assert False
     except NoneExistingUserError:
         assert True
@@ -205,7 +205,7 @@ def test_corna_with_about(session, client, login):
         f"/api/v1/corna/{corna_info['domain_name']}",
         json={
             "title": corna_info["title"],
-            "about": "Hey this is my cool new Corna!",
+            "about_me": "Hey this is my cool new Corna!",
         },
     )
     assert resp.status_code == 201
@@ -244,7 +244,7 @@ def test_create_corna_with_theme(session, client, login, theme):
         f"/api/v1/corna/{corna_info['domain_name']}",
         json={
             "title": corna_info["title"],
-            "about": "Hey this is my cool new Corna!",
+            "about_me": "Hey this is my cool new Corna!",
             "theme_uuid": theme.uuid,
         },
     )

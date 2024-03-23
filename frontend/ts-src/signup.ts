@@ -31,7 +31,7 @@ import {
 enum QuestionKeys {
     /* Object key for each question. */
 
-    ABOUT = "about",
+    ABOUT = "about_me",
     DOMAINNAME = "domain_name",
     EMAIL = "email_address",
     PASSWORD = "password",
@@ -91,7 +91,7 @@ interface RegisterUser {
 interface CreateCorna {
     /* Parameters for creating a new Corna. */
 
-    about?: string;
+    about_me?: string;
     domain_name: string;
     theme_uuid?: string;
     title: string;
@@ -135,7 +135,7 @@ const questions: SetupQuestion[] = [
         answer: "",
     },
     {
-        key: "about",
+        key: "about_me",
         text: "Add your bio (you can change this later)",
         answer: "",
     },
@@ -708,7 +708,7 @@ export async function registerNewUser(userData: UserResponses): Promise<void> {
     await postData({
         title: userData.title,
         theme_uuid: undefined ?? userData.theme_uuid,
-        about: undefined ?? userData.about,
+        about_me: undefined ?? userData.about_me,
     } as CreateCorna, `v1/corna/${userData.domain_name}`, typeSystemMessage);
 
     await handlePromise(request("v1/auth/logout", "post"));

@@ -152,11 +152,11 @@ def add_theme(**data: Dict[str, str]) -> flask.wrappers.Response:
         # Marshmallow doesn't want to work with binary blobs/files so
         # we have to do the validation separately
         utils.validate_files(thumbnails, maximum=1)
-        data.update(dict(thumbnail=thumbnails[0]))
+        data.update(dict(thumbnail_blob=thumbnails[0]))
 
     cookie: str = flask.request.cookies[enums.SessionNames.SESSION.value]
     try:
-        control.add(session, cookie, data)
+        control.add(session, cookie, **data)
 
     except NoneExistingUserError as error:
         utils.respond_json_error(str(error), HTTPStatus.UNAUTHORIZED)
