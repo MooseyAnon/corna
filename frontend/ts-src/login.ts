@@ -11,7 +11,7 @@ import {
 
 interface LoginData {
     /* Login schema. */
-    email_address: string;
+    email: string;
     password: string;
 }
 
@@ -57,7 +57,7 @@ export function parseForm(): void {
     if (!isValidEmail(emailInput) || !isValidPassword(passwordInput)) { return; }
 
     const dataToSend: LoginData = {
-        email_address: clean(emailInput.value),
+        email: clean(emailInput.value),
         password: passwordInput.value,
     }
     postData(dataToSend,"v1/auth/login", errorMessage)

@@ -133,11 +133,11 @@ def _create_user(client):
 @pytest.fixture(name="login")
 def _create_and_login_user(client, user):
     user_deets = single_user()
-    email = user_deets["email_address"]
+    email = user_deets["email"]
     password = user_deets["password"]
 
     resp = client.post("/api/v1/auth/login", json={
-            "email_address": email,
+            "email": email,
             "password": password,
         }
     )

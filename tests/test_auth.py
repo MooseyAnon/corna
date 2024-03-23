@@ -14,9 +14,9 @@ def test_regester(session, client):
     assert len(session.query(models.UserTable).all()) == 1
 
     # check correct things are saved
-    em = session.query(models.EmailTable).get(user_deets["email_address"])
+    em = session.query(models.EmailTable).get(user_deets["email"])
     assert em is not None
-    assert em.email_address == user_deets["email_address"]
+    assert em.email_address == user_deets["email"]
     # we shouldn't be able to get the password
     try:
         em.password
@@ -34,7 +34,7 @@ def test_regester(session, client):
     assert usr.username == user_deets["username"]
 
     # check relationships are correct
-    assert usr.email_address == user_deets["email_address"]
+    assert usr.email_address == user_deets["email"]
     assert usr.email == em
 
 
@@ -51,7 +51,7 @@ def test_login(session, client, user):
 
     user_deets = single_user()
     resp = client.post("/api/v1/auth/login", json={
-            "email_address": user_deets["email_address"],
+            "email": user_deets["email"],
             "password": user_deets["password"],
         }
     )
@@ -93,7 +93,7 @@ def test_user_already_logged_in(session, client, login):
 
     user_deets = single_user()
     resp = client.post("/api/v1/auth/login", json={
-            "email_address": user_deets["email_address"],
+            "email": user_deets["email"],
             "password": user_deets["password"],
         }
     )
@@ -140,7 +140,7 @@ def test_login_attempt_with_wrong_creds(
 ):
 
     resp = client.post("/api/v1/auth/login", json={
-            "email_address": email,
+            "email": email,
             "password": password,
         }
     )
@@ -159,7 +159,7 @@ def test_headers(mocker, client, user):
     )
     user_deets = single_user()
     resp = client.post("/api/v1/auth/login", json={
-            "email_address": user_deets["email_address"],
+            "email": user_deets["email"],
             "password": user_deets["password"],
         }
     )
@@ -188,7 +188,7 @@ def test_secure_cookie(session, client, user):
 
     user_deets = single_user()
     resp = client.post("/api/v1/auth/login", json={
-            "email_address": user_deets["email_address"],
+            "email": user_deets["email"],
             "password": user_deets["password"],
         }
     )
@@ -256,7 +256,7 @@ def test_new_session_starts_for_logged_in_user(session, client, login):
     # try to log user in
     user_deets = single_user()
     resp = client.post("/api/v1/auth/login", json={
-            "email_address": user_deets["email_address"],
+            "email": user_deets["email"],
             "password": user_deets["password"],
         }
     )
@@ -384,7 +384,7 @@ def test_preexisting_session_creates_restart(client, session, login):
     # login again
     user_deets = single_user()
     resp = client.post("/api/v1/auth/login", json={
-            "email_address": user_deets["email_address"],
+            "email": user_deets["email"],
             "password": user_deets["password"],
         }
     )

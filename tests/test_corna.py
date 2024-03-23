@@ -123,7 +123,7 @@ def test_domain_name_not_unique(session, client, corna):
     resp = client.post(
         "/api/v1/auth/register",
         json={
-            "email_address": "new.email@tester.com",
+            "email": "new.email@tester.com",
             "password": "some-fake=password",
             "username": "nunu-user",
             }
@@ -133,7 +133,7 @@ def test_domain_name_not_unique(session, client, corna):
     # login
     resp = client.post("/api/v1/auth/login",
         json={
-            "email_address": "new.email@tester.com",
+            "email": "new.email@tester.com",
             "password": "some-fake=password",
         }
     )
