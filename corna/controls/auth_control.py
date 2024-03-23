@@ -77,14 +77,14 @@ def register_user(session: LocalProxy, user_data: RegisterUser) -> None:
     user_email: Optional[models.EmailTable] = (
         session
         .query(models.EmailTable)
-        .get(user_data["email_address"])
+        .get(user_data["email"])
     )
     if user_email is not None:
         raise UserExistsError("Email address already has an account")
 
     session.add(
         models.EmailTable(
-            email_address=user_data["email_address"],
+            email_address=user_data["email"],
             password=user_data["password"],
         )
     )
@@ -92,7 +92,7 @@ def register_user(session: LocalProxy, user_data: RegisterUser) -> None:
     session.add(
         models.UserTable(
             uuid=utils.get_uuid(),
-            email_address=user_data["email_address"],
+            email_address=user_data["email"],
             username=user_data["username"],
             date_created=get_utc_now(),
         )
@@ -111,7 +111,7 @@ def login_user(session: LocalProxy, user_data: LoginUser) -> bytes:
     user_account: Optional[models.EmailTable] = (
         session
         .query(models.EmailTable)
-        .get(user_data["email_address"])
+        .get(user_data["email"])
     )
     if user_account is None:
         raise NoneExistingUserError("User does not exist")
@@ -122,7 +122,7 @@ def login_user(session: LocalProxy, user_data: LoginUser) -> bytes:
     user: models.UserTable = (
         session
         .query(models.UserTable)
-        .filter(models.UserTable.email_address == user_data["email_address"])
+        .filter(models.UserTable.email_address == user_data["email"])
         .one()
     )
 

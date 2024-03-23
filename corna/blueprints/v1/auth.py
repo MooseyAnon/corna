@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class _BaseSchema(Schema):
     """Base schema for shared fields."""
 
-    email_address = fields.Email(
+    email = fields.Email(
         required=True,
         metadata={
             "description": "user email address"
