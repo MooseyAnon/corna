@@ -93,7 +93,7 @@ def register_user(session: LocalProxy, user_data: RegisterUser) -> None:
         models.UserTable(
             uuid=utils.get_uuid(),
             email_address=user_data["email_address"],
-            username=user_data["user_name"],
+            username=user_data["username"],
             date_created=get_utc_now(),
         )
     )

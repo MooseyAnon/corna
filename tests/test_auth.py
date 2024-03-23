@@ -27,11 +27,11 @@ def test_regester(session, client):
     usr = (
         session
         .query(models.UserTable)
-        .filter(models.UserTable.username == user_deets["user_name"])
+        .filter(models.UserTable.username == user_deets["username"])
         .one()
     )
     assert usr is not None
-    assert usr.username == user_deets["user_name"]
+    assert usr.username == user_deets["username"]
 
     # check relationships are correct
     assert usr.email_address == user_deets["email_address"]
@@ -79,11 +79,11 @@ def test_login(session, client, user):
         .one()
     )
     assert database_cookie is not None
-    assert database_cookie.user.username == user_deets["user_name"]
+    assert database_cookie.user.username == user_deets["username"]
 
     user = session.query(models.UserTable).get(database_cookie.user_uuid)
     assert user is not None
-    assert user.username == user_deets["user_name"]
+    assert user.username == user_deets["username"]
 
     # check forign key relationship is correct
     assert database_cookie.user is user
@@ -119,11 +119,11 @@ def test_user_already_logged_in(session, client, login):
         .one()
     )
     assert database_cookie is not None
-    assert database_cookie.user.username == user_deets["user_name"]
+    assert database_cookie.user.username == user_deets["username"]
 
     user = session.query(models.UserTable).get(database_cookie.user_uuid)
     assert user is not None
-    assert user.username == user_deets["user_name"]    
+    assert user.username == user_deets["username"]    
 
 
 @pytest.mark.parametrize("email,password,expected_status",

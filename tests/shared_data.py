@@ -17,7 +17,7 @@ def single_user(
     return {
         "email_address": email_address,
         "password": password,
-        "user_name": user_name,
+        "username": user_name,
     }
 
 

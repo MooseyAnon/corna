@@ -37,7 +37,7 @@ enum QuestionKeys {
     PASSWORD = "password",
     THEME = "theme",
     TITLE = "title",
-    USERNAME = "user_name",
+    USERNAME = "username",
 }
 
 
@@ -84,7 +84,7 @@ interface RegisterUser {
 
     email_address: string;
     password: string;
-    user_name: string;
+    username: string;
 }
 
 
@@ -105,7 +105,7 @@ interface UserResponses extends CreateCorna, RegisterUser {
 
 const questions: SetupQuestion[] = [
     {
-        key: "user_name",
+        key: "username",
         text: "Welcome to Corna, lets get you started by picking a username",
         answer: "",
     },
@@ -695,7 +695,7 @@ export async function registerNewUser(userData: UserResponses): Promise<void> {
     */
 
     await postData({
-        user_name: userData.user_name,
+        username: userData.username,
         email_address: userData.email_address,
         password: userData.password,
     } as RegisterUser, "v1/auth/register", typeSystemMessage);
