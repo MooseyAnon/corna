@@ -1,9 +1,9 @@
 """Manage Corna's."""
 
 import logging
-from typing import Optional
+from typing import List, Optional
+import uuid
 
-from typing_extensions import TypedDict
 from werkzeug.local import LocalProxy
 
 from corna.db import models
@@ -17,18 +17,6 @@ logger = logging.getLogger(__name__)
 
 class NoDomainError(ValueError):
     """When user has no domain."""
-
-
-# **** types ****
-
-class CornaCreate(TypedDict):
-    """Types for creating a new corna."""
-
-    domain_name: str
-    title: str
-    about: str
-
-# **** types end ****
 
 
 def user_has_corna(session: LocalProxy, user_uuid: str) -> bool:
@@ -53,17 +41,29 @@ def domain_unique(session: LocalProxy, domain: str) -> bool:
     return not utils.exists_(session, models.CornaTable.domain_name, domain)
 
 
-def create(session: LocalProxy, data: CornaCreate) -> None:
+def create(
+    session: LocalProxy,
+    cookie: str,
+    domain_name: str,
+    title: str,
+    about_me: Optional[str] = None,
+    theme_uuid: Optional[uuid.uuid4] = None,
+) -> None:
     """Create a new corna.
 
     :param sqlalchemy.Session session: db session
-    :param CornaCreate data: data required to create corna
+    :param str cookie: user cookie
+    :param str domain_name: corna domain name
+    :param str title: corna title
+    :param Optional[str] about_me: corna about section
+    :param List[str] permissions: list of corna permissions
+    :param Optional[str] theme_uuid: corna theme
 
     :raises PreExistingCornaError: user has another corna already
     :raises DomainExistsError: domain name not unique
     """
     user: models.UserTable = current_user(
-        session, data["cookie"],
+        session, cookie,
         exception=NoneExistingUserError
     )
 
@@ -71,25 +71,21 @@ def create(session: LocalProxy, data: CornaCreate) -> None:
         # user already has a Corna
         raise PreExistingCornaError("User has pre-existing Corna")
 
-    if not domain_unique(session, data["domain_name"]):
+    if not domain_unique(session, domain_name):
         raise DomainExistsError("Domain name in use")
 
     about_: Optional[str] = about(
         session=session,
-        about_content=data.get("about"),
+        about_content=about_me,
     )
 
-    theme: Optional[str] = (
-        str(data.get("theme_uuid"))
-        if data.get("theme_uuid")
-        else None
-    )
+    theme: Optional[str] = str(theme_uuid) if theme_uuid else None
 
     session.add(
         models.CornaTable(
             uuid=utils.get_uuid(),
-            domain_name=data["domain_name"],
-            title=data["title"],
+            domain_name=domain_name,
+            title=title,
             date_created=get_utc_now(),
             user_uuid=user.uuid,
             about=about_,
@@ -114,16 +110,16 @@ def about(session: LocalProxy, about_content: str = None) -> str:
     if not about_content:
         return None
 
-    uuid = utils.get_uuid()
+    new_uuid = utils.get_uuid()
     session.add(
         models.TextContent(
-            uuid=uuid,
+            uuid=new_uuid,
             content=about_content,
             created=get_utc_now(),
             post_uuid=None,
         )
     )
-    return uuid
+    return new_uuid
 
 
 def get_domain(session: LocalProxy, signed_cookie: str) -> str:

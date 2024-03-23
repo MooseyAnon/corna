@@ -2,7 +2,6 @@
 import logging
 from typing import Optional
 
-from typing_extensions import TypedDict
 from werkzeug.local import LocalProxy
 
 from corna.db import models
@@ -11,27 +10,6 @@ from corna.utils.errors import (
     IncorrectPasswordError, NoneExistingUserError, UserExistsError)
 
 logger = logging.getLogger(__name__)
-
-
-# **** types ****
-
-class _AuthTypesBase(TypedDict):
-    """Shared types."""
-
-    email_address: str
-    password: str
-
-
-class RegisterUser(_AuthTypesBase):
-    """Register user types."""
-
-    user_name: str
-
-
-class LoginUser(_AuthTypesBase):
-    """Login user types."""
-
-# **** types end ****
 
 
 def username_exists(session: LocalProxy, username: str) -> bool:
@@ -67,62 +45,70 @@ def session_exists(session, user_uuid):
     return utils.exists_(session, models.SessionTable.user_uuid, user_uuid)
 
 
-def register_user(session: LocalProxy, user_data: RegisterUser) -> None:
+def register_user(
+    session: LocalProxy,
+    email: str,
+    password: str,
+    username: str,
+) -> None:
     """Register a new user.
 
     :param sqlalchemy.Session session: session object
-    :param RegisterUser user_data: user data to register
+    :param str email: user email address
+    :param str password: user password
+    :param str username: username
     :raises UserExistsError: if user details are already in use
     """
     user_email: Optional[models.EmailTable] = (
         session
         .query(models.EmailTable)
-        .get(user_data["email"])
+        .get(email)
     )
     if user_email is not None:
         raise UserExistsError("Email address already has an account")
 
     session.add(
         models.EmailTable(
-            email_address=user_data["email"],
-            password=user_data["password"],
+            email_address=email,
+            password=password,
         )
     )
 
     session.add(
         models.UserTable(
             uuid=utils.get_uuid(),
-            email_address=user_data["email"],
-            username=user_data["username"],
+            email_address=email,
+            username=username,
             date_created=get_utc_now(),
         )
     )
     logger.info("successfully registered a new user.")
 
 
-def login_user(session: LocalProxy, user_data: LoginUser) -> bytes:
+def login_user(session: LocalProxy, email: str, password: str) -> bytes:
     """Login a user.
 
     :param sqlalchemy.Session session: session object
-    :param LoginUser user_data: user data to login
+    :param str email: user email address
+    :param str password: user password
     :raises NoneExistingUserError: if user details do not exist
     :raises IncorrectPasswordError: if password is wrong
     """
     user_account: Optional[models.EmailTable] = (
         session
         .query(models.EmailTable)
-        .get(user_data["email"])
+        .get(email)
     )
     if user_account is None:
         raise NoneExistingUserError("User does not exist")
 
-    if not user_account.is_password(user_data["password"]):
+    if not user_account.is_password(password):
         raise IncorrectPasswordError("Wrong password")
 
     user: models.UserTable = (
         session
         .query(models.UserTable)
-        .filter(models.UserTable.email_address == user_data["email"])
+        .filter(models.UserTable.email_address == email)
         .one()
     )
 

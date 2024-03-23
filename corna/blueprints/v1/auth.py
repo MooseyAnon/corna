@@ -199,7 +199,7 @@ def set_cookie(
 def register_user(**data: Dict) -> flask.wrappers.Response:
     """Register a user."""
     try:
-        auth_control.register_user(session, data)
+        auth_control.register_user(session, **data)
     except UserExistsError as error:
         return utils.respond_json_error(str(error), HTTPStatus.BAD_REQUEST)
 
@@ -231,7 +231,7 @@ def login_user(**data: Dict) -> flask.wrappers.Response:
         auth_control.delete_user_session(session, user_cookie)
 
     try:
-        cookie: str = auth_control.login_user(session, data)
+        cookie: str = auth_control.login_user(session, **data)
     except NoneExistingUserError as error:
         return utils.respond_json_error(str(error), HTTPStatus.NOT_FOUND)
     except IncorrectPasswordError as error:
