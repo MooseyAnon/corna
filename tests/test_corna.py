@@ -66,7 +66,7 @@ def test_corna_create(session, client, login):
     )
     assert corna is not None
     user = single_user()
-    assert corna.user.username == user["user_name"]
+    assert corna.user.username == user["username"]
 
 
 def test_when_user_not_logged_in(session):
@@ -125,7 +125,7 @@ def test_domain_name_not_unique(session, client, corna):
         json={
             "email_address": "new.email@tester.com",
             "password": "some-fake=password",
-            "user_name": "nunu-user",
+            "username": "nunu-user",
             }
         )
     assert resp.status_code == 201
@@ -219,7 +219,7 @@ def test_corna_with_about(session, client, login):
     )
     assert corna is not None
     user = single_user()
-    assert corna.user.username == user["user_name"]
+    assert corna.user.username == user["username"]
     assert corna.about is not None
 
     assert len(session.query(models.TextContent).all()) == 1
@@ -259,7 +259,7 @@ def test_create_corna_with_theme(session, client, login, theme):
     )
     assert corna is not None
     user = single_user()
-    assert corna.user.username == user["user_name"]
+    assert corna.user.username == user["username"]
     assert corna.about is not None
 
     assert len(session.query(models.TextContent).all()) == 1

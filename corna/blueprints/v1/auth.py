@@ -42,7 +42,7 @@ class _BaseSchema(Schema):
 class UserCreateSchema(_BaseSchema):
     """Schema for a new user."""
 
-    user_name = fields.String(
+    username = fields.String(
         required=True,
         metadata={
             "description": "chosen username of new user"
