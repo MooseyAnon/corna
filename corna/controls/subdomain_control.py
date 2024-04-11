@@ -8,7 +8,8 @@ from werkzeug.local import LocalProxy
 
 from corna import enums
 from corna.db import models
-from corna.utils import utils
+from corna.middleware import alchemy, check
+from corna.utils import errors, utils
 
 logger = logging.getLogger(__name__)
 
@@ -127,18 +128,52 @@ def _parse_post(
     return content
 
 
+def can_read(
+    session: LocalProxy,
+    subdomain: str,
+    cookie: Optional[str] = None,
+) -> bool:
+    """Ensure user has read access to a Corna.
+
+    :param LocalProxy session: a DB session
+    :param str subdomain: the corna subdomain
+    :param Optional[str] cookie: user cookie
+
+    :returns: True if user has read access, else no
+    :rtype: bool
+    """
+    username: Optional[str] = None
+    if cookie:
+        try:
+            user: models.UserTable = alchemy.current_user(session, cookie)
+            username = user.username
+
+        except errors.NotLoggedInError:
+            # we can just ignore this as its not a required param
+            pass
+
+    return check.can_read(session, subdomain, username=username)
+
+
 def post_list(
     session: LocalProxy,
-    subdomain: str
+    subdomain: str,
+    cookie: Optional[str] = None,
 ) -> List[Dict[str, Union[List[str], str]]]:
     """Get the post list for a given domain.
 
     :param LocalProxy session: a db session
     :param str subdomain: the Corna to get posts from
+    :param Optional[str] cookie: user cookie
+
     :returns: a post list for a given Corna
     :rtype: Dict[str, str]
+    :raises errors.UnauthorizedActionError: if user is not allowed to read
     """
     curr_corna: Optional[models.CornaTable] = _current_corna(session, subdomain)
+
+    if not can_read(session, subdomain, cookie):
+        raise errors.UnauthorizedActionError("User not allowed to read")
 
     posts: List[Optional[models.PostTable]] = (
         session
@@ -161,18 +196,24 @@ def post_list(
 def single_post(
     session: LocalProxy,
     url_extension: str,
-    subdomain: str
+    subdomain: str,
+    cookie: Optional[str] = None,
 ) -> Dict[str, Union[List[str], str]]:
     """Get a single post.
 
     :param LocalProxy session: a db session
     :param str url_extension: url extension of post
     :param str subdomain: the Corna the post lives on
+    :param Optional[str] cookie: user cookie
 
     :returns: a parsed post
     :rype: Dict[str, Union[List[str], str]]
+    :raises errors.UnauthorizedActionError: if user is not allowed to read
     :raises PostNotFoundError: if no post is found
     """
+    if not can_read(session, subdomain, cookie):
+        raise errors.UnauthorizedActionError("User not allowed to read")
+
     corna: Optional[models.CornaTable] = _current_corna(session, subdomain)
     post: Optional[models.PostTable] = (
         session
@@ -238,16 +279,18 @@ def theme(session: LocalProxy, subdomain: str) -> str:
 
 def build_page(
     session: LocalProxy,
-    subdomain: str
+    subdomain: str,
+    cookie: Optional[str] = None,
 ) -> Tuple[List[Dict[str, Union[List[str]]]], str, str]:
     """Build page for Corna.
 
     :param LocalProxy session: db session
     :param str subdomain: Corna subdomain
+    :param Optional[str] cookie: user cookie
     :returns: all components needed to build a Corna
     :rtype: Tuple[post_list, str, str]
     """
-    posts = post_list(session, subdomain)
+    posts = post_list(session, subdomain, cookie=cookie)
     title = corna_title(session, subdomain)
     theme_path = theme(session, subdomain)
 

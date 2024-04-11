@@ -14,10 +14,12 @@ Fragments are distinct from anything the API endpoints will return. The API's
 will only ever return the JSON representation of the post.
 """
 import pathlib
+from typing import Optional
 
 import flask
 from flask_sqlalchemy_session import current_session as session
 
+from corna import enums
 from corna.controls import subdomain_control as control
 from corna.utils import secure, utils
 
@@ -41,7 +43,17 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
 @subdomain.route("/subdomain/<domain>", methods=["GET"])
 def user_homepage(domain):
     """Serve user homepage."""
-    post_list, title, theme_path = control.build_page(session, domain)
+    signed_cookie: Optional[str] = (
+        flask
+        .request
+        .cookies
+        .get(enums.SessionNames.SESSION.value)
+    )
+    post_list, title, theme_path = control.build_page(
+        session,
+        domain,
+        cookie=signed_cookie,
+    )
     return flask.render_template(
         theme_path,
         PostList=post_list,
@@ -52,7 +64,18 @@ def user_homepage(domain):
 @subdomain.route("/subdomain/<dom_name>/fragment/<url_ext>", methods=["GET"])
 def get_fragment(dom_name, url_ext):
     """Serve a single post as HTML fragment."""
-    post = control.single_post(session, url_ext, dom_name)
+    signed_cookie: Optional[str] = (
+        flask
+        .request
+        .cookies
+        .get(enums.SessionNames.SESSION.value)
+    )
+    post = control.single_post(
+        session,
+        url_ext,
+        dom_name,
+        cookie=signed_cookie,
+    )
     return flask.jsonify(post)
 
 
