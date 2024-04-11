@@ -54,3 +54,7 @@ class CornaOwnerError(ValueError):
 
     Raised when corna is not owned by user.
     """
+
+
+class CornaNotFoundError(ValueError):
+    """Corna does not exist."""
