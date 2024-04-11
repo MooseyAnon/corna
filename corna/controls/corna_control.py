@@ -7,6 +7,7 @@ import uuid
 from werkzeug.local import LocalProxy
 
 from corna.db import models
+from corna.middleware import permissions as perms
 from corna.utils import get_utc_now, utils
 from corna.utils.errors import (
     DomainExistsError, NoneExistingUserError, PreExistingCornaError)
@@ -46,6 +47,7 @@ def create(
     cookie: str,
     domain_name: str,
     title: str,
+    permissions: List[str],
     about_me: Optional[str] = None,
     theme_uuid: Optional[uuid.uuid4] = None,
 ) -> None:
@@ -90,6 +92,7 @@ def create(
             user_uuid=user.uuid,
             about=about_,
             theme=theme,
+            permissions=perms.create_role(permissions),
         )
     )
 
