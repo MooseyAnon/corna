@@ -45,6 +45,19 @@ class CornaCreateSchema(Schema):
             "description": "UUID of chosen theme",
         })
 
+    permissions = fields.List(
+        fields.String(),
+        missing=["read", "comment", "like", "follow"],
+        metadata={
+            "description": "Corna wide default permissions. These are the "
+                           "permissions used to validate access for any users "
+                           "without a more specific role. If blank, the "
+                           "default permissions of: read, comment, like, "
+                           "follow will be set. For no permissions i.e. "
+                           "a private Corna, permissions should be an empty "
+                           "list."
+        })
+
     class Meta:  # pylint: disable=missing-class-docstring
         strict = True
 

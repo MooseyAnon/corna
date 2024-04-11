@@ -6,6 +6,7 @@ from corna import enums
 from corna.controls import corna_control as control
 from corna.controls import theme_control
 from corna.db import models
+from corna.middleware import permissions as perms
 from corna.utils.errors import NoneExistingUserError
 from corna.utils import image_proc, secure
 from tests.shared_data import ASSET_DIR, corna_info, single_user
@@ -68,6 +69,24 @@ def test_corna_create(session, client, login):
     user = single_user()
     assert corna.user.username == user["username"]
 
+    # check permissions
+    assert corna.permissions is not None
+    assert corna.permissions == 449  # default role
+
+    expected = {
+        "change_theme": False,
+        "comment": True,
+        "delete": False,
+        "edit": False,
+        "follow": True,
+        "like": True,
+        "read": True,
+        "change_permissions": False,
+        "write": False,
+    }
+
+    assert perms.perms(corna.permissions) == expected
+
 
 def test_when_user_not_logged_in(session):
 
@@ -75,6 +94,7 @@ def test_when_user_not_logged_in(session):
         "cookie": secure.sign("some-fake-cookie"),
         "title": corna_info["title"],
         "domain_name": corna_info["domain_name"],
+        "permissions": [],
     }
 
     # an exception should be raised
@@ -284,3 +304,85 @@ def test_create_corna_with_theme(session, client, login, theme):
 
     assert theme is not None
     assert theme.name == "new fancy theme"
+
+
+def test_corna_create__none_default_permissions(session, client, login):
+
+    resp = client.post(
+        f"/api/v1/corna/{corna_info['domain_name']}",
+        json={
+            "title": corna_info["title"],
+            "permissions": ["read", "write", "edit"]
+        },
+    )
+    assert resp.status_code == 201
+
+    assert len(session.query(models.CornaTable).all()) == 1
+    corna = (
+        session.query(models.CornaTable)
+        .filter(models.CornaTable.domain_name == corna_info["domain_name"])
+        .one_or_none()
+    )
+    assert corna is not None
+    user = single_user()
+    assert corna.user.username == user["username"]
+
+    # check permissions
+    assert corna.permissions is not None
+    assert corna.permissions == 7
+
+    expected = {
+        "change_theme": False,
+        "comment": False,
+        "delete": False,
+        "edit": True,
+        "follow": False,
+        "like": False,
+        "read": True,
+        "change_permissions": False,
+        "write": True,
+    }
+
+    assert perms.perms(corna.permissions) == expected
+
+
+def test_corna_create__private_corna(session, client, login):
+
+    resp = client.post(
+        f"/api/v1/corna/{corna_info['domain_name']}",
+        json={
+            "title": corna_info["title"],
+            # for a private Corna, permissions field should not be missing
+            # but posted with an empty list
+            "permissions": []
+        },
+    )
+    assert resp.status_code == 201
+
+    assert len(session.query(models.CornaTable).all()) == 1
+    corna = (
+        session.query(models.CornaTable)
+        .filter(models.CornaTable.domain_name == corna_info["domain_name"])
+        .one_or_none()
+    )
+    assert corna is not None
+    user = single_user()
+    assert corna.user.username == user["username"]
+
+    # check permissions
+    assert corna.permissions is not None
+    assert corna.permissions == 0
+
+    expected = {
+        "change_theme": False,
+        "comment": False,
+        "delete": False,
+        "edit": False,
+        "follow": False,
+        "like": False,
+        "read": False,
+        "change_permissions": False,
+        "write": False,
+    }
+
+    assert perms.perms(corna.permissions) == expected

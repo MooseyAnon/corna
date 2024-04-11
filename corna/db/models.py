@@ -198,6 +198,11 @@ class CornaTable(Base):
         DateTime,
         doc="creation date of Corna",
     )
+    permissions = Column(
+        BigInteger,
+        nullable=False,
+        doc="Corna wide default permissions for all users",
+    )
     user_uuid = Column(
         UUID,
         ForeignKey("users.uuid"),
