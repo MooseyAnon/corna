@@ -58,3 +58,10 @@ class CornaOwnerError(ValueError):
 
 class CornaNotFoundError(ValueError):
     """Corna does not exist."""
+
+
+class UnauthorizedActionError(ValueError):
+    """Unauthorized action error.
+
+    Raised when user tries to do something they're not allowed.
+    """
