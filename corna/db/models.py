@@ -1,8 +1,8 @@
 """Models for the Corna app."""
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey, ForeignKeyConstraint, Integer,
-    String, Text)
+    BigInteger, Boolean, Column, DateTime, ForeignKey, ForeignKeyConstraint,
+    Integer, String, Table, Text)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.inspection import inspect
@@ -39,6 +39,14 @@ class Base:
 
 
 Base = declarative_base(cls=Base)
+
+
+role_user_map = Table(
+    "role_user_map",
+    Base.metadata,
+    Column("role_id", UUID, ForeignKey("roles.uuid"), primary_key=True),
+    Column("user_id", UUID, ForeignKey("users.uuid"), primary_key=True),
+)
 
 
 class TestTable(Base):
@@ -81,6 +89,10 @@ class UserTable(Base):
     corna = relationship(
         "CornaTable",
         back_populates="user",
+    )
+    roles = relationship(
+        "Role",
+        secondary=role_user_map,
     )
 
 
@@ -409,4 +421,43 @@ class Themes(Base):
         ForeignKey("images.uuid"),
         nullable=True,
         doc="Thumbnail of the theme to display to users when selecting",
+    )
+
+
+class Role(Base):
+    """Table for holding roles."""
+
+    __tablename__ = "roles"
+
+    uuid = Column(
+        UUID,
+        primary_key=True,
+    )
+    name = Column(
+        Text,
+        nullable=False,
+        doc="The name of the role",
+    )
+    created = Column(
+        DateTime,
+        doc="Date theme was created",
+    )
+    permissions = Column(
+        BigInteger,
+        nullable=False,
+        doc="The permissions associated with the role",
+    )
+    creator_uuid = Column(
+        UUID,
+        ForeignKey("users.uuid"),
+        nullable=False,
+    )
+    corna_uuid = Column(
+        UUID,
+        ForeignKey("corna.uuid"),
+        nullable=False,
+        doc="Map Corna uuid to role, this makes 'GET' operations easier while "
+            "also making each role more 'unique' as there is the possibility "
+            "of many roles having the same name. Corna UUID means we know "
+            "which instance of 'roll name == foo' we are dealing with."
     )
