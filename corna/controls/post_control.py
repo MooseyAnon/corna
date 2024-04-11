@@ -9,8 +9,9 @@ from werkzeug.local import LocalProxy
 
 from corna.db import models
 from corna.enums import ContentType
+from corna.middleware import check
 from corna.utils import get_utc_now, image_proc, secure, utils
-from corna.utils.errors import CornaOwnerError
+from corna.utils.errors import UnauthorizedActionError
 from corna.utils.utils import current_user
 
 logger = logging.Logger(__name__)
@@ -140,16 +141,18 @@ def create(session: LocalProxy, data: CreatePostCollection) -> None:
 
     :param sqlalchemy.Session session: a db session
     :param CreatePostCollectione data: the incoming data to be saved
-    :raises CornaOwnerError: user does not own the corna
+
     :raises InvalidContentType: if the incoming content type
         is not correct.
+    :raises UnauthorizedActionError: is author is not authorized to
+        create post.
     """
     user: models.UserTable = current_user(session, data["cookie"])
     corna: models.CornaTable = get_corna(session, data["domain_name"])
     type_: str = data["type"]
 
-    if not user.uuid == corna.user_uuid:
-        raise CornaOwnerError("Current user does not own the Corna")
+    if not check.can_write(session, data["domain_name"], user.username):
+        raise UnauthorizedActionError("User unauthorized to create posts")
 
     if type_ not in POST_TYPES:
         raise InvalidContentType(f"{type_} is not a valid type of content")
