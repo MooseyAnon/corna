@@ -169,6 +169,7 @@ def create(session: LocalProxy, data: CreatePostCollection) -> None:
             uuid=post_uuid,
             corna_uuid=corna.uuid,
             created=get_utc_now(),
+            user_uuid=user.uuid,
         )
     )
 

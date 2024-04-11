@@ -286,6 +286,12 @@ class PostTable(Base):
         "Images",
         back_populates="post",
     )
+    user_uuid = Column(
+        UUID,
+        ForeignKey("users.uuid"),
+        nullable=False,
+        doc="Creator of the post"
+    )
 
 
 class TextContent(Base):

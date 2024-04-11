@@ -62,7 +62,8 @@ def test_post_with_multiple_images(session, corna):
             created=FROZEN_TIME,
             type="picture",
             deleted=False,
-            corna_uuid=corna.uuid
+            corna_uuid=corna.uuid,
+            user_uuid=corna.user.uuid,
         )
     )
 
@@ -157,7 +158,8 @@ def test_text_to_post_one_to_one(session, corna):
             created=FROZEN_TIME,
             type="text",
             deleted=False,
-            corna_uuid=corna.uuid
+            corna_uuid=corna.uuid,
+            user_uuid=corna.user.uuid,
         )
     )
 

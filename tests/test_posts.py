@@ -102,6 +102,7 @@ def test_create_post(session, client, corna):
     assert post.type == out_post["type"]
     assert post.deleted == False
     assert post.created.isoformat() == FROZEN_TIME
+    assert post.user_uuid is not None
 
     assert text.content == out_post["content"]
     assert text.title == out_post["title"]
