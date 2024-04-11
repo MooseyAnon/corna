@@ -374,3 +374,105 @@ def test_post_with_no_title(session, client, corna):
     assert resp.status_code == 201
     assert session.query(models.PostTable).count() == 1
     assert session.query(models.TextContent).count() == 1
+
+
+@freeze_time(FROZEN_TIME)
+def test_none_owner_user_create_post(client, session, corna):
+    from tests import test_checks
+
+    test_checks._create_role_helper(client, name="default", permissions=["write"])
+    test_checks._create_user_helper(session, "fake@user.com", "fake_user")
+    test_checks._give_user_role_helper(client, "default",  "fake_user")
+
+    # logout
+    resp = client.post("/api/v1/auth/logout")
+    assert resp.status_code == 200
+
+    # login as new fake user
+    resp = client.post("/api/v1/auth/login", json={
+            "email": "fake@user.com",
+            "password": "Dany",
+        }
+    )
+    assert resp.status_code == 200
+
+    # create post
+    out_post = shared_data.mock_post(
+        with_content=True,
+        with_title=True,
+        with_image=False,
+    )
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        json=out_post,
+    )
+    assert resp.status_code == 201
+
+    # check database relationships are correct
+    posts = session.query(models.PostTable).all()
+    assert len(posts) == 1
+
+    corna = (
+        session
+        .query(models.CornaTable)
+        .filter(
+            models.CornaTable.domain_name
+            == shared_data.corna_info["domain_name"]
+        )
+        .one()
+    )
+    assert len(corna.posts) == 1
+
+    post = session.query(models.PostTable).first()
+    text = session.query(models.TextContent).first()
+    
+    # checking foreign key relationships
+    assert post.corna_uuid == corna.uuid
+    assert text.post_uuid == post.uuid
+
+    assert post.type == out_post["type"]
+    assert post.deleted == False
+    assert post.created.isoformat() == FROZEN_TIME
+
+    assert text.content == out_post["content"]
+    assert text.title == out_post["title"]
+
+    # get post creator
+    user = (
+        session
+        .query(models.UserTable)
+        .filter(models.UserTable.uuid == post.user_uuid)
+        .one()
+    )
+    assert user.username == "fake_user"
+
+
+@freeze_time(FROZEN_TIME)
+def test_none_owner_not_allowed_to_create_post(client, session, corna):
+    from tests import test_checks
+    test_checks._create_user_helper(session, "fake@user.com", "fake_user")
+
+    # logout
+    resp = client.post("/api/v1/auth/logout")
+    assert resp.status_code == 200
+
+    # login as new fake user
+    resp = client.post("/api/v1/auth/login", json={
+            "email": "fake@user.com",
+            "password": "Dany",
+        }
+    )
+    assert resp.status_code == 200
+
+    # create post
+    out_post = shared_data.mock_post(
+        with_content=True,
+        with_title=True,
+        with_image=False,
+    )
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        json=out_post,
+    )
+    assert resp.status_code == 401
+    assert resp.json["message"] == "User unauthorized to create posts"

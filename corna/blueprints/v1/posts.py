@@ -13,7 +13,7 @@ from corna.controls.post_control import (
     InvalidContentType, NoneExistinCornaError, PostDoesNotExist)
 from corna.enums import ContentType, SessionNames
 from corna.utils import secure, utils
-from corna.utils.errors import CornaOwnerError
+from corna.utils.errors import UnauthorizedActionError
 from corna.utils.utils import login_required
 
 posts = flask.Blueprint("posts", __name__)
@@ -138,13 +138,11 @@ def text_post(
     try:
         post_control.create(session, data=data)
 
-    except (
-        CornaOwnerError,
-        InvalidContentType,
-        NoneExistinCornaError,
-        PostDoesNotExist,
-    ) as e:
+    except (InvalidContentType, NoneExistinCornaError, PostDoesNotExist) as e:
         utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
+
+    except UnauthorizedActionError as e:
+        utils.respond_json_error(str(e), HTTPStatus.UNAUTHORIZED)
 
     # only happens on picture saving failure
     except OSError:
@@ -205,8 +203,11 @@ def photo_post(
     try:
         post_control.create(session, data=data)
 
-    except (CornaOwnerError, InvalidContentType, NoneExistinCornaError) as e:
+    except (InvalidContentType, NoneExistinCornaError) as e:
         utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
+
+    except UnauthorizedActionError as e:
+        utils.respond_json_error(str(e), HTTPStatus.UNAUTHORIZED)
 
     # only happens on picture saving failure
     except OSError:
