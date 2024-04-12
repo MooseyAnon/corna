@@ -1,0 +1,30 @@
+[
+    {
+        "id": 1,
+        "url": "../images/theme1.jpeg",
+        "name": "Theme 1",
+        "description": "window94 theme"
+
+    },
+    {
+        "id": 2,
+        "url": "../images/theme2.jpeg",
+        "name": "Theme 1",
+        "description": "artGallery theme"
+
+    },
+    {
+        "id": 3,
+        "url": "../images/theme3.jpeg",
+        "name": "Theme 1",
+        "description": "animeCafe theme"
+
+    },
+    {
+        "id": 4,
+        "url": "../images/theme4.jpeg",
+        "name": "Theme 1",
+        "description": "A cool theme"
+
+    }
+]

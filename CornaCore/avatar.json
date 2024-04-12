@@ -1,0 +1,79 @@
+[
+    {
+        "id": 1,
+        "url": "../images/avatar.png",
+        "name": "Avatar 1",
+        "description": "A cool avatar"
+
+    },
+    {
+        "id": 2,
+        "url": "../images/avatar1.jpg",
+        "name": "Avatar 1",
+        "description": "A cool avatar"
+
+    },
+    {
+        "id": 3,
+        "url": "../images/avatar1.jpg",
+        "name": "Avatar 1",
+        "description": "A cool avatar"
+
+    },
+    {
+        "id": 4,
+        "url": "../images/avatar1.jpg",
+        "name": "Avatar 1",
+        "description": "A cool avatar"
+
+    },
+    {
+        "id": 5,
+        "url": "../images/avatar1.jpg",
+        "name": "Avatar 1",
+        "description": "A cool avatar"
+
+    },
+    {
+        "id": 6,
+        "url": "../images/avatar1.jpg",
+        "name": "Avatar 1",
+        "description": "A cool avatar"
+
+    },
+    {
+        "id": 7,
+        "url": "../images/avatar1.jpg",
+        "name": "Avatar 1",
+        "description": "A cool avatar"
+
+    },
+    {
+        "id": 8,
+        "url": "../images/avatar1.jpg",
+        "name": "Avatar 1",
+        "description": "A cool avatar"
+
+    },
+    {
+        "id": 9,
+        "url": "../images/avatar1.jpg",
+        "name": "Avatar 1",
+        "description": "A cool avatar"
+
+    },
+    {
+        "id": 10,
+        "url": "../images/avatar1.jpg",
+        "name": "Avatar 1",
+        "description": "A cool avatar"
+
+    },
+    {
+        "id": 5,
+        "url": "../images/avatar1.jpg",
+        "name": "Avatar 1",
+        "description": "A cool avatar"
+
+    }
+]

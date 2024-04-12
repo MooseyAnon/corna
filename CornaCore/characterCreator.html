@@ -1,0 +1,71 @@
+<body>
+  <div class="bodyLargeContainer" id="characterCreator">
+    <div class="header">
+      <button
+        class="textButton"
+        type="button"
+        id="return"
+        hx-get="permissions.html"
+        hx-target="#characterCreator"
+        hx-swap="outerHTML"
+        hx-trigger="click"
+      >
+        Return
+      </button>
+      <h1 class="modalHeaderContainer">Create your character</h1>
+      <p class="modalHeaderDescription">decide what each character can do</p>
+    </div>
+    <div class="characterCreatorContainer" id="characterCreatorContainer">
+      <div class="inputContainer">
+        <label for="lname">Character name</label>
+        <input
+          type="text"
+          id="characterNameInput"
+          name="usernameInput"
+          class="characterNameInput"
+          placeholder="Enter your character name"
+        />
+      </div>
+      <div
+        class="charactcerCreatorDetailsContainer"
+        id="charactcerCreatorDetailsContainer"
+      >
+        <div class="characterCreatorSection" id="identifierSelector">
+          <h3 class="label">IDENTIFIER</h3>
+          <p>A fun little accessory</p>
+          <div class="selectedIdentifer" id="selectedIdentifer">🪄</div>
+          <div class="identifierOptionContainer">
+            <div class="identiferIcon" id="want">🪄</div>
+            <div class="identiferIcon" id="bow">🎀</div>
+            <div class="identiferIcon" id="fireHelmet">⛑️</div>
+            <div class="identiferIcon" id="magicHat">🎩</div>
+          </div>
+        </div>
+        <div class="characterCreatorSection" id="skillSelector">
+          <h3 class="label">skills</h3>
+          <p>What can this character do on your corna</p>
+          <div class="skills" id="skills">
+            <div class="skillOption" id="read">Read</div>
+            <div class="skillOption" id="write">write</div>
+            <div class="skillOption" id="comment">commenting</div>
+            <div class="skillOption" id="edit">edit</div>
+            <div class="skillOption" id="like">liking</div>
+            <div class="skillOption" id="follow">follow</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="stackedButtonsContainer">
+      <button
+        class="filledButton"
+        id="createCharacter"
+        hx-get="characterCard.html"
+        hx-target="#characterCreator"
+        hx-swap="outerHTML"
+        hx-trigger="click delay:1s"
+      >
+        CREATE
+      </button>
+    </div>
+  </div>
+</body>

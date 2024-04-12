@@ -1,0 +1,65 @@
+{
+    "users": [
+    {
+    "email": "cil@exampl.com",
+    "username": "CIL TIAM POON",
+    "hp": "20",
+    "role": "Adventurer",
+    "avatar": "../images/avatar1.png",
+    "permissions": {
+        "1":{
+            "name": "wizard",
+            "identifier" : "🪄",
+            "default": "DEFAULT",
+            "skill": {
+                "1": "view",
+                "2": "edit",
+                "3": "delete",
+                "4": "comment"
+            },
+            "member": {
+                "CIL TIAM POON": "CIL TIAM POON",     
+                "AHMED MADHI": "AHMED MADHI"           
+             }
+        },
+        "2":{
+            "name": "spaceRanger",
+            "identifier" : "🪄",
+            "default": "",
+            "skill": {
+                "1": "comment",
+                "2": "like"
+            },
+            "member": {
+                "1": "TELLY POON",     
+                "2": "AHMED MADHI"           
+             }
+        },
+        "3":{
+            "name": "Fixer",
+            "identifier" : "🪄",
+            "default": ""
+        },
+        "4":{
+            "name": "Fixer",
+            "identifier" : "🪄",
+            "default": ""
+        }
+    }
+    },
+    {
+        "email": "user2@example.com",
+        "username": "User 2",
+        "hp": 30,
+        "role": "Adventurer",
+        "avatar": "../images/avatar2.png",
+        "permissions": {
+          "1": {
+            "name": "wizard",
+            "identifier": "🪄",
+            "default": true
+          }
+        }
+      }
+    ]
+}

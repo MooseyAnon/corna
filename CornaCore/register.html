@@ -1,0 +1,86 @@
+<body>
+  <div class="bodySmallContainer" id="registerContainer">
+    <h1>Own your corna</h1>
+    <div class="registerScroll">
+      <div class="inputs" id="userDetails">
+        <div class="imageContainer">
+          <img src="" id="avatar" />
+        </div>
+        <div class="inputContainer">
+          <label for="lname">Username</label>
+          <input
+            type="text"
+            id="usernameInput"
+            name="usernameInput"
+            class="inputField"
+            placeholder="Enter your username"
+          />
+        </div>
+        <div class="inputContainer">
+          <label for="lname">Email Address</label>
+          <input
+            type="email"
+            id="emailInput"
+            name="userEmailInput"
+            class="inputField"
+            placeholder="@gmail.com"
+          />
+        </div>
+        <div class="inputContainer">
+          <label for="lname">Password</label>
+          <input
+            type="password"
+            id="passwordInput"
+            name="userPasswordInput"
+            class="inputField"
+            placeholder="Password"
+          />
+        </div>
+      </div>
+      <div class="inputs" id="themeDetails">
+        <div class="inputContainer">
+          <label for="lname">Pick a theme</label>
+          <div class="imageContainer" id="themeGallery"></div>
+        </div>
+        <div class="inputContainer">
+          <label for="lname">Pick your URL</label>
+          <div class="cornaURL">
+            <input
+              type="text"
+              id="urlInput"
+              name="urlInput"
+              class="inputField"
+              placeholder="Hard choice..."
+            />
+            <span>/CORNA.COM</span>
+          </div>
+        </div>
+        <div class="inputContainer">
+          <label for="lname">Corna Title</label>
+          <input
+            type="email"
+            id="tabtitleInput"
+            name="tabtitleInput"
+            class="inputField"
+            placeholder="aka the tab name"
+          />
+        </div>
+      </div>
+    </div>
+    <div class="buttons">
+      <button class="filledButton" id="nextToTheme" type="button">NEXT</button>
+      <button class="filledButton" id="Register" type="button">REGISTER</button>
+      <button
+        class="textButton"
+        id="createAccount"
+        type="button"
+        hx-get="register.html"
+        hx-swap="outerHTML"
+        hx-target="#registerContainer"
+        hx-trigger="click"
+      >
+        SIGN IN
+      </button>
+    </div>
+  </div>
+</body>

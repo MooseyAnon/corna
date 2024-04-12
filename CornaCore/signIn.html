@@ -1,0 +1,44 @@
+<body>
+  <div class="bodySmallContainer" id="signInContainer">
+    <h1>
+      Your <br />
+      Corna
+    </h1>
+    <div class="inputs">
+      <div class="inputContainer">
+        <label for="lname">Email address</label>
+        <input
+          type="email"
+          id="emailInput"
+          name="userEmailInput"
+          class="inputField"
+          placeholder="Email address"
+        />
+      </div>
+      <div class="inputContainer">
+        <label for="lname">Password</label>
+        <input
+          type="password"
+          id="passwordInput"
+          name="userPasswordInput"
+          class="inputField"
+          placeholder="Password"
+        />
+      </div>
+    </div>
+    <div class="buttons">
+      <button class="filledButton" id="signIn" type="button">ENTER</button>
+      <button
+        class="textButton"
+        id="createAccount"
+        type="button"
+        hx-get="register.html"
+        hx-swap="outerHTML"
+        hx-target="#signInContainer"
+        hx-trigger="click"
+      >
+        SIGN UP
+      </button>
+    </div>
+  </div>
+</body>
