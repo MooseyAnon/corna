@@ -5,7 +5,7 @@
     "username": "CIL TIAM POON",
     "hp": "20",
     "role": "Adventurer",
-    "avatar": "../images/avatar1.png",
+    "avatar": "../CornaCore/images/avatar1.png",
     "permissions": {
         "1":{
             "name": "wizard",
@@ -19,6 +19,10 @@
             },
             "member": {
                 "CIL TIAM POON": "CIL TIAM POON",     
+                "CIL T POON": "CIL TIAM POON",     
+                " TIAM POON": "CIL TIAM POON",     
+                " TIAM ": "CIL TIAM POON",     
+                " OON": "CIL TIAM POON",     
                 "AHMED MADHI": "AHMED MADHI"           
              }
         },
@@ -52,7 +56,7 @@
         "username": "User 2",
         "hp": 30,
         "role": "Adventurer",
-        "avatar": "../images/avatar2.png",
+        "avatar": "../CornaCore/images/avatar2.png",
         "permissions": {
           "1": {
             "name": "wizard",

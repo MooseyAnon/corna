@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="cornaCore.css" />
+    <link rel="stylesheet" href="../CornaCore/cornaCore.css" />
     <script
       src="https://unpkg.com/htmx.org@1.9.11"
       integrity="sha384-0gxUXCCR8yv9FM2b+U3FDbsKthCI66oH5IA9fHppQq9DDMHuMauqq1ZHBpJxQ0J0"
@@ -22,7 +22,7 @@
       >
         <a href="#">
           <img
-            src="../images/Craete.png"
+            src="../CornaCore/images/signIn.png"
             alt="Sign into your account"
             class="navIcon"
           />
@@ -35,7 +35,7 @@
       <li class="navItem" id="yourCorna">
         <a href="#">
           <img
-            src="../images/Bubbles.png"
+            src="../CornaCore/images/Bubbles.png"
             alt="Your corna icon"
             class="navIcon"
           />
@@ -46,7 +46,7 @@
       <li class="navItem" id="create">
         <a href="#">
           <img
-            src="../images/Craete.png"
+            src="../CornaCore/images/Craete.png"
             alt="Create options button"
             class="navIcon"
           />
@@ -57,14 +57,14 @@
           <li
             class="createOption"
             id="text"
-            hx-get="textModal.html"
+            hx-get="../CornaCore/textModal.html"
             hx-target="#content"
             hx-swap="outerHTML"
             hx-trigger="click"
           >
             <a href="">
               <img
-                src="../images/txt.png"
+                src="../CornaCore/images/txt.png"
                 alt="Text post icon to create a text post "
                 class="createOptionImage"
               />
@@ -74,14 +74,14 @@
           <li
             class="createOption"
             id="picture"
-            hx-get="imageModal.html"
+            hx-get="../CornaCore/imageModal.html"
             hx-target="#content"
             hx-swap="outerHTML"
             hx-trigger="click"
           >
             <a href="">
               <img
-                src="../images/img.png"
+                src="../CornaCore/images/img.png"
                 alt="Image post icon to create image post"
                 class="createOptionImage"
               />
@@ -91,14 +91,14 @@
           <li
             class="createOption"
             id="video"
-            hx-get="videoModal.html"
+            hx-get="../CornaCore/videoModal.html"
             hx-target="#content"
             hx-swap="outerHTML"
             hx-trigger="click"
           >
             <a href="">
               <img
-                src="../images/vid.png"
+                src="../CornaCore/images/vid.png"
                 alt="Video post icon to create video post"
                 class="createOptionImage"
               />
@@ -110,14 +110,14 @@
       <li
         class="navItem"
         id="cornaCard"
-        hx-get="cornaCard.html"
+        hx-get="../CornaCore/cornaCard.html"
         hx-target="#content"
         hx-swap="outerHTML"
         hx-trigger="click"
       >
         <a href="#">
           <img
-            src="../images/memory 2.avif"
+            src="../CornaCore/images/memory 2.avif"
             alt="Your corna card"
             class="navIcon"
           />
@@ -138,6 +138,6 @@
         <div id="content"></div>
       </div>
     </div>
-    <script src="cornaCore.js"></script>
+    <script src="../CornaCore/cornaCore.js"></script>
   </body>
 </html>

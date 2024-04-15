@@ -5,7 +5,7 @@
         class="textButton"
         type="button"
         id="return"
-        hx-get="permissions.html"
+        hx-get="../CornaCore/permissions.html"
         hx-target="#characterCreator"
         hx-swap="outerHTML"
         hx-trigger="click"
@@ -56,16 +56,7 @@
       </div>
     </div>
     <div class="stackedButtonsContainer">
-      <button
-        class="filledButton"
-        id="createCharacter"
-        hx-get="characterCard.html"
-        hx-target="#characterCreator"
-        hx-swap="outerHTML"
-        hx-trigger="click delay:1s"
-      >
-        CREATE
-      </button>
+      <button class="filledButton" id="createCharacter">CREATE</button>
     </div>
   </div>
 </body>

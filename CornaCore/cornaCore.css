@@ -14,11 +14,11 @@ html {
 
 @font-face {
   font-family: spaceInvaders;
-  src: url(../font/spaceinvaders.otf);
+  src: url(../CornaCore/font/spaceinvaders.otf);
 }
 @font-face {
   font-family: spaceInvaders;
-  src: url(../font/spaceinvaders.otf);
+  src: url(../CornaCore/font/spaceinvaders.otf);
 }
 ul,
 ol {
@@ -76,6 +76,7 @@ a {
   font-size: 9pt;
   position: absolute;
   top: 40%;
+  z-index: 4;
 }
 #content {
   width: 100%;
@@ -196,6 +197,9 @@ a {
   justify-content: center;
   align-items: center;
   z-index: 2;
+}
+.signIn .navIcon {
+  background-color: transparent;
 }
 
 .navLabel {
@@ -961,12 +965,52 @@ h1 {
   text-align: center;
 }
 
+.filledButton:hover {
+  outline: 3px solid black;
+  outline-offset: -6px;
+}
+.filledButton:active {
+  background: #d55c32;
+  color: white;
+  outline-color: white;
+}
+
 .textButton {
   color: white;
   font-family: spaceInvaders;
   background: transparent;
   border: none;
   font-size: 10pt;
+}
+.textButton:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.textButton:active {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: #d55c32;
+}
+.outlineButton {
+  color: white;
+  font-family: spaceInvaders;
+  background: transparent;
+  font-size: 10pt;
+  border: 1px white solid;
+  padding: 6px 8px 3px 10px;
+  border-radius: 4px;
+}
+.outlineButton:hover {
+  /* background: #d55c32; */
+  outline: white 2px solid;
+  outline-offset: -1px;
+  font-size: 11pt;
+  padding: 5px 7px 2px 9px;
+}
+.outlineButton:active {
+  background: #d55c32;
+  outline: white 2px solid;
+  outline-offset: -1px;
 }
 
 /*--------------------------REGISTRATION----------------------------*/
@@ -1143,6 +1187,13 @@ h1 {
 .textStyleIcon:hover {
   border-radius: 2px;
   background: #ececec;
+  color: black;
+  fill: black;
+  stroke: black;
+}
+.textStyleIcon:hover svg path {
+  stroke: black;
+  fill: black;
 }
 .textStyle {
   padding: 2px 2px;
@@ -1274,6 +1325,17 @@ h1 {
   align-items: center;
   font-family: spaceInvaders;
   width: -webkit-fill-available;
+}
+.deleteMember {
+  color: white;
+  font-family: spaceInvaders;
+  font-size: 12pt;
+  background: #000000cd;
+  position: absolute;
+  width: 38px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
 }
 
 .modalFooterDivider {
@@ -1542,7 +1604,7 @@ label {
 }
 
 .characterCardName {
-  padding: 20px;
+  padding: 20px 20px 15px 20px;
   color: white;
   font-family: spaceInvaders;
   font-size: 20pt;
@@ -1586,6 +1648,11 @@ label {
   flex-direction: row;
   gap: 8px;
   margin: 10px 16px;
+}
+#membersDetails {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .member {
   font-family: spaceInvaders;
@@ -1709,4 +1776,180 @@ label {
 }
 .activeSelection {
   background: #d55c32;
+}
+.closeCornaCard {
+  display: none;
+}
+
+/*---------------------------------Add member to modal--------------------------------------*/
+#addMemberModal {
+  position: absolute;
+  width: -webkit-fill-available;
+  height: -webkit-fill-available;
+  display: none;
+  justify-content: center;
+  align-content: center;
+  background: #000000ed;
+  align-items: center;
+}
+.addMemberContainer {
+  gap: 15px;
+  display: flex;
+  flex-direction: column;
+  border: solid #ffffff6e 1px;
+  border-radius: 22px;
+  padding: 20px;
+  overflow: hidden;
+  width: 60%;
+  height: fit-content;
+}
+.addMemberContainer h2 {
+  color: white;
+  font-family: "spaceInvaders";
+  margin: 0px;
+  text-align: center;
+}
+.addMemberContainer .filledButton {
+  width: auto;
+}
+/*------RESPONSIVE WEB----*/
+@media screen and (min-width: 320px) and (max-width: 599px) {
+  .cardContainer {
+    width: 100%;
+    height: 100%;
+    border-radius: 0px;
+    background: black;
+  }
+  .modalBodyContainer {
+    height: 100%;
+  }
+  .bodyLargeContainer {
+    width: 100%;
+    height: 100%;
+    max-height: -webkit-fill-available;
+  }
+  .bodySmallContainer {
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+    display: flex;
+    justify-content: space-around;
+    margin: 20px 20px;
+  }
+  .avatarImageContainer {
+    height: 60%;
+  }
+  #avatarContainer {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+  #avatarImage {
+    height: 90%;
+    width: auto;
+  }
+  .header {
+    padding: 30px 20px 40px;
+  }
+  .charactersContainer {
+    margin: 0px 20px;
+    flex-wrap: wrap;
+    width: 100%;
+    flex-wrap: wrap;
+    column-gap: 24px;
+    width: -webkit-fill-available;
+    padding: 0px;
+    gap: 12px;
+    justify-content: space-between;
+    row-gap: 20px;
+  }
+  .stackedButtonsContainer {
+    position: sticky;
+    background: #000000c2;
+  }
+  .modalHeaderContainer {
+    font-size: 25pt;
+  }
+  .modalHeaderDescription {
+    font-size: 11pt;
+  }
+  .character {
+    width: 50%;
+  }
+  .characterCardContainer {
+    width: 90%;
+  }
+  .characterDetailsContainer {
+    align-items: center;
+    flex-direction: column;
+  }
+  .characterDetails {
+    width: 100%;
+    text-align: center;
+  }
+  .rowDivider {
+    width: 100%;
+  }
+  .columnDivider {
+    width: 100%;
+    display: none;
+  }
+  .membersContainer {
+    justify-content: center;
+  }
+  .valueContainer {
+    margin: 0px;
+    padding: 10px 16px;
+  }
+  .characterDetails {
+    border-bottom: white 1px solid;
+    margin: 0px;
+  }
+  .characterCreatorContainer {
+    width: auto;
+    padding: 0px 20px 20px;
+  }
+  .charactcerCreatorDetailsContainer {
+    flex-direction: column;
+    gap: 30px;
+  }
+  .selectedIdentifer {
+    height: 180px;
+    font-size: 94pt;
+    display: none;
+  }
+  .skills {
+    width: 100%;
+    flex-direction: column;
+  }
+  .skillOption {
+    width: -webkit-fill-available;
+    text-align: center;
+    padding: 10px 10px 6px 10px;
+  }
+  .identifierOptionContainer {
+    justify-content: space-evenly;
+  }
+  .signInContainer {
+    justify-content: center;
+  }
+  .validation {
+    z-index: 4;
+    background: black;
+    width: fit-content;
+  }
+  .closeCornaCard {
+    display: flex;
+  }
+  .identiferIcon {
+    padding: 15px 13px;
+  }
+  .characterDetails .label {
+    margin: 11px 16px 9px;
+  }
+  .value {
+    font-size: 12pt;
+  }
+  .characterDetails .valueContainer {
+    margin: 0px;
+  }
 }

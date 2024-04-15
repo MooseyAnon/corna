@@ -5,7 +5,7 @@
         class="textButton"
         type="button"
         id="return"
-        hx-get="permissions.html"
+        hx-get="../CornaCore/permissions.html"
         hx-target="#characterCard"
         hx-swap="outerHTML"
         hx-trigger="click"
@@ -27,7 +27,7 @@
         </div>
         <div class="columnDivider"></div>
         <div class="characterDetails" id="identifierDetails">
-          <div class="label">IDENTIFIER:</div>
+          <div class="label">IDENTIFIER</div>
           <div class="rowDivider"></div>
           <div class="characterIdentifer" id="characterIdentifer"></div>
         </div>
@@ -35,7 +35,12 @@
         <div class="characterDetails">
           <div class="label">MEMBERS</div>
           <div class="rowDivider"></div>
-          <div class="membersContainer" id="membersDetails"></div>
+          <div class="membersContainer">
+            <div id="membersDetails"></div>
+            <button class="outlineButton" type="button" id="addMember">
+              +
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -43,16 +48,33 @@
       <button
         class="filledButton"
         id="editCharacter"
-        hx-get="characterCreator.html"
+        hx-get="../CornaCore/characterCreator.html"
         hx-target="#characterCard"
         hx-swap="outerHTML"
         hx-trigger="click"
       >
         EDIT CHARACTER
       </button>
-      <button class="textButton" id="changeDefaultCharacter">
+      <!-- <button class="textButton" id="changeDefaultCharacter">
         MAKE DEFAULT CHARACTER
-      </button>
+      </button> -->
+    </div>
+  </div>
+  <div id="addMemberModal">
+    <div class="addMemberContainer">
+      <h2>ASSIGN CHARACTER TO YOUR FRIENDS</h2>
+      <div class="inputContainer">
+        <input
+          type="text"
+          id="memberUsername"
+          name="memberUsername"
+          class="inputField"
+          placeholder="ENTER USERNAME"
+        />
+      </div>
+
+      <div class="filledButton" id="assign">ASSIGN</div>
+      <button class="textButton close" type="button" id="close">Close</button>
     </div>
   </div>
 </body>

@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
   let loggedIn = localStorage.getItem("loggedIn") === "true" || false;
   console.log(loggedIn);
-  console.log("Initial loggedIn state:", loggedIn); // Add this line to log the initial state
+  // console.log("Initial loggedIn state:", loggedIn); // Add this line to log the initial state
   let currentUser = null;
   let hoverEnabled = true;
 
@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
   //----------------- NAV HOVER ------------------
   function handleNavItemHoverIn(event) {
     if (!hoverEnabled) return;
-    console.log("hovering over navitem");
+
     const dot = event.target.querySelector(".dot");
     const navLabel = event.target.querySelector(".navLabel");
 
@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Function to handle navItem hover out animation
   function handleNavItemHoverOut(event) {
     if (!hoverEnabled) return;
-    console.log("NOT HOVERING");
+
     if (event.target.classList.contains("navItem")) {
       const dot = event.target.querySelector(".dot");
       const navLabel = event.target.querySelector(".navLabel");
@@ -52,7 +52,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.getElementById("create").addEventListener("click", function (event) {
     const createOptions = document.getElementById("createOptions");
-    console.log("hovering");
     event.preventDefault(); // Prevent default link behavior
     createOptions.classList.toggle("active"); // Toggle the 'active' class on createOptions
 
@@ -86,7 +85,7 @@ document.addEventListener("DOMContentLoaded", function () {
     ) {
       createOptions.classList.add("notActive");
       createOptions.classList.remove("active"); // Remove the 'active' class from createOptions
-      console.log("dismiss createOptions");
+
       addHoverEventListeners();
     }
   }
@@ -306,16 +305,11 @@ document.addEventListener("DOMContentLoaded", function () {
     statusMessage.textContent = message;
   }
   function clearErrorMessaging() {
-    console.log("clear messaging");
     const errorMessageElement = document.getElementById("validation");
-
     errorMessageElement.textContent = "";
   }
   function clearStatusMessaging() {
-    console.log("clear messaging");
-
     const statusMessage = document.getElementById("statusUpdateMessage");
-
     statusMessage.textContent = "";
   }
 
@@ -404,7 +398,6 @@ document.addEventListener("DOMContentLoaded", function () {
           const themeGallery = document.getElementById("themeGallery");
 
           data.forEach((themeData) => {
-            console.log("Theme:", themeData);
             const themeContainer = document.createElement("div");
             themeContainer.classList.add("themeContainer");
 
@@ -449,20 +442,16 @@ document.addEventListener("DOMContentLoaded", function () {
   };
   // -------- ADDING EVENT LISTENERS TO AFTER THE SWAP---------
   document.addEventListener("htmx:afterSwap", function (event) {
-    if (
-      event.detail.target.matches("#content") &&
-      event.target.matches("#signInContainer")
-    ) {
-      document.getElementById("signIn").addEventListener("click", handleLogin);
+    if (event.target.matches("#signInContainer")) {
       clearErrorMessaging();
+      document.getElementById("signIn").addEventListener("click", handleLogin);
       clearStatusMessaging();
-    } else if (
-      event.detail.target.matches("#content") &&
-      event.target.matches("#createTextBody")
-    ) {
+    } else if (event.target.matches("#createTextBody")) {
       clearErrorMessaging();
       clearStatusMessaging();
     } else if (event.target.matches("#registerContainer")) {
+      clearErrorMessaging();
+      clearStatusMessaging();
       const registration = registrationModule();
       const nextToThemeButton = document.getElementById("nextToTheme");
       nextToThemeButton.addEventListener(
@@ -532,11 +521,13 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function cornaCard() {
-    console.log("we are in CornaCard function");
     const username = document.getElementById("username");
     const cred = document.getElementById("cred");
     const role = document.getElementById("role");
     const avatar = document.getElementById("avatarImage");
+    const closeButton = document.getElementById("close");
+
+    closeButton.addEventListener("click", closeOverlay);
 
     if (currentUser) {
       username.textContent = currentUser.username;
@@ -555,8 +546,6 @@ document.addEventListener("DOMContentLoaded", function () {
     closeOverlay();
   }
   function getCharacters(currentUser) {
-    document.getElementById("return").addEventListener("click", closeOverlay);
-
     for (const permissionKey in currentUser.permissions) {
       if (currentUser.permissions.hasOwnProperty(permissionKey)) {
         const permission = currentUser.permissions[permissionKey];
@@ -586,7 +575,6 @@ document.addEventListener("DOMContentLoaded", function () {
           document.addEventListener(
             "htmx:afterSwap",
             function () {
-              console.log("this is converting");
               getCharacterCardInfo(permission); // Pass the specific permission object
             },
             { once: true }
@@ -613,16 +601,63 @@ document.addEventListener("DOMContentLoaded", function () {
         character.appendChild(pill);
         charactersContainer.appendChild(character);
 
+        function addMember() {
+          const memberOverlay = document.getElementById("addMemberModal");
+          memberOverlay.style.display = "flex";
+
+          const closeMemberButton = document.getElementById("close");
+          const inviteMemberButton = document.getElementById("assign");
+          inviteMemberButton.addEventListener("click", submitInvitation);
+          closeMemberButton.addEventListener("click", closeModal);
+          const memberContainer = document.querySelector(".addMemberContainer");
+
+          function closeModal() {
+            clearErrorMessaging();
+            clearStatusMessaging();
+            memberOverlay.style.display = "none";
+          }
+
+          memberOverlay.addEventListener("click", closeModal);
+          memberContainer.addEventListener("click", function (event) {
+            event.stopPropagation(); // Prevent the click event from bubbling up
+          });
+          function submitInvitation() {
+            clearErrorMessaging();
+            clearStatusMessaging();
+            const usernameInput =
+              document.getElementById("memberUsername").value;
+            if (usernameInput === " " || usernameInput === null) {
+              displayErrorMessage("Please add a username");
+            }
+            if (usernameInput != "ahmed") {
+              //Change this later so it checks if its true @ahmed
+              displayErrorMessage("Please enter a valid username");
+            } else {
+              memberContainer.style.display = "none";
+              displayStatusMessage("✨ Character granted to your friend ✨");
+
+              setTimeout(() => {
+                clearStatusMessaging();
+                memberOverlay.style.display = "none";
+                memberContainer.style.display = "flex";
+              }, "1200");
+            }
+          }
+        }
+
         function getCharacterCardInfo(permission) {
           const characterCardContainer = document.getElementById(
             "characterCardContainer"
           );
 
+          const memberButton = document.getElementById("addMember");
+
+          memberButton.addEventListener("click", addMember);
           const headerCopy = document.getElementById("modalHeaderCopy");
           headerCopy.textContent = "YOUR CHARACTER";
-          console.log(characterCardContainer);
+          // console.log(characterCardContainer);
 
-          console.log("CORNACARD OF: " + permission.name);
+          // console.log("CORNACARD OF: " + permission.name);
 
           const membersDetails = document.getElementById("membersDetails");
           const identifierDetails =
@@ -662,17 +697,28 @@ document.addEventListener("DOMContentLoaded", function () {
                 .join("");
               memberElement.textContent = initials;
 
+              memberElement.addEventListener("mouseover", function () {
+                deleteButton.style.display = "flex";
+              });
+
+              memberElement.addEventListener("mouseout", function () {
+                deleteButton.style.display = "none";
+              });
+              const deleteButton = document.createElement("div");
+              deleteButton.classList.add("deleteMember");
+              deleteButton.textContent = "x";
+              deleteButton.style.display = "none"; // Initially hide the delete button
+              memberElement.appendChild(deleteButton);
+
+              deleteButton.addEventListener("click", function () {
+                console.log("deleting the member");
+                // @ahmed can you add deletion of the member from the JSON/backend
+              });
+
               membersDetails.appendChild(memberElement);
             }
           }
-          // for loop for members to create a div and then applying a class name member & append it to members
-          // for loop to go through skills and then apply class name
         }
-
-        // // Modify your existing code to directly call getCharacterCardInfo instead of using htmx events
-        // character.addEventListener("click", function () {
-        //   getCharacterCardInfo(permission);
-        // });
       }
     }
   }
@@ -718,9 +764,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     //Allow for selection of skills and highlight the selection
     function attachSkillListeners() {
-      console.log("hello");
       skills.forEach((skill) => {
-        console.log("each skills in the editing character");
         skill.addEventListener("click", function () {
           if (this.classList.contains("activeSelection")) {
             this.classList.remove("activeSelection");
@@ -732,8 +776,6 @@ document.addEventListener("DOMContentLoaded", function () {
             selectedSkills.push(skill.textContent);
             this.classList.add("activeSelection");
           }
-
-          console.log("Selected Skills:", selectedSkills);
         });
       });
     }
@@ -743,63 +785,62 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function submitCharacter() {
       // Display status message and clear after a delay
-      console.log("Character Data:", {
-        characterName: characterNameInput.value,
-        selectedSkills: Array.from(skills)
-          .filter((s) => s.classList.contains("activeSelection"))
-          .map((s) => s.textContent),
-        selectedIdentifier: chosenIdentifer.textContent,
-      });
+      // console.log("Character Data:", {
+      //   characterName: characterNameInput.value,
+      //   selectedSkills: Array.from(skills)
+      //     .filter((s) => s.classList.contains("activeSelection"))
+      //     .map((s) => s.textContent),
+      //   selectedIdentifier: chosenIdentifer.textContent,
+      // });
 
-      const newCharacterData = {
-        characterName: characterNameInput.value,
-        selectedSkills: Array.from(skills)
-          .filter((s) => s.classList.contains("activeSelection"))
-          .map((s) => s.textContent),
-        selectedIdentifier: chosenIdentifer.textContent,
-      };
+      if (
+        characterNameInput.value === "" ||
+        chosenIdentifer.textContent === ""
+      ) {
+        displayErrorMessage("Your character must need a name and identifer");
+        return;
+      } else {
+        clearErrorMessaging();
+        const newCharacterData = {
+          characterName: characterNameInput.value,
+          selectedSkills: Array.from(skills)
+            .filter((s) => s.classList.contains("activeSelection"))
+            .map((s) => s.textContent),
+          selectedIdentifier: chosenIdentifer.textContent,
+        };
+        characterCreator.style.display = "none";
+        setTimeout(() => {
+          displayStatusMessage(
+            "Please wait whilst your character gets created.."
+          );
+        }, "300");
+        setTimeout(() => {
+          clearStatusMessaging();
 
-      characterCreator.style.display = "none";
-      setTimeout(() => {
-        displayStatusMessage(
-          "Please wait whilst your character gets created.."
-        );
-      }, "300");
-      setTimeout(() => {
-        clearStatusMessaging();
-        document.addEventListener(
-          "htmx:afterSwap",
-          function afterSwapHandler(event) {
-            const headerCopy = document.getElementById("modalHeaderCopy");
+          fetch("../CornaCore/characterCard.html")
+            .then((response) => response.text())
+            .then((html) => {
+              document.getElementById("characterCreator").outerHTML = html;
+              const headerCopy = document.getElementById("modalHeaderCopy");
+              headerCopy.textContent = "YOU’VE CREATED A CHARACTER!";
+              document.getElementById("characterCardName").textContent =
+                characterNameInput.value;
+              document.getElementById("characterIdentifer").textContent =
+                chosenIdentifer.textContent;
 
-            headerCopy.textContent = "YOU’VE CREATED A CHARACTER!";
-            document.getElementById("characterCardName").textContent =
-              characterNameInput.value;
-            document.getElementById("characterIdentifer").textContent =
-              chosenIdentifer.textContent;
+              const skillsContainer = document.getElementById("skills");
+              skillsContainer.innerHTML = ""; // Clear previous skills
 
-            const skillsContainer = document.getElementById("skills");
-            skillsContainer.innerHTML = ""; // Clear previous skills
-
-            // Populate skills
-            selectedSkills.forEach((skill) => {
-              const skillElement = document.createElement("div");
-              skillElement.classList.add("value");
-              skillElement.textContent = skill;
-              skillsContainer.appendChild(skillElement);
+              // Populate skills
+              selectedSkills.forEach((skill) => {
+                const skillElement = document.createElement("div");
+                skillElement.classList.add("value");
+                skillElement.textContent = skill;
+                skillsContainer.appendChild(skillElement);
+              });
             });
-
-            // Swap to characterCard.html
-            // const characterCardContent =
-            //   document.getElementById("characterCard").outerHTML;
-            // document.getElementById("characterCreator").innerHTML =
-            //   characterCreatorContainer;
-            // characterCreator.style.display = "flex";
-            // characterCard.style.display = "flex";
-            document.removeEventListener("htmx:afterSwap", afterSwapHandler);
-          }
-        );
-      }, "1200");
+        }, "1200");
+      }
     }
   }
 });
