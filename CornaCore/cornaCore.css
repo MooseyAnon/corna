@@ -1018,13 +1018,15 @@ h1 {
 .avatarImageContainer {
   border: white solid 1px;
   border-radius: 4px;
-  height: 200px;
+  height: 350px;
   overflow: hidden;
   display: flex;
   flex-direction: row;
   align-items: center;
   scroll-snap-type: x mandatory;
   position: relative;
+  justify-content: center;
+  padding-top: 20px;
 }
 .imageContainer {
   border: white solid 1px;
@@ -1491,8 +1493,8 @@ label {
 }
 
 #avatarImage {
-  width: 100%;
-  height: auto;
+  width: auto;
+  height: 100%;
 }
 
 .buttonsCornaCardContainer {
@@ -1780,6 +1782,9 @@ label {
 .closeCornaCard {
   display: none;
 }
+#avatarContainer {
+  height: 100%;
+}
 
 /*---------------------------------Add member to modal--------------------------------------*/
 #addMemberModal {
@@ -1842,9 +1847,10 @@ label {
     display: flex;
     justify-content: center;
     width: 100%;
+    height: 100%;
   }
   #avatarImage {
-    height: 90%;
+    height: 100%;
     width: auto;
   }
   .header {

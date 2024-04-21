@@ -5,7 +5,7 @@
     "username": "CIL TIAM POON",
     "hp": "20",
     "role": "Adventurer",
-    "avatar": "../CornaCore/images/avatar1.png",
+    "avatar": "../CornaCore/images/avatars/Blue white avatar.png",
     "permissions": {
         "1":{
             "name": "wizard",
