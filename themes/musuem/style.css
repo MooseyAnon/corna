@@ -1,0 +1,131 @@
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: scroll;
+}
+#image-container {
+  width: 100%;
+  height: 100%;
+}
+
+#image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: auto;
+}
+
+#svg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(255, 192, 203, 0.287);
+}
+
+#rect {
+  width: 30%;
+  height: 20%;
+  transform-origin: left center;
+  transform: skewY(21deg);
+}
+#overlay {
+  background: #ffc0cb54;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.frame {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+.frameimage {
+  width: auto;
+  height: 100%;
+}
+
+/*--INDIVIDUAL FRAME CSS--*/
+#leftPanel {
+  perspective: 1000px;
+  top: 0px;
+  left: 0px;
+  position: absolute;
+  perspective-origin: top right;
+  width: 25%;
+  height: -webkit-fill-available;
+  background: rgba(255, 99, 125, 0.447);
+}
+#centerPanel {
+  perspective: 1022px;
+  top: 0px;
+  left: 25%;
+  position: absolute;
+  perspective-origin: top right;
+  width: 38%;
+  height: -webkit-fill-available;
+  background: rgba(255, 166, 0, 0.403);
+}
+#rightPanel {
+  perspective: 470px;
+  top: 0px;
+  right: 0%;
+  position: absolute;
+  perspective-origin: top right;
+  width: 37%;
+  height: -webkit-fill-available;
+  background: rgba(253, 219, 0, 0.403);
+}
+
+#frame1 {
+  width: 100%;
+  height: 20%;
+  background: #352427;
+  transform: rotateY(333deg);
+  color: white;
+  overflow: hidden;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+}
+#frame2 {
+  width: 100%;
+  height: 50%;
+  background: #352427;
+  transform: rotateY(333deg);
+  color: white;
+  overflow: hidden;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  top: 230px;
+  left: 40px;
+}
+#frame3 {
+  transform: rotateY(40deg);
+  color: white;
+  width: 50%;
+  height: 20%;
+  left: 250px;
+  top: 70px;
+  overflow: hidden;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+}
+#frame4 {
+  transform: rotateY(341deg);
+  color: white;
+  width: 50%;
+  height: 20%;
+  left: 250px;
+  top: 70px;
+  overflow: hidden;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+}
