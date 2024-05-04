@@ -388,9 +388,9 @@ body {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  margin: 130px 0px 0px;
-  height: 100vh;
-  background-color: bisque;
+  margin: 100px 0px 50px 0px;
+  /* background-color: bisque; */
+  background-image: url(images/bkg.jpg);
 }
 
 .carousel::-webkit-scrollbar {
@@ -407,6 +407,7 @@ body {
   overflow-y: hidden;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
+  overscroll-behavior-x: contain; /* Ensure scrolling doesn't propagate to the body */
 }
 .snaps-inline {
   scroll-snap-type: inline mandatory;
@@ -428,11 +429,19 @@ body {
 }
 .imageFrame {
   position: absolute;
-  width: 100%;
   height: 100%;
   top: 0;
   left: 0;
-  
+  /* overflow: hidden; */
+  /* background: pink; */
+  z-index: 1;
+  width: 100%;
+  pointer-events: none;
+}
+.carouselBox {
+  height: 571px;
+  width: 60%;
+  position: relative;
 }
 h1 {
   font-family: Billie;
@@ -456,4 +465,78 @@ h3 {
   align-items: center;
   color: saddlebrown;
   gap: 10px;
+}
+
+#artSocialContainer {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 30%;
+  justify-content: space-evenly;
+}
+
+.sociallink {
+  width: 50px;
+  height: 50px;
+}
+.sociallink img {
+  width: 100%;
+  height: 100%;
+}
+.return {
+  font-family: Clemente;
+  font-weight: 600;
+  text-align: left;
+  color: saddlebrown;
+  background: none;
+  border: none;
+}
+
+.returnContainer {
+  width: 60%;
+  padding-bottom: 20px;
+}
+@media screen and (min-width: 320px) and (max-width: 599px) {
+  #artSocialContainer {
+    width: 70%;
+  }
+
+  .returnContainer {
+    width: 95%;
+  }
+  .sociallink {
+    width: 40px;
+    height: 40px;
+  }
+  .artBodyContainer {
+    margin: 30px 0px 50px;
+  }
+  .carouselBox {
+    width: 90%;
+    height: 451px;
+  }
+  .carousel {
+    height: 451px;
+  }
+  .artDetailsContainer {
+    width: 80%;
+  }
+}
+
+@media only screen and (min-width: 600px) and (max-width: 1279px) {
+  #artSocialContainer {
+    width: 60%;
+  }
+  .returnContainer {
+    width: 90%;
+  }
+  .artBodyContainer {
+    margin: 30px 0px 50px;
+  }
+  .carouselBox {
+    width: 90%;
+  }
+  .artDetailsContainer {
+    width: 80%;
+  }
 }
