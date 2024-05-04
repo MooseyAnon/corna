@@ -44,7 +44,12 @@ body {
   height: 100%;
   position: absolute;
 }
-.frameimage {
+
+.wideFrameImage {
+  width: 100%;
+  height: auto;
+}
+.tallFrameImage {
   width: auto;
   height: 100%;
 }
@@ -58,7 +63,6 @@ body {
   perspective-origin: top right;
   width: 25%;
   height: -webkit-fill-available;
-  background: rgba(255, 99, 125, 0.447);
 }
 #centerPanel {
   perspective: 1022px;
@@ -68,64 +72,388 @@ body {
   perspective-origin: top right;
   width: 38%;
   height: -webkit-fill-available;
-  background: rgba(255, 166, 0, 0.403);
 }
 #rightPanel {
-  perspective: 470px;
+  perspective: 480px;
   top: 0px;
   right: 0%;
   position: absolute;
   perspective-origin: top right;
   width: 37%;
   height: -webkit-fill-available;
-  background: rgba(253, 219, 0, 0.403);
 }
 
 #frame1 {
-  width: 100%;
-  height: 20%;
-  background: #352427;
+  width: 106%;
+  height: 21%;
   transform: rotateY(333deg);
   color: white;
   overflow: hidden;
   justify-content: center;
   display: flex;
   position: absolute;
+  align-items: flex-end;
+  overflow: hidden;
+  left: -40px;
+  top: -10px;
 }
+.frame1ImageContainer {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 86%;
+  width: 99%;
+  border-radius: 100%;
+}
+
 #frame2 {
-  width: 100%;
-  height: 50%;
-  background: #352427;
-  transform: rotateY(333deg);
+  width: 80%;
+  height: 60%;
+  transform: rotateY(340deg);
   color: white;
   overflow: hidden;
   justify-content: center;
   display: flex;
   position: absolute;
   top: 230px;
-  left: 40px;
+  left: 30px;
+  align-items: center;
+  overflow: hidden;
+}
+.frame2ImageContainer {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 95%;
+  width: 78%;
 }
 #frame3 {
-  transform: rotateY(40deg);
+  transform: rotateY(37deg);
   color: white;
-  width: 50%;
-  height: 20%;
-  left: 250px;
-  top: 70px;
+  width: 25%;
+  height: 30%;
+  left: 70px;
+  top: 550px;
   overflow: hidden;
   justify-content: center;
   display: flex;
   position: absolute;
+  align-items: center;
+  overflow: hidden;
 }
 #frame4 {
-  transform: rotateY(341deg);
+  transform: rotateY(348deg);
   color: white;
-  width: 50%;
-  height: 20%;
-  left: 250px;
-  top: 70px;
+  width: 70%;
+  height: 23%;
+  left: -45px;
+  top: 9px;
   overflow: hidden;
   justify-content: center;
   display: flex;
   position: absolute;
+  align-items: center;
+  overflow: hidden;
+}
+.frame4ImageContainer {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 95%;
+  width: 91%;
+}
+#frame5 {
+  transform: rotateY(37deg);
+  color: white;
+  width: 24%;
+  height: 26%;
+  left: 313px;
+  top: 518px;
+  overflow: hidden;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  align-items: center;
+  overflow: hidden;
+}
+.frame5ImageContainer {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 85%;
+  width: 85%;
+  transform: rotate(359deg);
+  z-index: -1;
+}
+#frame6 {
+  transform: rotateY(37deg);
+  color: white;
+  width: 25%;
+  height: 23%;
+  left: 509px;
+  top: 404px;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  align-items: center;
+  overflow: hidden;
+}
+.frame6ImageContainer {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 95%;
+  width: 91%;
+}
+#frame7 {
+  transform: rotateY(39deg) rotateZ(90deg);
+  color: white;
+  width: 37%;
+  height: 59%;
+  left: 288px;
+  top: -5px;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  align-items: center;
+  overflow: hidden;
+}
+#frame7 .wideFrameImage {
+  transform: rotateZ(270deg);
+  width: 231%;
+  z-index: -1;
+}
+.frame7ImageContainer {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 95%;
+  width: 91%;
+}
+#frame8 {
+  transform: rotateY(37deg);
+  color: white;
+  width: 36%;
+  height: 17%;
+  left: 434px;
+  top: -56px;
+  overflow: hidden;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  align-items: center;
+  overflow: hidden;
+}
+.frame8ImageContainer {
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 95%;
+  width: 96%;
+}
+#frame9 {
+  transform: rotateY(37deg);
+  color: white;
+  width: 25%;
+  height: 17%;
+  left: 70px;
+  top: -14px;
+  overflow: hidden;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  align-items: center;
+  overflow: hidden;
+}
+
+.frame9ImageContainer {
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 95%;
+  width: 90%;
+}
+#frame10 {
+  width: 47%;
+  height: 41%;
+  transform: rotateY(348deg);
+  color: white;
+  overflow: hidden;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  align-items: center;
+  overflow: hidden;
+  left: 20px;
+  top: 265px;
+}
+.frame10ImageContainer {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 77%;
+  width: 83%;
+  border-radius: 49%;
+}
+#frame11 {
+  transform: rotateY(348deg);
+  color: white;
+  width: 34%;
+  height: 26%;
+  left: 327px;
+  top: 488px;
+  overflow: hidden;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  align-items: center;
+  overflow: hidden;
+}
+.fram11ImageContainer {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 85%;
+  width: 85%;
+  transform: rotate(359deg);
+  z-index: -1;
+}
+#frame12 {
+  transform: rotateY(348deg);
+  color: white;
+  width: 35%;
+  height: 33%;
+  left: 429px;
+  top: 121px;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  align-items: center;
+  overflow: hidden;
+}
+.frame12ImageContainer {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 95%;
+  width: 91%;
+}
+
+/*--------------------------------IMAGE DETAIL PAGE------------------------------------*/
+
+@font-face {
+  font-family: billie;
+  src: url(fonts/billie\ eilish.ttf);
+}
+@font-face {
+  font-family: Chapaza;
+  src: url(fonts/Chapaza.ttf);
+}
+@font-face {
+  font-family: Clemente;
+  font-weight: 400;
+  src: url(fonts/ClementePDae-Light.ttf);
+}
+@font-face {
+  font-family: Clemente;
+  font-weight: 600;
+  src: url(fonts/ClementePDag-Book.ttf);
+}
+@font-face {
+  font-family: Clemente;
+  font-weight: 800;
+  src: url(fonts/ClementePDai-Regular.ttf);
+}
+
+.rock-salt-regular {
+  font-family: "Rock Salt", cursive;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.artBodyContainer {
+  display: flex;
+  justify-content: flex-start;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin: 130px 0px 0px;
+  height: 100vh;
+  background-color: bisque;
+}
+
+.carousel::-webkit-scrollbar {
+  display: none;
+  -webkit-overflow-scrolling: touch;
+}
+.carousel {
+  display: grid;
+  gap: 10px;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  /* width: 60%; */
+  height: 571px;
+  overflow-y: hidden;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+.snaps-inline {
+  scroll-snap-type: inline mandatory;
+  scroll-padding-inline: 20px;
+}
+
+.snaps-inline > * {
+  scroll-snap-align: center;
+}
+.carouselItem {
+  height: inherit;
+  position: relative;
+  background: white;
+}
+.carouselItem img {
+  inline-size: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.imageFrame {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  
+}
+h1 {
+  font-family: Billie;
+  margin: 0px;
+}
+h3 {
+  margin: 0px;
+  font-family: Billie;
+}
+.bodyText {
+  font-family: Clemente;
+  font-weight: 400;
+  text-align: center;
+}
+.artDetailsContainer {
+  width: 50%;
+  margin: 40px 0px;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  color: saddlebrown;
+  gap: 10px;
 }

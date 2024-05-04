@@ -3,7 +3,34 @@ window.onload = function () {
   window.addEventListener("resize", adjustImageSize);
 };
 
+
 window.addEventListener("resize", adjustImageSize);
+
+const frame1 = document.getElementById("frame1");
+const frame2 = document.getElementById("frame2");
+const frame3 = document.getElementById("frame3");
+const frame4 = document.getElementById("frame4");
+const frame5 = document.getElementById("frame5");
+const frame6 = document.getElementById("frame6");
+const frame7 = document.getElementById("frame7");
+const frame8 = document.getElementById("frame8");
+const frame9 = document.getElementById("frame9");
+const frame10 = document.getElementById("frame10");
+
+frame1.addEventListener("click", openArt);
+frame2.addEventListener("click", openArt);
+frame3.addEventListener("click", openArt);
+frame4.addEventListener("click", openArt);
+frame5.addEventListener("click", openArt);
+frame6.addEventListener("click", openArt);
+frame7.addEventListener("click", openArt);
+frame8.addEventListener("click", openArt);
+frame9.addEventListener("click", openArt);
+frame10.addEventListener("click", openArt);
+
+function openArt() {
+  location.href = "artDetails.html";
+}
 
 function adjustImageSize() {
   console.log("adjust window");
@@ -14,37 +41,13 @@ function adjustImageSize() {
   var svgOverlay = document.getElementById("svg-overlay");
   console.log("the SVG widht");
   if (image && container && image.complete) {
-    console.log(
-      "This is the image width " +
-        image.naturalWidth +
-        "this is the clientWidth " +
-        container.clientWidth
-    );
-    console.log(
-      "This is the image heigh " +
-        image.naturalHeight +
-        "this is the height " +
-        container.clientHeight
-    );
-
     var imageAspectRatio = image.naturalWidth / image.naturalHeight;
     var containerAspectRatio = container.clientWidth / container.clientHeight;
-    console.log(
-      "This is the image ratios " +
-        imageAspectRatio +
-        "this is the client ratio " +
-        containerAspectRatio
-    );
-
-    console.log(image.naturalWidth);
-    console.log(image.naturalHeight);
-
     if (
       image.naturalWidth > image.naturalHeight &&
       imageAspectRatio > containerAspectRatio &&
       containerAspectRatio > 0.2
     ) {
-      console.log("should be 100% width");
       image.style.width = "100vw";
       image.style.height = "auto";
     }
@@ -52,7 +55,6 @@ function adjustImageSize() {
       image.naturalWidth > image.naturalHeight &&
       imageAspectRatio > containerAspectRatio
     ) {
-      console.log("should be 100% height");
       image.style.width = "auto";
       image.style.height = "100vh";
     }
@@ -60,15 +62,10 @@ function adjustImageSize() {
       image.naturalWidth > image.naturalHeight &&
       imageAspectRatio < containerAspectRatio
     ) {
-      console.log("should be 100% width");
       image.style.width = "100vw";
       image.style.height = "auto";
     }
-    console.log(image.width);
-    // svgOverlay.setAttribute("width", image.width);
-    // svgOverlay.setAttribute("height", image.height);
     overlay.style.width = image.width + "px";
     overlay.style.height = image.height + "px";
-    // console.log(svgOverlay.width);
   }
 }
