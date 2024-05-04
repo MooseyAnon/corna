@@ -102,7 +102,9 @@ nav > text {
   flex-direction: column;
   display: none;
 }
-.outter-modal {display: none;}
+.outter-modal {
+  display: none;
+}
 
 .modal-header-container {
   display: flex;
@@ -417,7 +419,6 @@ nav > text {
 /*Large devices*/
 @media only screen and (min-width: 1280px) {
 }
-
 
 .test-div {
   height: 100px;
