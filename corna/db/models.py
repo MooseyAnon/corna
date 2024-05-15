@@ -287,8 +287,8 @@ class PostTable(Base):
         uselist=False,
         back_populates="post",
     )
-    images = relationship(
-        "Images",
+    media = relationship(
+        "Media",
         back_populates="post",
     )
     user_uuid = Column(
@@ -341,10 +341,18 @@ class TextContent(Base):
     )
 
 
-class Images(Base):
-    """Table for image data."""
+class Media(Base):
+    """Table for shared attributes of media files.
 
-    __tablename__ = "images"
+    All media forms will be saved on this table with each type of media
+    having its own table to hold type specific data.
+
+    This allows for the posts table to only reference a single media FK
+    while also allowing us to grow our media offering without overloading
+    the posts table with FK's of each type because for any single post most
+    of those FK's will be null.
+    """
+    __tablename__ = "media"
 
     uuid = Column(
         UUID,
@@ -354,12 +362,14 @@ class Images(Base):
         Text,
         index=True,
         unique=True,
+        nullable=False,
         doc="The url extension of the picture, this will be used to "
             "fetch the image on the client.",
     )
     path = Column(
         Text,
-        doc="path to image",
+        nullable=False,
+        doc="path to file",
     )
     size = Column(
         Integer,
@@ -367,29 +377,62 @@ class Images(Base):
     )
     created = Column(
         DateTime,
-        doc="image creation timestamp",
+        doc="file creation timestamp",
+    )
+    type = Column(
+        Text,
+        doc="Type of media file e.g. audio, image, video etc",
     )
     orphaned = Column(
         Boolean,
         nullable=False,
-        doc="Describes if the image is 'loose'. Essentially a boolean values "
-            "which will be used to clean up the database/image storage. There "
-            "are situations where we may upload an image but its not used "
-            "e.g. for image preview on the client but the user subsequently "
-            "deletes the image before creating the post."
+        doc="Describes if the media file is 'loose'. Essentially a boolean "
+            "value which will be used to clean up the database/file storage. "
+            "There are situations where we may upload a file but its not used "
+            "e.g. for file preview on the client but the user subsequently "
+            "deletes the file before creating the post."
+    )
+    image_uuid = Column(
+        UUID,
+        ForeignKey("images.uuid"),
+        nullable=True,
+        doc="UUID of image (if media is an image)",
+    )
+    image = relationship(
+        "Images",
+        back_populates="media",
     )
     post_uuid = Column(
         UUID,
         ForeignKey("posts.uuid"),
         nullable=True,
         doc="A nullable FK to the posts table. The reason we allow this field "
-            "to be nullable is because this means the images table can be a "
+            "to be nullable is because this means the media table can be a "
             "bit more generic e.g. we can use it to save a favicon which will "
             "not be associated with any post.",
     )
     post = relationship(
         "PostTable",
-        back_populates="images",
+        back_populates="media",
+    )
+
+
+class Images(Base):
+    """Table for image data."""
+
+    __tablename__ = "images"
+
+    uuid = Column(
+        UUID,
+        primary_key=True,
+    )
+    hash = Column(
+        Text,
+        doc="The hash of the image",
+    )
+    media = relationship(
+        "Media",
+        back_populates="image",
     )
 
 
@@ -434,7 +477,7 @@ class Themes(Base):
     )
     thumbnail = Column(
         UUID,
-        ForeignKey("images.uuid"),
+        ForeignKey("media.uuid"),
         nullable=True,
         doc="Thumbnail of the theme to display to users when selecting",
     )

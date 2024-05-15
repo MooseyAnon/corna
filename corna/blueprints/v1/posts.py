@@ -1,19 +1,17 @@
 """Endpoints to manage posts on Corna."""
 from http import HTTPStatus
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import flask
-from flask import request
 from flask_apispec import doc, use_kwargs
 from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields, validate
 
 from corna.controls import post_control
-from corna.controls.post_control import (
-    InvalidContentType, NoneExistinCornaError, PostDoesNotExist)
+from corna.controls.post_control import InvalidContentType, PostDoesNotExist
 from corna.enums import ContentType, SessionNames
 from corna.utils import secure, utils
-from corna.utils.errors import UnauthorizedActionError
+from corna.utils.errors import CornaNotFoundError, UnauthorizedActionError
 from corna.utils.utils import login_required
 
 posts = flask.Blueprint("posts", __name__)
@@ -43,7 +41,6 @@ class TextPost(_BaseSchema):
     )
 
     content = fields.String(
-        required=True,
         metadata={
             "description": "the contents of the post"
         },
@@ -57,29 +54,11 @@ class TextPost(_BaseSchema):
 
     uploaded_images = fields.List(
         fields.String,
+        missing=[],
         metadata={
             "description":
                 "A list of pre-uploaded images that are part of the post."
         })
-
-    class Meta:  # pylint: disable=missing-class-docstring
-        strict = True
-
-
-class PhotoPost(_BaseSchema):
-    """Schema for photo posts."""
-
-    title = fields.String(
-        metadata={
-            "description": "title of the post",
-        },
-    )
-
-    caption = fields.String(
-        metadata={
-            "description": "the caption for the post"
-        },
-    )
 
     class Meta:  # pylint: disable=missing-class-docstring
         strict = True
@@ -100,19 +79,19 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
 
 # valid locations:
 # https://github.com/marshmallow-code/webargs/blob/dev/src/webargs/core.py#L158
-@posts.route("/posts/<domain_name>/text-post", methods=["POST"])
+@posts.route("/posts/<domain_name>/post", methods=["POST"])
 @login_required
 @use_kwargs(TextPost())
 @doc(
     tags=["posts"],
-    description="Create a new text post",
+    description="Create a new post",
     responses={
         HTTPStatus.BAD_REQUEST: {
             "description": "Corna or content type issues (check message)",
         },
         HTTPStatus.UNPROCESSABLE_ENTITY: {
             "description":
-                "File with wrong extension or photoset (check message)"
+                "File with wrong extension (check message)"
         },
         HTTPStatus.INTERNAL_SERVER_ERROR: {
             "description": "Unable to save files",
@@ -122,7 +101,7 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
         },
     }
 )
-def text_post(
+def post(
     domain_name: str,
     **data: Dict[str, Any]
 ) -> flask.wrappers.Response:
@@ -136,74 +115,9 @@ def text_post(
     )
 
     try:
-        post_control.create(session, data=data)
+        post_control.create(session, **data)
 
-    except (InvalidContentType, NoneExistinCornaError, PostDoesNotExist) as e:
-        utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
-
-    except UnauthorizedActionError as e:
-        utils.respond_json_error(str(e), HTTPStatus.UNAUTHORIZED)
-
-    # only happens on picture saving failure
-    except OSError:
-        utils.respond_json_error(
-            "Unable to save picture", HTTPStatus.INTERNAL_SERVER_ERROR)
-
-    session.commit()
-    return "", HTTPStatus.CREATED
-
-
-@posts.route("/posts/<domain_name>/photo-post", methods=["POST"])
-@login_required
-@use_kwargs(PhotoPost(), location="form")
-@doc(
-    tags=["posts"],
-    description="Create a new photo post",
-    responses={
-        HTTPStatus.BAD_REQUEST: {
-            "description": "Corna or content type issues (check message)",
-        },
-        HTTPStatus.UNPROCESSABLE_ENTITY: {
-            "description":
-                "File with wrong extension or photoset (check message)"
-        },
-        HTTPStatus.INTERNAL_SERVER_ERROR: {
-            "description": "Unable to save files",
-        },
-        HTTPStatus.CREATED: {
-            "description": "Successfully created post",
-        },
-    }
-)
-def photo_post(
-    domain_name: str,
-    **data: Dict[str, Any]
-) -> flask.wrappers.Response:
-    """Create photo post."""
-
-    if not request.files.get("images"):
-        utils.respond_json_error(
-            "Photo post requires images",
-            HTTPStatus.BAD_REQUEST
-        )
-
-    images: List[Any] = request.files.getlist("images")
-    # Marshmallow doesn't want to work with binary blobs/files so
-    # we have to do the validation separately
-    utils.validate_files(images, maximum=1)
-    data.update(dict(images=images))
-
-    data.update(
-        dict(
-            cookie=flask.request.cookies.get(SessionNames.SESSION.value),
-            domain_name=domain_name,
-        )
-    )
-
-    try:
-        post_control.create(session, data=data)
-
-    except (InvalidContentType, NoneExistinCornaError) as e:
+    except (CornaNotFoundError, InvalidContentType, PostDoesNotExist) as e:
         utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
 
     except UnauthorizedActionError as e:
@@ -233,7 +147,7 @@ def get_all_posts(domain_name: str) -> Dict[Any, Any]:
     try:
         all_posts: Dict[str, Any] = post_control.get(session, domain_name)
 
-    except NoneExistinCornaError as e:
+    except CornaNotFoundError as e:
         utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
 
     return flask.jsonify(all_posts)

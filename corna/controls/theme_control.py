@@ -5,12 +5,12 @@ from typing import List, Optional
 
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from typing_extensions import TypedDict
-from werkzeug.datastructures import FileStorage
 from werkzeug.local import LocalProxy
 
 from corna.db import models
 from corna.enums import ThemeReviewState
-from corna.utils import get_utc_now, image_proc, secure, utils
+from corna.middleware import alchemy
+from corna.utils import get_utc_now, utils
 from corna.utils.errors import NoneExistingUserError
 
 THEMES_DIR = utils.CORNA_ROOT / "themes"
@@ -78,7 +78,7 @@ def add(
     name: str,
     description: Optional[str] = None,
     path: Optional[str] = None,
-    thumbnail_blob: Optional[FileStorage] = None,
+    thumbnail: Optional[str] = None,
 ) -> None:
     """Add a new theme.
 
@@ -88,7 +88,8 @@ def add(
     :param str name: name of theme
     :param Optional[str] description: theme description
     :param Optional[str] path: path to theme html
-    :param Optional[FileStorage] thumbnail_blob: theme thumbnail
+    :param Optional[str] thumbnail: theme thumbnail UUID. The thumbnail must
+        have already been uploaded to the server.
 
     :raises NoneExistingUserError: if user session cannot be found
     :raises ValueError: if the user has already made a theme with the
@@ -130,9 +131,8 @@ def add(
     )
 
     thumnail_uuid: Optional[str] = (
-        thumbnail(session, thumbnail_blob)
-        if thumbnail_blob else
-        None
+        alchemy.media_uuid(session, thumbnail)
+        if thumbnail else None
     )
 
     session.add(
@@ -147,35 +147,6 @@ def add(
             thumbnail=thumnail_uuid,
         )
     )
-
-
-def thumbnail(session: LocalProxy, image: FileStorage) -> str:
-    """Handle saving thumbnail to disk and DB.
-
-    :param LocalProxy session: a db session
-    :param FileStorage image: image to save as thumbnail
-    :returns: image uuid
-    :rtype: str
-    """
-    path: str = image_proc.save(image)
-    thumbnail_uuid: str = utils.get_uuid()
-    url_extension: str = secure.generate_unique_token(
-        session=session,
-        column=models.Images.url_extension,
-        func=utils.random_short_string
-    )
-    session.add(
-        models.Images(
-            uuid=thumbnail_uuid,
-            path=path,
-            size=image_proc.size(path),
-            created=get_utc_now(),
-            url_extension=url_extension,
-            orphaned=False,
-        )
-    )
-
-    return thumbnail_uuid
 
 
 def update(session: LocalProxy, cookie: str, data: Theme) -> None:
@@ -246,21 +217,15 @@ def thumbnail_url(session: LocalProxy, uuid: str) -> str:
     :returns: a url to the thumbnail image
     :rtype: str
     """
-    # this returns a tuple e.g. ("abcdef",)
-    url_extension: Optional[models.Images] = (
-        session
-        .query(models.Images.url_extension)
-        .filter(models.Images.uuid == uuid)
-        .one_or_none()
-    )
+    media: Optional[models.Media] = alchemy.media_from_uuid(session, uuid)
 
-    if not url_extension:
+    if not media:
         logger.warning("No theme with uuid %s", uuid)
         return ""
 
     url: str = (
         f"{utils.UNVERSIONED_API_URL}"
-        f"/v1/media/download/{url_extension[0]}"
+        f"/v1/media/download/{media.url_extension}"
     )
     return url
 
