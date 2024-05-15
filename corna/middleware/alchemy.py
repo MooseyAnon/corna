@@ -29,6 +29,10 @@ class NoMatchingColumnFundError(ValueError):
     """Raised if table does not have a column."""
 
 
+class NoMediaError(ValueError):
+    """Raised if a media entry is not found."""
+
+
 def one_or_none(
     incoming_query: Query,
     raise_: bool = False
@@ -543,3 +547,130 @@ def role_uuid(
         as_subquery=as_subquery,
     )
     return result
+
+
+def _media(
+    session: Session,
+    comparator: str,
+    filter_column: str = "url_extension",
+    return_column: Optional[str] = None,
+    as_subquery: bool = False,
+) -> Optional[Union[Any, models.Media]]:
+    """Generic query builder for media entries.
+
+    :param Session session: db session
+    :param str comparator: comparator value e.g. username or other attr
+    :param str filter_column: value used to filter in query
+    :param Optional[str] return_column: column to select, if empty all columns
+        in table will be returned
+    :param bool as_subquery: return the query without evaluating it, usually
+        to be uses as a subquery
+
+    :returns: either a query or a media object
+    :rtype: Optional[Union[Any, models.Media]]
+    :raises MultipleResultsFound: if multiple entries match the comparator
+    """
+    media_query: Query = query(
+        session,
+        models.Media,
+        comparator,
+        filter_column=filter_column,
+        return_column=return_column,
+    )
+
+    if as_subquery:
+        return media_query
+
+    try:
+        result: Optional[models.Media] = one_or_none(media_query)
+
+    except MultipleResultsFound as e:
+        logger.error(
+            "multiple media files matching comparator: %s",
+            comparator,
+        )
+        raise e
+
+    return result
+
+
+def media_from_slug(
+    session: Session,
+    slug: str,
+) -> models.Media:
+    """Get media object based on slug.
+
+    :param Session session: connection to DB
+    :param str slug: slug associated with media entry
+
+    :returns: a media entry, if found
+    :rtype: models.Media
+    :raises NoMediaError: if issues getting media entry or
+        multiple files match the slug.
+    """
+    try:
+        media_item: Optional[models.Media] = _media(
+            session,
+            slug,
+            filter_column="url_extension",
+        )
+
+    except MultipleResultsFound as e:
+        raise NoMediaError("Issue getting media File") from e
+
+    if not media_item:
+        logger.warning("No media with slug %s found", slug)
+        raise NoMediaError(f"Unable to find media with the slug: {slug}")
+
+    return media_item
+
+
+def media_from_uuid(
+    session: Session,
+    uuid_: str,
+) -> Optional[Union[Any, models.Media]]:
+    """Get media object based on UUID.
+
+    :param Session session: connection to DB
+    :param str uuid_: UUID associated with media entry
+
+    :returns: a media entry, if found
+    :rtype: models.Media
+    :raises NoMediaError: if issues getting media entry or
+        multiple files match the uuid.
+    """
+    try:
+        media_item: Optional[models.Media] = _media(
+            session,
+            uuid_,
+            filter_column="uuid",
+        )
+
+    except MultipleResultsFound as e:
+        raise NoMediaError("Issue getting media File") from e
+
+    if not media_item:
+        logger.warning("No media with slug %s found", uuid_)
+        raise NoMediaError(f"Unable to find media with the slug: {uuid_}")
+
+    return media_item
+
+
+def media_uuid(session: Session, slug: str) -> str:
+    """Get UUID for a media object based on given slug.
+
+    :param Session session: connection to DB
+    :param str slug: slug associated with media entry
+
+    :returns: UUID of the media entry
+    :rtype: str
+    :raises NoMediaError: is entry not found
+    """
+    uuid_: Optional[str] = uuid(
+        session, models.Media, slug, filter_column="url_extension")
+
+    if uuid_ is None:
+        logger.warning("No media with slug %s found", slug)
+        raise NoMediaError(f"Unable to find media with the slug: {slug}")
+
+    return uuid_

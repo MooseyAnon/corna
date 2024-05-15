@@ -3,14 +3,13 @@
 import logging
 from typing import Dict, List, Optional, Tuple, Union
 
+from sqlalchemy.orm.scoping import scoped_session as Session
 from typing_extensions import TypedDict
-from werkzeug.datastructures import FileStorage
-from werkzeug.local import LocalProxy
 
 from corna.db import models
 from corna.enums import ContentType
-from corna.middleware import check
-from corna.utils import get_utc_now, image_proc, secure, utils
+from corna.middleware import alchemy, check
+from corna.utils import get_utc_now, secure, utils
 from corna.utils.errors import UnauthorizedActionError
 from corna.utils.utils import current_user
 
@@ -23,10 +22,6 @@ POST_TYPES: Tuple[str, ...] = tuple(
 )
 
 
-class NoneExistinCornaError(ValueError):
-    """Blog does not exists."""
-
-
 class InvalidContentType(ValueError):
     """Content type is not valid."""
 
@@ -36,39 +31,6 @@ class PostDoesNotExist(ValueError):
 
 
 # **** types ****
-
-class _TypesBase(TypedDict):
-    """Shared Type."""
-
-    type: str
-    domain_name: str
-    cookie: str
-
-
-class _TextContentRequired(_TypesBase):
-    """Required on text content."""
-
-    content: str
-
-
-class TextContent(_TextContentRequired, total=False):
-    """Text content type."""
-
-    title: str
-
-
-class _ImagesRequired(_TypesBase):
-    """Required on images."""
-
-    images: List[FileStorage]
-
-
-class ImagesUpload(_ImagesRequired, total=False):
-    """Image type."""
-
-    title: str
-    caption: str
-
 
 class Post(TypedDict):
     """Shared Across all posts."""
@@ -106,56 +68,51 @@ class ImagePost(_ImagePostRquired, total=False):
     title: str
 
 
-CreatePostCollection = Union[TextContent, ImagesUpload]
 PostCollection = Union[TextPost, ImagePost]
 
 # **** types end ****
 
 
-def get_corna(session: LocalProxy, domain_name: str) -> models.CornaTable:
-    """Get the Corna associated with the given domain.
-
-    :param LocalProxy session: db session
-    :param str domain_name: domain to look up
-
-    :returns: the Corna with the given domain
-    :rtype: models.CornaTable
-    :raises NoneExistinCornaError: if there is no Corna
-    """
-
-    corna: Optional[models.CornaTable] = (
-        session
-        .query(models.CornaTable)
-        .filter(models.CornaTable.domain_name == domain_name)
-        .one_or_none()
-    )
-
-    if corna is None:
-        raise NoneExistinCornaError("corna does not exist")
-
-    return corna
-
-
-def create(session: LocalProxy, data: CreatePostCollection) -> None:
+def create(
+    session: Session,
+    cookie: str,
+    domain_name: str,
+    type: str,  # pylint: disable=redefined-builtin
+    uploaded_images: List[str],
+    content: Optional[str] = None,
+    inner_html: Optional[str] = None,
+    title: Optional[str] = None,
+) -> None:
     """Create a new corna post.
 
-    :param sqlalchemy.Session session: a db session
-    :param CreatePostCollectione data: the incoming data to be saved
+    :param Session session: a db session
+    :param str cookie: user cookie
+    :param str domain_name: corna domain name
+    :param str type: type of post
+    :param List[str] uploaded_images: a list of image slugs, that have already
+        been uploaded to the server, which are a part of the post e.g. header
+        image. Note: can be empty if post has no images.
+    :param Optional[str] content: the text based content of the post. This
+        is just the raw words (if any) of the post. This is not used for
+        displaying content but rather saved for recommendation and indexing.
+    :param Optional[str] inner_html: the HTML representation of the text
+        content of the post. This is actually what is used to display the text
+        on the client.
+    :param Optional[str] title: the title of the post
 
     :raises InvalidContentType: if the incoming content type
         is not correct.
     :raises UnauthorizedActionError: is author is not authorized to
         create post.
     """
-    user: models.UserTable = current_user(session, data["cookie"])
-    corna: models.CornaTable = get_corna(session, data["domain_name"])
-    type_: str = data["type"]
+    user: models.UserTable = current_user(session, cookie)
+    corna: models.CornaTable = alchemy.corna(session, domain_name)
 
-    if not check.can_write(session, data["domain_name"], user.username):
+    if not check.can_write(session, domain_name, user.username):
         raise UnauthorizedActionError("User unauthorized to create posts")
 
-    if type_ not in POST_TYPES:
-        raise InvalidContentType(f"{type_} is not a valid type of content")
+    if type not in POST_TYPES:
+        raise InvalidContentType(f"{type} is not a valid type of content")
 
     url: str = secure.generate_unique_token(
         session=session,
@@ -168,7 +125,7 @@ def create(session: LocalProxy, data: CreatePostCollection) -> None:
         models.PostTable(
             deleted=False,
             url_extension=url,
-            type=type_,
+            type=type,
             uuid=post_uuid,
             corna_uuid=corna.uuid,
             created=get_utc_now(),
@@ -176,15 +133,27 @@ def create(session: LocalProxy, data: CreatePostCollection) -> None:
         )
     )
 
-    _creat_artefacts(session, post_uuid, data)
+    _create_artefacts(
+        session,
+        post_uuid=post_uuid,
+        post_type=type,
+        title=title,
+        text_content=content,
+        html=inner_html,
+        uploaded_images=uploaded_images,
+    )
 
     logger.info("successfully added new post!")
 
 
-def _creat_artefacts(
-    session: LocalProxy,
+def _create_artefacts(
+    session: Session,
     post_uuid: str,
-    data: CreatePostCollection
+    post_type: str,
+    uploaded_images: List[str],
+    title: Optional[str] = None,
+    text_content: Optional[str] = None,
+    html: Optional[str] = None,
 ) -> None:
     """Create individual post artefacts.
 
@@ -192,93 +161,68 @@ def _creat_artefacts(
     actual objects which make up the post. This allows us to do
     more thorough checks before saving.
 
-    :param LocalProxy session: db session
-    :param CreatePostCollection data: incoming data
+    :param Session session: db session
+    :param str post_uuid: the post UUID
+    :param str post_type: the type of post
+    :param List[str] uploaded_images: a list of image slugs, that have already
+        been uploaded to the server, which are a part of the post e.g. header
+        image. Note: can be empty if post has no images.
+    :param Optional[str] content: the text based content of the post. This
+        is just the raw words (if any) of the post. This is not used for
+        displaying content but rather saved for recommendation and indexing.
+    :param Optional[str] html: the HTML representation of the text content of
+        the post. This is actually what is used to display the text on the
+        client.
+    :param Optional[str] title: the title of the post
+
     :raises InvalidContentType: if data does not contain required
         fields.
     """
-    post_type: str = data["type"]
-    text_content: str = data.get("content")
-    images: Optional[List[FileStorage]] = data.get("images", [])
-
     if post_type == ContentType.TEXT and not text_content:
         raise InvalidContentType("Text post needs text")
 
-    if post_type == ContentType.PHOTO and not images:
+    if post_type == ContentType.PHOTO and not uploaded_images:
         raise InvalidContentType("Photo post needs images")
 
-    # save images, if any
-    for image in images:
-        save_image(session, image, post_uuid=post_uuid)
-
     # save text content, if any
-    save_text(session, data, post_uuid=post_uuid)
+    text(
+        session,
+        html=html,
+        title=title,
+        content=text_content,
+        post_uuid=post_uuid,
+    )
 
     # link any preloaded images
     link(
         session=session,
         post_uuid=post_uuid,
-        uploaded_images=data.get("uploaded_images")
+        uploaded_images=uploaded_images,
     )
 
 
-def save_image(
-    session: LocalProxy,
-    image: FileStorage,
-    post_uuid: Optional[str] = None
-) -> None:
-    """Save an image.
-
-    This function saves an image to the db regardless of if it is
-    as part of a post or not. This is useful for things like
-    favicons, which are images but are not a part of a post.
-
-    :param LocalProxy session: db session
-    :param FileStorage image: image to save
-    :param Optional[str] post_uuid: uuid of post, if image
-        is a part of a post.
-    """
-    path: str = image_proc.save(image)
-    uuid: str = utils.get_uuid()
-    url_extension: str = secure.generate_unique_token(
-        session=session,
-        column=models.Images.url_extension,
-        func=utils.random_short_string
-    )
-    session.add(
-        models.Images(
-            uuid=uuid,
-            path=path,
-            post_uuid=post_uuid,
-            size=image_proc.size(path),
-            created=get_utc_now(),
-            url_extension=url_extension,
-            orphaned=False,
-        )
-    )
-
-
-def save_text(
-    session: LocalProxy,
-    data: TextContent,
+def text(
+    session: Session,
     post_uuid: Optional[str] = None,
+    title: Optional[str] = None,
+    content: Optional[str] = None,
+    html: Optional[str] = None,
 ) -> None:
     """Save textual information associated with a post.
 
     This is an optimistic function from the perspective of the
     caller as it only saves if there is actually anything to save.
 
-    :param LocalProxy session: db session
-    :param TextContent data: dict containing text 'stuff'
-    :param Optional[str] post_uuid: post id for relationship, if
-        text content is a part of a post.
-    :param str post_uuid: post id for relationship
+    :param Session session: db session
+    :param str post_uuid: the post UUID
+    :param Optional[str] content: the text based content of the post. This
+        is just the raw words (if any) of the post. This is not used for
+        displaying content but rather saved for recommendation and indexing.
+    :param Optional[str] html: the HTML representation of the text content of
+        the post. This is actually what is used to display the text on the
+        client.
+    :param Optional[str] title: the title of the post
     """
-
-    content: bool = data.get("content") or data.get("caption")
-    title: Optional[str] = data.get("title")
-    inner_html: Optional[str] = data.get("inner_html")
-
     if not title and not content:
         return
 
@@ -288,14 +232,14 @@ def save_text(
             uuid=utils.get_uuid(),
             title=title,
             content=content,
-            inner_html=inner_html,
+            inner_html=html,
             created=get_utc_now(),
         )
     )
 
 
 def link(
-    session: LocalProxy,
+    session: Session,
     post_uuid: str,
     uploaded_images: List[str] = None,
 ) -> None:
@@ -304,22 +248,21 @@ def link(
     There are cases where we want to link pre-loaded, orphaned images
     to a post.
 
-    :param LocalProxy session: db session
+    :param Session session: db session
     :param str post_uuid: The uuid of the post to link to i.e. parent post
     :param List[str] uploaded_images: a list of url_extensions pointing to
         orphaned images already existing in the database.
 
     :raises PostDoesNotExist: if no image associated with the url exists
     """
-
     if not uploaded_images:
         return
 
     for url_extension in uploaded_images:
         image: Optional[models.Images] = (
             session
-            .query(models.Images)
-            .filter(models.Images.url_extension == url_extension)
+            .query(models.Media)
+            .filter(models.Media.url_extension == url_extension)
             .one_or_none()
         )
 
@@ -331,7 +274,7 @@ def link(
 
 
 def get(
-    session: LocalProxy,
+    session: Session,
     domain_name: str
 ) -> Dict[str, List[PostCollection]]:
     """Get all posts for a given corna.
@@ -341,9 +284,8 @@ def get(
 
     :return: all the posts for a given corna
     :rtype: dict
-    :raises NoneExistinCornaError: is the corna does not exist
     """
-    corna: models.CornaTable = get_corna(session, domain_name)
+    corna: models.CornaTable = alchemy.corna(session, domain_name)
 
     posts: List[models.PostTable] = (
         session.

@@ -14,6 +14,7 @@ class ContentType(EnumWrapper):
     """Types of content we currently accept."""
     TEXT = "text"
     PHOTO = "picture"
+    VIDEO = "video"
 
 
 class SessionNames(EnumWrapper):
@@ -32,9 +33,27 @@ class ThemeReviewState(enum.Enum):
 
 class AllowedExtensions(EnumWrapper):
     """Allowed file extensions."""
-
+    # images
     GIF = "gif"
     JPG = "jpg"
     JPEG = "jpeg"
     PDF = "pdf"
     PNG = "png"
+    WEBP = "webp"
+    # video
+    AVI = "avi"
+    FLV = "flv"
+    MKV = "mkv"
+    MP4 = "mp4"
+    MOV = "mov"
+    WMV = "wmv"
+
+
+class MediaTypes(enum.Enum):
+    """Valid media."""
+    AUDIO = "audio"
+    AVATAR = "avatar"
+    GIF = "gif"
+    IMAGE = "image"
+    VIDEO = "video"
+    THUMBNAIL = "thumbnail"

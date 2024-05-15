@@ -118,10 +118,10 @@ def _parse_post(
     )
     content.update({content_key: _post_html_fragment(post)})
 
-    if post.type == enums.ContentType.PHOTO or len(post.images) > 0:
+    if post.type == enums.ContentType.PHOTO or len(post.media) > 0:
         images: List[str] = [
             _image_api_href(image.url_extension)
-            for image in post.images
+            for image in post.media
         ]
         content.update({"images": images})
 
@@ -184,6 +184,7 @@ def post_list(
         # important for the generated SQL statement. Its not a python-land
         # thing.
         .filter(models.PostTable.deleted == False)  # pylint: disable=C0121
+        .order_by(models.PostTable.created.desc())
         .all()
     )
     parsed_posts: List[Dict[str, Union[List[str], str]]] = [

@@ -5,15 +5,33 @@ from typing import List
 
 import flask
 from flask import request
-from flask_apispec import doc, marshal_with
+from flask_apispec import doc, marshal_with, use_kwargs
 from flask_sqlalchemy_session import current_session as session
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validate
 from werkzeug.datastructures import FileStorage
 
+from corna import enums
 from corna.controls import media_control
 from corna.utils import secure, utils
 
 media = flask.Blueprint("media", __name__)
+
+
+class FileUploadSend(Schema):
+    """SChema for uploading media."""
+
+    type = fields.String(
+        validate=validate.OneOf(
+            [media_type.value for media_type in enums.MediaTypes]
+        ),
+        required=True,
+        metadata={
+            "description": "Media type e.g. audio, image, video etc",
+        },
+    )
+
+    class Meta:  # pylint: disable=missing-class-docstring
+        strict = True
 
 
 class FileUploadReturn(Schema):
@@ -66,6 +84,7 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
 @media.route("/media/upload", methods=["POST"])
 @utils.login_required
 @marshal_with(FileUploadReturn(), code=200)
+@use_kwargs(FileUploadSend(), location="form")
 @doc(
     tags=["media"],
     description="Upload a media file to the server",
@@ -81,7 +100,7 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
         },
     }
 )
-def upload():
+def upload(type: str):  # pylint: disable=redefined-builtin
     """Upload a media file."""
 
     if not request.files.get("image"):
@@ -91,7 +110,7 @@ def upload():
     utils.validate_files(images)
 
     try:
-        image_data = media_control.upload(session, images[0])
+        image_data = media_control.upload(session, images[0], type)
 
     except OSError:
         utils.respond_json_error(

@@ -47,10 +47,22 @@ def _theme(**kwargs):
     return theme_data
 
 
+def _upload_thumbnail(client):
+    type_ = "thumbnail"
+    image = (ASSET_DIR / "anders-jilden.jpg").open("rb")
+    resp = client.post(
+        "/api/v1/media/upload",
+        data={"image": image, "type": type_},
+    )
+    assert resp.status_code == 201
+
+    return resp.json["url_extension"]
+
+
 def create_theme_helper(client, **kwargs):
     """Helper to create themes for testing none create endpoints."""
 
-    resp = client.post("api/v1/themes", data=_theme(**kwargs))
+    resp = client.post("api/v1/themes", json=_theme(**kwargs))
     assert resp.status_code == 201
 
 
@@ -78,7 +90,7 @@ def test_themes_dir_exists():
 
 def test_add_theme(session, client, login):
 
-    resp = client.post("/api/v1/themes", data=_theme())
+    resp = client.post("/api/v1/themes", json=_theme())
     assert resp.status_code == 201
 
     # grab db data
@@ -97,7 +109,7 @@ def test_add_theme_with_path(session, client, login):
     path = pathlib.Path(theme_control.THEMES_DIR) / "index.html"
     path.touch()
 
-    resp = client.post("/api/v1/themes", data=_theme(path="index.html"))
+    resp = client.post("/api/v1/themes", json=_theme(path="index.html"))
     assert resp.status_code == 201
 
     # grab db data
@@ -127,7 +139,7 @@ def test_theme_with_bad_extensions(client, login, fd, expected):
     path_ = pathlib.Path(theme_control.THEMES_DIR) / fd
     path_.touch()
 
-    resp = client.post("/api/v1/themes", data=_theme(path=fd))
+    resp = client.post("/api/v1/themes", json=_theme(path=fd))
     assert resp.status_code == expected
 
 
@@ -148,13 +160,13 @@ def test_theme_with_weirdly_long_path(client, login, fd, expected):
     path = theme_control.THEMES_DIR / fd
     mkdir(path)
 
-    resp = client.post("/api/v1/themes", data=_theme(path=fd))
+    resp = client.post("/api/v1/themes", json=_theme(path=fd))
     assert resp.status_code == expected
 
 
 def test_user_has_cookie_but_is_not_found(cwfc):
 
-    resp = cwfc.post("api/v1/themes", data=_theme())
+    resp = cwfc.post("api/v1/themes", json=_theme())
     assert resp.status_code == 401
 
 
@@ -163,7 +175,7 @@ def test_anon_user_create_theme(client):
     Here we test the standard 'this person is not logged in'
     scenario. This should always fail and return 401.
     """
-    resp = client.post("/api/v1/themes", data=_theme())
+    resp = client.post("/api/v1/themes", json=_theme())
     assert resp.status_code == 401
     assert resp.json["message"] == "Login required for this action"
 
@@ -184,7 +196,7 @@ def test_not_logged_in_user_create_theme(client, session, login):
     )
     assert resp.status_code == 201
 
-    resp = client.post("/api/v1/themes", data=_theme(creator="proxy1"))
+    resp = client.post("/api/v1/themes", json=_theme(creator="proxy1"))
     assert resp.status_code == 201
 
     # grab db data
@@ -206,8 +218,9 @@ def test_not_logged_in_user_create_theme(client, session, login):
 
 
 def test_create_theme_with_thumbnail(session, client, login):
-    resp = client.post("/api/v1/themes", data=_theme(
-        thumbnail=(ASSET_DIR / "anders-jilden.jpg").open("rb")))
+    # upload thumbnail
+    thumbnail = _upload_thumbnail(client)
+    resp = client.post("/api/v1/themes", json=_theme(thumbnail=thumbnail))
     assert resp.status_code == 201
 
     # grab db data
@@ -221,7 +234,7 @@ def test_create_theme_with_thumbnail(session, client, login):
     assert theme.creator_user_id == user.uuid
     assert theme.thumbnail is not None
 
-    expected_path = image_proc.PICTURE_DIR / "thi/sis/afa/kehash12345"
+    expected_path = image_proc.PICTURE_DIR / "thumbnail/thi/sis/afa/kehash12345"
     assert expected_path.exists()
     assert len(expected_path.listdir()) == 1
     for file in expected_path.listdir():
@@ -229,32 +242,18 @@ def test_create_theme_with_thumbnail(session, client, login):
         assert os.stat(file).st_size >= 1024
 
     thumbnail_uuid = theme.thumbnail
-    image = session.query(models.Images).first()
+    media = session.query(models.Media).first()
     basename = expected_path.listdir()[0].basename
-    assert image.uuid == thumbnail_uuid
-    assert image.path == f"thi/sis/afa/kehash12345/{basename}"
-
-
-
-def test_create_theme_multiple_thumbnail(session, client, login):
-
-    resp = client.post(
-        "/api/v1/themes",
-        data=_theme(
-            thumbnail=[
-                (ASSET_DIR / "anders-jilden.jpg").open("rb"),
-                (ASSET_DIR / "anders-jilden.jpg").open("rb")
-            ]
-        ))
-    assert resp.status_code == 422
-    assert resp.json["message"] == "This URI expects no greater than 1 file(s)"
+    assert media.uuid == thumbnail_uuid
+    assert media.path == f"thumbnail/thi/sis/afa/kehash12345/{basename}"
+    assert session.query(models.Images).count() == 1
 
 
 def test_add_theme_duplicate(client, session, login):
 
     create_theme_helper(client)
 
-    resp = client.post("/api/v1/themes", data=_theme())
+    resp = client.post("/api/v1/themes", json=_theme())
     assert resp.status_code == 400
     assert resp.json["message"] == "Theme already exists"
 
@@ -393,10 +392,9 @@ def test_get_theme_list(client, mocker, login):
     path = pathlib.Path(theme_control.THEMES_DIR) / "index.html"
     path.touch()
 
-    create_theme_helper(
-        client, path="index.html",
-        thumbnail=(ASSET_DIR / "anders-jilden.jpg").open("rb"),
-    )
+    # upload thumbnail
+    thumbnail = _upload_thumbnail(client)
+    create_theme_helper(client, path="index.html", thumbnail=thumbnail)
 
     expected = {"themes": [
         {
@@ -412,6 +410,4 @@ def test_get_theme_list(client, mocker, login):
     assert resp.status_code == 200
 
     actual = resp.json
-    import pprint
-    pprint.pprint(actual)
     assert actual == expected

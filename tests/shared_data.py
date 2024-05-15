@@ -33,8 +33,7 @@ def mock_post(
         post["title"] = "this is a title of a post"
 
     if with_content:
-        key = "caption" if type_ == "picture" else "content"
-        post[key] = (
+        post["content"] = (
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed "
             "do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut "
             "enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi "
@@ -45,7 +44,7 @@ def mock_post(
         )
 
     if with_image:
-        post["images"] = (ASSET_DIR / "anders-jilden.jpg").open("rb")
+        post["uploaded_images"] = ["abcdef"]
 
 
     return post

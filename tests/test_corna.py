@@ -38,15 +38,22 @@ def _theme(client, tmpdir, mocker, monkeypatch, login):
     path = pathlib.Path(theme_control.THEMES_DIR) / "index.html"
     path.touch()
 
+    # upload image
+    image = (ASSET_DIR / "anders-jilden.jpg").open("rb")
+    resp = client.post(
+        "/api/v1/media/upload",
+        data={"image": image, "type": "image"},
+    )
+
     theme_data = {
         "creator": "john_snow",
         "name": "new fancy theme",
         "description": "This theme does super cool theme stuff.",
         "path": "index.html",
-        "thumbnail": (ASSET_DIR / "anders-jilden.jpg").open("rb"),
+        "thumbnail": "abcdef",
     }
 
-    resp = client.post("api/v1/themes", data=theme_data)
+    resp = client.post("api/v1/themes", json=theme_data)
     assert resp.status_code == 201
 
 
@@ -259,7 +266,6 @@ def test_corna_with_about(session, client, login):
 def test_create_corna_with_theme(session, client, login, theme):
 
     theme = session.query(models.Themes).first()
-    print(theme.uuid)
     resp = client.post(
         f"/api/v1/corna/{corna_info['domain_name']}",
         json={

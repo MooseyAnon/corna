@@ -24,7 +24,7 @@ def test_corna_simple_db_test(session):
 def test_image_nullable_fk(session):
     
     session.add(
-        models.Images(
+        models.Media(
             uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
             url_extension="fake-extension",
             path="some/fake/path",
@@ -37,7 +37,7 @@ def test_image_nullable_fk(session):
     session.commit()
 
     # check everything was saved correctly
-    image = session.query(models.Images).first()
+    image = session.query(models.Media).first()
 
     assert image is not None
     assert image.uuid == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
@@ -76,7 +76,7 @@ def test_post_with_multiple_images(session, corna):
     for index, uuid in enumerate(image_deets):
 
         session.add(
-            models.Images(
+            models.Media(
                 uuid=uuid,
                 url_extension=f"fake-extension-{index}",
                 path="some/fake/path",
@@ -92,10 +92,10 @@ def test_post_with_multiple_images(session, corna):
 
     post = session.query(models.PostTable).first()
     assert post is not None
-    assert len(post.images) == 3
+    assert len(post.media) == 3
 
     for index, uuid in enumerate(image_deets):
-        image = session.query(models.Images).get(uuid)
+        image = session.query(models.Media).get(uuid)
 
         assert image is not None
         assert image.uuid == uuid

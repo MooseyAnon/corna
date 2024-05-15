@@ -26,14 +26,22 @@ def convert_bytes(num):
         num /= 1024.0
 
 
-def _upload_single_image(session, client):
+def _upload_single_image(session, client, type_="image"):
     """Post a single image to the db/filesystem."""
 
-    image = (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb")
-    resp = client.post("/api/v1/media/upload", data={ "image": image })
+    if type_ == "image":
+        file = (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb")
+
+    if type_ == "video":
+        file = (shared_data.ASSET_DIR / "big-bunny.mp4").open("rb")
+
+    resp = client.post(
+        "/api/v1/media/upload",
+        data={"image": file, "type": type_},
+    )
 
     assert resp.status_code == 201
-    assert session.query(models.Images).count() > 0
+    assert session.query(models.Media).count() > 0
 
     return resp.json
 
@@ -72,7 +80,7 @@ def test_create_post(session, client, corna):
         with_image=False,
     )
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
         json=out_post,
     )
     assert resp.status_code == 201
@@ -111,6 +119,8 @@ def test_create_post(session, client, corna):
 @freeze_time(FROZEN_TIME)
 @pytest.mark.parametrize("with_image,expected", [(False, 400), (True, 201)])
 def test_post_with_picture(session, client, corna, with_image, expected):
+    # create image
+    _upload_single_image(session, client)
     assets = image_proc.PICTURE_DIR
     out_post = shared_data.mock_post(
         type_="picture",
@@ -119,15 +129,15 @@ def test_post_with_picture(session, client, corna, with_image, expected):
         with_image=with_image
     )
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/photo-post",
-        data=out_post
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
+        json=out_post
     )
     assert resp.status_code == expected
 
     # return early on no image text as there is nothing to check
     if not with_image: return
 
-    expected_path = assets / "thi/sis/afa/kehash12345"
+    expected_path = assets / "image" / "thi/sis/afa/kehash12345"
     assert expected_path.exists()
     assert len(expected_path.listdir()) == 1
     for file in expected_path.listdir():
@@ -150,7 +160,7 @@ def test_post_with_picture(session, client, corna, with_image, expected):
     )
     assert len(corna.posts) == 1
     post = session.query(models.PostTable).first()
-    pic = session.query(models.Images).first()
+    pic = session.query(models.Media).first()
     text = session.query(models.TextContent).first()
 
     # checking foreign key relationships
@@ -162,48 +172,14 @@ def test_post_with_picture(session, client, corna, with_image, expected):
     assert post.deleted == False
     assert post.created.isoformat() == FROZEN_TIME
 
-    assert text.content == out_post["caption"]
+    assert text.content == out_post["content"]
     assert pic.size >= 1024
-    assert pic.path == f"thi/sis/afa/kehash12345/{image_basename}"
+    assert pic.path == f"image/thi/sis/afa/kehash12345/{image_basename}"
     assert pic.url_extension == "abcdef"
+    assert not pic.orphaned
 
-
-def test_path_collision(session, client, capsys, corna):
-    assets = image_proc.PICTURE_DIR
-    out_post = shared_data.mock_post(
-        type_="picture",
-        with_content=True,
-        with_title=True,
-        with_image=True,
-    )
-
-    resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/photo-post",
-        data=out_post
-    )
-    assert resp.status_code == 201
-    # check pic exists
-    assert len((assets / "thi/sis/afa/kehash12345").listdir()) == 1
-
-    # write picture to tmpdir to use again
-    import shutil
-    shutil.copy(
-        (shared_data.ASSET_DIR / "anders-jilden.jpg"),
-        (assets / "same-pic-different-name.jpg")
-    )
-
-    assert (assets / "same-pic-different-name.jpg").exists()
-
-    # putting it into the same file should raise a FileExistsError
-    # but should still be saved
-    from werkzeug.datastructures import FileStorage
-    file = FileStorage(filename=str(assets / "same-pic-different-name.jpg"))
-    image_proc.save(file)
-
-    captured = capsys.readouterr()
-    assert "Photo directory exists, duplicate?" in captured.err
-
-    assert len((assets / "thi/sis/afa/kehash12345").listdir()) == 2
+    # ensure we do actually have an image and not just a media entry
+    assert session.query(models.Images).count() == 1
 
 
 def test_when_user_not_logged_in_client_text_post(session, client):
@@ -212,7 +188,7 @@ def test_when_user_not_logged_in_client_text_post(session, client):
         with_title=True,
     )
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
         json=out_post
     )
     assert resp.status_code == 401
@@ -226,7 +202,7 @@ def test_when_user_not_logged_in_client(session, client):
         with_image=False,
     )
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/photo-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
         data=out_post
     )
     assert resp.status_code == 401
@@ -245,7 +221,7 @@ def test_user_attempt_with_invalid_cookie(session, client, corna):
         value="this-is-a-fake-cookie"
     )
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
         json=out_post
     )
     assert resp.status_code == 401
@@ -259,10 +235,11 @@ def test_linking_preloaded_images(session, client, corna):
     out_post = shared_data.mock_post(
         with_content=True,
         with_title=True,
+        with_image=True,
     )
-    out_post.update({"uploaded_images": ["abcdef"]})
+
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
         json=out_post,
     )
     assert resp.status_code == 201
@@ -274,9 +251,9 @@ def test_linking_preloaded_images(session, client, corna):
     # ensure relationships are correct
     post = session.query(models.PostTable).first()
     assert post is not None
-    assert len(post.images) == 1
+    assert len(post.media) == 1
 
-    image = post.images[0]
+    image = post.media[0]
     assert image.url_extension == "abcdef"
     assert image.orphaned == False
 
@@ -293,9 +270,10 @@ def test_linking_multiple_images(session, client, corna):
         with_content=True,
         with_title=True,
     )
-    out_post.update({"uploaded_images": image_urls})
+    # change uploaded images to our current list
+    out_post["uploaded_images"] = image_urls
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
         json=out_post,
     )
     assert resp.status_code == 201
@@ -307,9 +285,9 @@ def test_linking_multiple_images(session, client, corna):
     # ensure relationships are correct
     post = session.query(models.PostTable).first()
     assert post is not None
-    assert len(post.images) == 2
+    assert len(post.media) == 2
 
-    for image in post.images:
+    for image in post.media:
         assert image.url_extension in image_urls
         assert image.orphaned == False
 
@@ -321,9 +299,9 @@ def test_linking_to_none_existing_image(session, client, corna):
         with_content=True,
         with_title=True,
     )
-    out_post.update({"uploaded_images": ["defghi"]})
+    out_post["uploaded_images"] = ["defghi"]
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
         json=out_post,
     )
     assert resp.status_code == 400
@@ -333,42 +311,13 @@ def test_linking_to_none_existing_image(session, client, corna):
     assert session.query(models.PostTable).count() == 0
 
 
-def test_nothing_saved_in_database_if_image_save_fails(
-    session,
-    client,
-    mocker,
-    corna
-):
-    mocker.patch(
-        "corna.utils.image_proc.save",
-        side_effect=OSError("error!"))
-
-    out_post = shared_data.mock_post(
-        type_="picture",
-        with_content=True,
-        with_title=True,
-        with_image=True,
-    )
-
-    resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/photo-post",
-        data=out_post,
-    )
-    assert resp.status_code == 500
-    assert resp.json["message"] == "Unable to save picture"
-
-    assert session.query(models.PostTable).count() == 0
-    assert session.query(models.Images).count() == 0
-    assert session.query(models.TextContent).count() == 0
-
-
 def test_post_with_no_title(session, client, corna):
     out_post = shared_data.mock_post(
         with_content=True,
     )
 
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
         json=shared_data.mock_post(with_content=True),
     )
     assert resp.status_code == 201
@@ -403,7 +352,7 @@ def test_none_owner_user_create_post(client, session, corna):
         with_image=False,
     )
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
         json=out_post,
     )
     assert resp.status_code == 201
@@ -471,8 +420,80 @@ def test_none_owner_not_allowed_to_create_post(client, session, corna):
         with_image=False,
     )
     resp = client.post(
-        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/text-post",
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
         json=out_post,
     )
     assert resp.status_code == 401
     assert resp.json["message"] == "User unauthorized to create posts"
+
+
+@freeze_time(FROZEN_TIME)
+def test_vido_post(session, client, mocker, corna):
+    mocker.patch(
+        "corna.utils.image_proc.random_hash",
+        return_value="thisisafakestringhash",
+    )
+
+    assets = image_proc.PICTURE_DIR
+    # create video
+    _upload_single_image(session, client, type_="video")
+    out_post = {
+        "type": "video",
+        "title": "this is a title of a post",
+        "uploaded_images": ["abcdef"],
+        "content": (
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed "
+            "do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut "
+            "enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi "
+            "ut aliquip ex ea commodo consequat. Duis aute irure dolor in "
+            "reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla "
+            "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "
+            "culpa qui officia deserunt mollit anim id est laborum."
+        )
+    }
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
+        json=out_post
+    )
+    assert resp.status_code == 201
+
+    expected_path = assets / "video" / "thi/sis/afa/kestringhash"
+    assert expected_path.exists()
+    assert len(expected_path.listdir()) == 1
+    for file in expected_path.listdir():
+        # assert we've saved some data successfully
+        assert os.stat(file).st_size >= 1024
+
+    image_basename = expected_path.listdir()[0].basename
+    # ensure database relationships are correct
+    posts = session.query(models.PostTable).all()
+    assert len(posts) == 1
+
+    corna = (
+        session
+        .query(models.CornaTable)
+        .filter(
+            models.CornaTable.domain_name
+            == shared_data.corna_info["domain_name"]
+        )
+        .one()
+    )
+    assert len(corna.posts) == 1
+    post = session.query(models.PostTable).first()
+    vid = session.query(models.Media).first()
+    text = session.query(models.TextContent).first()
+
+    # checking foreign key relationships
+    assert post.corna_uuid == corna.uuid
+    assert vid.post_uuid == post.uuid
+    assert text.post_uuid == post.uuid
+
+    assert post.type == out_post["type"]
+    assert post.deleted == False
+    assert post.created.isoformat() == FROZEN_TIME
+
+    assert text.content == out_post["content"]
+    assert vid.size >= 1024
+    assert vid.path == f"video/thi/sis/afa/kestringhash/{image_basename}"
+    assert vid.url_extension == "abcdef"
+    assert not vid.orphaned

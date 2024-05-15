@@ -1,15 +1,12 @@
 """Theme management endpoints."""
 
 from http import HTTPStatus
-from typing import Dict, List
+from typing import Dict
 
 import flask
-from flask import request
 from flask_apispec import doc, marshal_with, use_kwargs
 from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields, validate
-# for types
-from werkzeug.datastructures import FileStorage
 
 from corna import enums
 from corna.controls import theme_control as control
@@ -46,6 +43,12 @@ class ThemeAddSend(Base):
     description = fields.String(
         metadata={
             "description": "Short description of the theme",
+        })
+
+    thumbnail = fields.String(
+        required=False,
+        metadata={
+            "description": "A pre-uploaded thumbnail slug to link."
         })
 
     class Meta:  # pylint: disable=missing-class-docstring
@@ -131,7 +134,7 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
 
 @themes.route("/themes", methods=["POST"])
 @utils.login_required
-@use_kwargs(ThemeAddSend(), location="form")
+@use_kwargs(ThemeAddSend())
 @doc(
     tags=["themes"],
     description="Add a new theme",
@@ -146,13 +149,6 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
 )
 def add_theme(**data: Dict[str, str]) -> flask.wrappers.Response:
     """Add new theme."""
-
-    if request.files.get("thumbnail"):
-        thumbnails: List[FileStorage] = request.files.getlist("thumbnail")
-        # Marshmallow doesn't want to work with binary blobs/files so
-        # we have to do the validation separately
-        utils.validate_files(thumbnails, maximum=1)
-        data.update(dict(thumbnail_blob=thumbnails[0]))
 
     cookie: str = flask.request.cookies[enums.SessionNames.SESSION.value]
     try:
