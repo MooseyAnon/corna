@@ -5,6 +5,7 @@ from typing import Optional
 from werkzeug.local import LocalProxy
 
 from corna.db import models
+from corna.middleware import alchemy
 from corna.utils import get_utc_now, secure, utils
 from corna.utils.errors import (
     IncorrectPasswordError, NoneExistingUserError, UserExistsError)
@@ -45,11 +46,28 @@ def session_exists(session, user_uuid):
     return utils.exists_(session, models.SessionTable.user_uuid, user_uuid)
 
 
+def assign_avatar(session: LocalProxy, avatar_slug: str) -> str:
+    """Assign user avatar.
+
+    :param LocalProxy session: connection to DB
+    :param str avatar_slug: the slug of the image
+    :returns: avatar UUID
+    :rtype: str
+    """
+    avatar: models.Media = alchemy.media_from_slug(session, avatar_slug)
+    if avatar.orphaned:
+        avatar.orphaned = False
+
+    avatar_uuid: str = avatar.uuid
+    return avatar_uuid
+
+
 def register_user(
     session: LocalProxy,
     email: str,
     password: str,
     username: str,
+    avatar: Optional[str] = None
 ) -> None:
     """Register a new user.
 
@@ -57,6 +75,7 @@ def register_user(
     :param str email: user email address
     :param str password: user password
     :param str username: username
+    :param Optional[str] avatar: the UUID of the avatar
     :raises UserExistsError: if user details are already in use
     """
     user_email: Optional[models.EmailTable] = (
@@ -66,6 +85,11 @@ def register_user(
     )
     if user_email is not None:
         raise UserExistsError("Email address already has an account")
+
+    avatar_uuid: Optional[models.Media] = (
+        assign_avatar(session, avatar)
+        if avatar else None
+    )
 
     session.add(
         models.EmailTable(
@@ -80,6 +104,7 @@ def register_user(
             email_address=email,
             username=username,
             date_created=get_utc_now(),
+            avatar=avatar_uuid,
         )
     )
     logger.info("successfully registered a new user.")

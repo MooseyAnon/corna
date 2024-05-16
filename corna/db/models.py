@@ -99,6 +99,17 @@ class UserTable(Base):
         "Role",
         secondary=role_user_map,
     )
+    avatar = Column(
+        UUID,
+        nullable=True,
+        doc="user avatar",
+    )
+    ForeignKeyConstraint(
+        ["avatar"],
+        ["media.uuid"],
+        use_alter=True,
+        ondelete="SET NULL",
+    )
 
 
 class EmailTable(Base):
