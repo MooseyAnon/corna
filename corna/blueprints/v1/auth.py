@@ -14,6 +14,7 @@ from marshmallow import Schema, fields
 
 from corna import enums
 from corna.controls import auth_control
+from corna.middleware.alchemy import NoMediaError
 from corna.utils import secure, utils
 from corna.utils.errors import (
     IncorrectPasswordError, NoneExistingUserError, NotLoggedInError,
@@ -46,6 +47,12 @@ class UserCreateSchema(_BaseSchema):
         required=True,
         metadata={
             "description": "chosen username of new user"
+        })
+
+    avatar = fields.String(
+        required=False,
+        metadata={
+            "description": "slug for chosen user avatar.",
         })
 
     class Meta:  # pylint: disable=missing-class-docstring
@@ -192,7 +199,7 @@ def set_cookie(
     description="Create a new user.",
     responses={
         HTTPStatus.BAD_REQUEST: {
-            "description": "Email address already in use"
+            "description": "Email address already in use or avatar no found",
         },
     }
 )
@@ -200,7 +207,7 @@ def register_user(**data: Dict) -> flask.wrappers.Response:
     """Register a user."""
     try:
         auth_control.register_user(session, **data)
-    except UserExistsError as error:
+    except (NoMediaError, UserExistsError) as error:
         return utils.respond_json_error(str(error), HTTPStatus.BAD_REQUEST)
 
     session.commit()

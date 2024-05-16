@@ -2,8 +2,33 @@ import pytest
 
 from corna import enums
 from corna.db import models
-from corna.utils import secure
-from tests.shared_data import single_user
+from corna.utils import secure, utils
+from tests.shared_data import ASSET_DIR, single_user
+
+
+def _upload_avatar(session):
+    """Upload avatar directly to DB."""
+    session.add(
+        models.Images(
+            uuid="00000000-0000-0000-0000-000000000000",
+            hash="thisisafakehash12345",
+        )
+    )
+
+    session.add(
+        models.Media(
+            uuid="00000000-0000-0000-0000-000000000000",
+            url_extension="abcdef",
+            path="thi/sis/afa/kehash12345",
+            size=8096,
+            created="2023-04-29T03:21:34",
+            type="avatar",
+            orphaned=True,
+            image_uuid="00000000-0000-0000-0000-000000000000",
+        )
+    )
+    session.commit()
+    return "abcdef"
 
 
 def test_regester(session, client):
@@ -45,6 +70,73 @@ def test_email_in_use_register_attempt(client, user):
     resp = client.post("/api/v1/auth/register", json=user_deets)
     assert resp.status_code == 400
     assert resp.json["message"] == "Email address already has an account"
+
+
+def test_register_with_avatar(session, client):
+    avatar_slug = _upload_avatar(session)
+    user_deets = single_user()
+    user_deets["avatar"] = avatar_slug
+    resp = client.post("/api/v1/auth/register", json=user_deets)
+    assert resp.status_code == 201
+
+    assert len(session.query(models.EmailTable).all()) == 1
+    assert len(session.query(models.UserTable).all()) == 1
+    assert session.query(models.Media).count() == 1
+    assert session.query(models.Images).count() == 1
+
+    # check correct things are saved
+    em = session.query(models.EmailTable).get(user_deets["email"])
+    assert em is not None
+    assert em.email_address == user_deets["email"]
+    # we shouldn't be able to get the password
+    try:
+        em.password
+        assert False
+    except ValueError:
+        assert True
+
+    usr = (
+        session
+        .query(models.UserTable)
+        .filter(models.UserTable.username == user_deets["username"])
+        .one()
+    )
+    assert usr is not None
+    assert usr.username == user_deets["username"]
+
+    # check relationships are correct
+    assert usr.email_address == user_deets["email"]
+    assert usr.email == em
+
+    avatar = session.query(models.Media).first()
+    assert avatar.size > 1024
+    assert avatar.type == "avatar"
+    assert avatar.orphaned == False
+    assert usr.avatar == avatar.uuid
+
+
+def test_register__multiple_users_with_same_avatar(session, client):
+    avatar_slug = _upload_avatar(session)
+    user_deets = single_user()
+    user_deets["avatar"] = avatar_slug
+    resp = client.post("/api/v1/auth/register", json=user_deets)
+    assert resp.status_code == 201
+
+    # register user 2
+    user_deets["email"] = "azor_ahi101@starkentaprise.wstro"
+    user_deets["username"] = "john_snow12"
+    resp = client.post("/api/v1/auth/register", json=user_deets)
+    assert resp.status_code == 201
+
+    assert session.query(models.EmailTable).count() == 2
+    assert session.query(models.UserTable).count() == 2
+    assert session.query(models.Media).count() == 1
+    assert session.query(models.Images).count() == 1
+
+    # ensure all users have same avatar
+    avatar = session.query(models.Media).first()
+    for user in session.query(models.UserTable).all():
+        assert user.avatar == avatar.uuid
 
 
 def test_login(session, client, user):
