@@ -2,7 +2,7 @@
 
 from sqlalchemy import (
     BigInteger, Boolean, Column, DateTime, ForeignKey, ForeignKeyConstraint,
-    Integer, String, Table, Text)
+    Integer, Sequence, String, Table, Text)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.inspection import inspect
@@ -81,6 +81,11 @@ class UserTable(Base):
     date_created = Column(
         DateTime,
         doc="date of account creation",
+    )
+    number = Column(
+        Integer,
+        Sequence("user_number_seq"),
+        doc="Autoincrementing user ID number - this is different to PK",
     )
     email = relationship(
         "EmailTable",
