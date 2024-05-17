@@ -223,6 +223,7 @@ class CornaTable(Base):
         UUID,
         ForeignKey("users.uuid"),
         unique=True,
+        nullable=False,
     )
     user = relationship(
         "UserTable",
