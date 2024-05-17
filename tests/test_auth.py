@@ -393,3 +393,24 @@ def test_preexisting_session_creates_restart(client, session, login):
     curr_sesh = session.query(models.SessionTable).first()
 
     assert curr_sesh.session_id != prev_sesh
+
+
+def test_user_number_auto_increment(session, client):
+
+    for i in range(1, 16):
+        user_deets = {
+            "email": f"azor_ahi{i}@starkentaprise.wstro",
+            "password": "Dany",
+            "username": f"john_snow{i}",
+        }
+        resp = client.post("/api/v1/auth/register", json=user_deets)
+        assert resp.status_code == 201
+
+        user = (
+            session
+            .query(models.UserTable)
+            .filter(models.UserTable.username == f"john_snow{i}")
+            .one()
+        )
+
+        assert user.number == i
