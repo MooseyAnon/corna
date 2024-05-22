@@ -16,10 +16,6 @@ html {
   font-family: spaceInvaders;
   src: url(../CornaCore/font/spaceinvaders.otf);
 }
-@font-face {
-  font-family: spaceInvaders;
-  src: url(../CornaCore/font/spaceinvaders.otf);
-}
 ul,
 ol {
   padding-inline-start: 20px;

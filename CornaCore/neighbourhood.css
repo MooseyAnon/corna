@@ -1,0 +1,91 @@
+@font-face {
+  font-family: spaceInvaders;
+  src: url(font/spaceinvaders.otf);
+}
+
+body {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-image: url("images/neighbourhood.png");
+  font-family: spaceInvaders;
+  background-position: center; /* Center the image */
+  background-repeat: no-repeat; /* Do not repeat the image */
+  background-size: cover; /* Resize the background image to cover the entire container */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 5% 20%;
+  font-family: spaceInvaders;
+  color: white;
+}
+p {
+  margin: 0;
+}
+
+h1 {
+  margin: 0;
+  padding: 0;
+}
+
+h2 {
+  margin: 0;
+  padding: 0;
+}
+
+.bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3% 20%;
+  font-family: spaceInvaders;
+  color: white;
+  text-align: center;
+}
+@media screen and (max-width: 319px) {
+  .header {
+    padding: 15% 5%;
+  }
+  .bottom {
+    padding: 15% 5%;
+    font-size: 11pt;
+  }
+  body {
+    width: 320px;
+  }
+}
+
+@media screen and (min-width: 320px) and (max-width: 599px) {
+  .header {
+    padding: 15% 5%;
+  }
+  .bottom {
+    padding: 15% 5%;
+    font-size: 11pt;
+  }
+}
+
+@media only screen and (min-width: 600px) and (max-width: 980px) {
+  .header {
+    padding: 16% 5%;
+  }
+  h1 {
+    font-size: 50pt;
+  }
+  h2 {
+    font-size: 23pt;
+  }
+  .bottom {
+    padding: 7% 5%;
+    font-size: 15pt;
+  }
+}
