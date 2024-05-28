@@ -1,6 +1,7 @@
 """Tests for media endpoints."""
 
 import os
+import sys
 
 import pytest
 
@@ -206,14 +207,14 @@ def test_download_video(session, client, login):
     assert media_control.download(session, url_extension) == expected_path
 
 
-def test_upload_gif(session, client, mocker, login):
+def test_upload_gif_with_dot_gif_extension(session, client, mocker, login):
     mocker.patch(
         "corna.utils.utils.get_uuid",
         return_value="00000000-0000-0000-0000-000000000000",
     )
 
     type_ = "gif"
-    image = (shared_data.ASSET_DIR / "giphy.webp").open("rb")
+    image = (shared_data.ASSET_DIR / "earth.gif").open("rb")
     resp = client.post(
         "/api/v1/media/upload",
         data={"image": image, "type": type_},
@@ -221,11 +222,11 @@ def test_upload_gif(session, client, mocker, login):
     assert resp.status_code == 201
 
     expected = {
-        "filename": f"{shared_data.ASSET_DIR}/giphy.webp",
-        "size": os.stat((shared_data.ASSET_DIR / "giphy.webp")).st_size,
+        "filename": f"{shared_data.ASSET_DIR}/earth.gif",
+        "size": os.stat((shared_data.ASSET_DIR / "earth.gif")).st_size,
         "id": "00000000-0000-0000-0000-000000000000",
         "url_extension": "abcdef",
-        "mime_type": "image/webp"
+        "mime_type": "image/gif"
     }
 
     assert resp.json == expected
@@ -251,6 +252,50 @@ def test_upload_gif(session, client, mocker, login):
     assert media.image_uuid is not None
 
     assert media.orphaned == True
+
+
+@pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
+def test_upload_image_with_webp_format(client, mocker, login):
+    """Flask uses werkzeug's FileStorage wrapper on all file objects uploaded
+    via a form i.e. multipart/form-data. According to werkzeug's source code
+    the FileStorage wrapper tries to figure out the mimetype of the in coming
+    file object, however if the mimetype is not determined by theFileStorage
+    object, it falls back on a module called mimetype which is part of cpythons
+    stdlib.
+
+    It seems that support for recognising the webp format was not added to the
+    mimetype module until python3.11[1], thus this test will not pass until we
+    update.
+
+    Currently, this is essentially a placeholder for a test we would like to
+    run but is currently breaking our tests.
+
+    [1] https://github.com/python/cpython/pull/29259#pullrequestreview-960709458
+    """
+    mocker.patch(
+        "corna.utils.utils.get_uuid",
+        return_value="00000000-0000-0000-0000-000000000000",
+    )
+
+    filename = shared_data.ASSET_DIR / "giphy.webp"
+    type_ = "gif"
+    image = filename.open("rb")
+    resp = client.post(
+        "/api/v1/media/upload",
+        data={"image": image, "type": type_},
+    )
+    assert resp.status_code == 201
+
+    expected = {
+        "filename": f"{filename}",
+        "size": os.stat(filename).st_size,
+        "id": "00000000-0000-0000-0000-000000000000",
+        "url_extension": "abcdef",
+        # this line fails as webp is not a recognised format until python3.11
+        "mime_type": "image/webp"
+    }
+
+    assert resp.json == expected
 
 
 @pytest.mark.nostubs

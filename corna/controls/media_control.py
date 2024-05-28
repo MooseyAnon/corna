@@ -87,6 +87,10 @@ def upload(
     response: UploadResponse = {
         "id": uuid,
         "filename": image.filename,
+        # the werkzeug documentation acknowledges that this is an unreliable
+        # way to find the mimetype of a file and more often than not will not
+        # be present. In light of this, in the future we need a more robust
+        # solution. Look here for more deets: https://stackoverflow.com/q/43580
         "mime_type": image.content_type,
         "size": size,
         "url_extension": url_extension,
