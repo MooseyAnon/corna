@@ -1,5 +1,5 @@
 
-iframe.openeditor {
+/*iframe.openeditor {
     position:absolute;
     bottom:0;
     right:0;
@@ -9,4 +9,29 @@ iframe.openlogin {
     position:absolute;
     bottom:0;
     right:0;
+}*/
+
+iframe {
+    z-index: 1;
+    pointer-events: visible;
+}
+
+.frameContainer {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    align-items: center;
+}
+
+.enlargeIframe {
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100% !important; 
+    height: 100% !important;
+    border: 0;
 }

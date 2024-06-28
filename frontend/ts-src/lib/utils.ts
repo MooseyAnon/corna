@@ -176,6 +176,23 @@ export function createIframeElement(
 }
 
 
+export function createVideoElement(
+    src: string,
+    classList: string[] = [],
+): HTMLVideoElement {
+    /* Create a new iframe element.
+    *
+    * @param { string } src: iframe source href
+    * @param { string[] } classList: CSS classes to add to new element
+    * @returns { HTMLIFrameElement }
+    */
+    const newVideo = createElement("video", classList) as HTMLVideoElement;
+    newVideo.src = src;
+    newVideo.controls = true;
+    return newVideo
+}
+
+
 // This is copied from here:
 // - https://github.com/tysoncadenhead/cartesian-js/blob/master/src/handle.ts
 export function handlePromise<E, T>(

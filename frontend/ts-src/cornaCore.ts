@@ -1,46 +1,32 @@
 /* Core JS script that will be injected into each Corna. */
 
-import {
-    AxiosError,
-    AxiosResponse,
-} from "axios";
-
-import { request } from "./lib/network.js";
-
-import { handlePromise, createIframeElement } from "./lib/utils.js";
+import { createDivElement, createIframeElement } from "./lib/utils.js";
 
 
-interface LoginCheck {
-    /* Login check response. */
+document.addEventListener("DOMContentLoaded", function() {
+    /* Create iframe on page load. */
+    const frameContainer = createDivElement(["frameContainer"]) as HTMLDivElement;
+    const frameSrc: string = "https://mycorna.com/nav";
+    const frame = createIframeElement(frameSrc) as HTMLIFrameElement;
+    frameContainer.appendChild(frame);
+    document.body.appendChild(frameContainer);
 
-    is_loggedin: boolean;
-}
+    // Listen to messages from the iframe
+    window.addEventListener("message", function(e) {
+        if (e.data === "open") {
+            frame.classList.add("enlargeIframe");
+        } else if (e.data === "close") {
+            frame.classList.remove("enlargeIframe");
+        } else if (e.data.includes("domainName")) {
 
-
-export async function loginCheck(): Promise<string> {
-    /* Check if user is logged in. */
-
-    let defaultSrc: string = "https://mycorna.com/loginButton";
-    await (async () => {
-        const [, response] = await handlePromise(
-            request("v1/auth/login_status")
-        ) as [(AxiosError | undefined), (AxiosResponse | undefined)];
-
-        if (response) {
-            const checkRes: LoginCheck = response.data;
-            if (checkRes.is_loggedin) {
-                defaultSrc = "https://mycorna.com/createButton";
+            const domainName: string = e.data.split("=")[1];
+            const currHref: string = window.location.href;
+            // we only want to follow the link if user is not already
+            // on their own corna.
+            if (!currHref.includes(domainName)) {
+                const href: string = `https://${domainName}.mycorna.com`;
+                window.location.href = href;
             }
         }
-    })();
-
-    return defaultSrc;
-}
-
-
-document.addEventListener("DOMContentLoaded", async function() {
-    /* Create iframe on page load. */
-    const frameSrc: string = await loginCheck();
-    const frame = createIframeElement(frameSrc, ["openeditor"]) as HTMLIFrameElement;
-    document.body.appendChild(frame);
+    })
 });

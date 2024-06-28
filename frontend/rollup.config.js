@@ -80,9 +80,6 @@ function rollupConf(filename) {
 // that is on purpose!
 const files = [
     "cornaCore",
-    "createButton",
-    "editor",
-    "login",
-    "signup",
+    "navBar",
 ];
 export default files.map((file)=> rollupConf(file));

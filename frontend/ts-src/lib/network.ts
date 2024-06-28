@@ -13,6 +13,10 @@ import {
 import { handlePromise } from "./utils.js";
 
 
+// return type of handlePromise when making a network request
+export type RequestReturnType = [(AxiosError | undefined), (AxiosResponse | undefined)]
+
+
 export function getApiUrl(): string {
     /* Get the correct API URL.
     *
