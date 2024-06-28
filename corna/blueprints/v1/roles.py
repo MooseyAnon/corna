@@ -1,6 +1,7 @@
 """Managing Roles."""
 
 from http import HTTPStatus
+from typing import Dict
 
 import flask
 from flask_apispec import doc, marshal_with, use_kwargs
@@ -9,9 +10,22 @@ from marshmallow import Schema, fields
 
 from corna.controls import roles_control as control
 from corna.enums import SessionNames
-from corna.utils import errors, utils
+from corna.utils import errors, secure, utils
 
 roles = flask.Blueprint("roles", __name__)
+
+
+@roles.after_request
+def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
+    """Add security headers to every response.
+
+    :param flask.Response response: a flask response object
+    :returns: a flask response object with added security headers
+    :rtype: flask.Response
+    """
+    headers: Dict[str, str] = secure.secure_headers(flask.request)
+    response.headers.update(headers)
+    return response
 
 
 class CreateUpdateRoleSend(Schema):
