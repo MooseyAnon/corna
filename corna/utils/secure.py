@@ -107,15 +107,21 @@ def secure_headers(request) -> Dict[str, str]:
     headers: Dict[str, str] = {}
     # default security headers
     headers['Content-Security-Policy'] = (
+        # default-src
         "default-src 'self' "
         "http://*.localhost http://localhost "
         "https://mycorna.com https://*.mycorna.com "
         "https://*.googleapis.com https://*.gstatic.com "
-        "https://cdnjs.cloudflare.com; "
-        "frame-ancestors 'self' https://*.mycorna.com/;"
-        "script-src 'self' https://mycorna.com https://cdnjs.cloudflare.com;"
+        "https://cdnjs.cloudflare.com https://unpkg.com;"
+        # frame-ancestors
+        "frame-ancestors 'self' https://mycorna.com https://*.mycorna.com/;"
+        # script-src
+        "script-src 'self' https://mycorna.com https://cdnjs.cloudflare.com "
+        "https://unpkg.com;"
+        # style-src
         "style-src 'self' 'unsafe-inline' https://mycorna.com "
-        "https://*.mycorna.com https://*.googleapis.com https://*.gstatic.com;"
+        "https://*.mycorna.com https://*.googleapis.com https://*.gstatic.com "
+        "https://unpkg.com;"
     )
     headers['Strict-Transport-Security'] = "max-age=31536000; includeSubDomains"
     headers['X-Content-Type-Options'] = "nosniff"
