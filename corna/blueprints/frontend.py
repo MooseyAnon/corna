@@ -25,39 +25,18 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     return response
 
 
-@frontend.route("/frontend/login", methods=["GET"])
-def login_page():
-    """Serve login page."""
     return flask.send_from_directory(
-        (utils.CORNA_ROOT / "frontend/public/html"), "login.html")
 
 
-@frontend.route("/frontend/register", methods=["GET"])
-def register_page():
-    """Server registration page."""
     return flask.send_from_directory(
-        (utils.CORNA_ROOT / "frontend/public/html"), "signup.html")
 
 
-@frontend.route("/frontend/editor", methods=["GET"])
-def editor():
-    """Serve rich text editor."""
-    return flask.send_from_directory(
-        (utils.CORNA_ROOT / "frontend/public/html"), "editor.html")
-
-
-@frontend.route("/frontend/createButton", methods=["GET"])
-def create_button():
     """Serve create post button."""
     return flask.send_from_directory(
-        (utils.CORNA_ROOT / "frontend/public/html"), "createButton.html")
 
 
-@frontend.route("/frontend/loginButton", methods=["GET"])
-def login_button():
     """Serve create post button."""
     return flask.send_from_directory(
-        (utils.CORNA_ROOT / "frontend/public/html"), "loginButton.html")
 
 
 @frontend.route("/frontend/static/<path:path>", methods=["GET"])
