@@ -143,3 +143,28 @@ def download(url_extension: str):
         utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
 
     return flask.send_file(path)
+
+
+class GenerateAvatarReturn(Schema):
+    """Schema for returning a random avatar."""
+
+    url = fields.String(
+        metadata={
+            "description": "Avatar download URL",
+        })
+
+    slug = fields.String(
+        metadata={
+            "description": "Avatar slug",
+        })
+
+
+@media.route("/media/avatar", methods=["GET"])
+@marshal_with(GenerateAvatarReturn(), code=200)
+@doc(
+    tags=["media"],
+    description="Get a random avatar",
+)
+def gen_avatar():
+    """Get URL for a random avatar."""
+    return media_control.random_avatar(session)

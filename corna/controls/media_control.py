@@ -1,13 +1,15 @@
 """Control layer for dealing with media files."""
 
 import logging
-from typing import Optional
+import random
+from typing import List, Optional
 
 from sqlalchemy.orm.scoping import scoped_session as Session
 from typing_extensions import TypedDict
 from werkzeug.datastructures import FileStorage
 
 from corna.db import models
+from corna.enums import MediaTypes
 from corna.middleware import alchemy
 from corna.utils import get_utc_now, image_proc, secure, utils
 
@@ -22,6 +24,13 @@ class UploadResponse(TypedDict):
     mime_type: str
     size: int
     url_extension: str
+
+
+class Avatar(TypedDict):
+    """Avatar object."""
+
+    url: str
+    slug: str
 
 
 def _image(
@@ -116,3 +125,26 @@ def download(session: Session, slug: str) -> str:
         raise FileNotFoundError("File not found") from e
 
     return f"{image_proc.PICTURE_DIR}/{image.path}"
+
+
+def random_avatar(session: Session) -> Avatar:
+    """Get a random avatar."""
+
+    # Doing this directly in the DB can have performance impacts, especially
+    # as the table in question grows larger. As there are relatively few
+    # avatars compared to the rest of media files, we can do the random search
+    # in python land rather than in the database.
+    # more info here:
+    #   - https://www.depesz.com/2007/09/16/my-thoughts-on-getting-random-row/
+    avatars: List[models.Media] = (
+        session
+        .query(models.Media)
+        .filter(models.Media.type == MediaTypes.AVATAR.value)
+        .all()
+    )
+    avatar: models.Media = random.choice(avatars)
+
+    url: str = \
+        f"{utils.UNVERSIONED_API_URL}/v1/media/download/{avatar.url_extension}"
+
+    return {"url": url, "slug": avatar.url_extension}

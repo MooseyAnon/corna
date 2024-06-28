@@ -20,10 +20,10 @@ def _all_media_based_stubs(request, tmpdir, mocker, monkeypatch):
             "corna.utils.image_proc.hash_image",
             return_value="thisisafakehash12345",
         )
-    mocker.patch(
-        "corna.utils.utils.random_short_string",
-        return_value="abcdef",
-    )
+        mocker.patch(
+            "corna.utils.utils.random_short_string",
+            return_value="abcdef",
+        )
     mocker.patch(
         "corna.utils.image_proc.random_hash",
         return_value="thisisafakestringhash",
@@ -387,3 +387,42 @@ def test_hash_gif():
     # more info: https://stackoverflow.com/q/10909976
     empty_hash = "d41d8cd98f00b204e9800998ecf8427e"
     assert image_hash != empty_hash
+
+
+@pytest.mark.nostubs
+def test_random_avatar_gen(client, session, login):
+    # upload avatars and one extra image to make sure it does not
+    # get selected
+    image = (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb")
+    resp = client.post(
+        "/api/v1/media/upload",
+        data={"image": image, "type": "image"},
+    )
+    assert resp.status_code == 201
+    reg_slug = resp.json["url_extension"]
+
+    # upload avatars
+    av_slugs = set()
+    for avatar in ("blue", "coral", "green", "pink", "purple", "yellow"):
+        image = (shared_data.ASSET_DIR / f"avatar-{avatar}.png").open("rb")
+        resp = client.post(
+            "/api/v1/media/upload",
+            data={"image": image, "type": "avatar"},
+        )
+        assert resp.status_code == 201
+
+        av_slugs.add(resp.json["url_extension"])
+
+    assert session.query(models.Media).count() == 7
+    assert session.query(models.Images).count() == 7
+
+    # ---------------------- test starts --------------------------
+
+    resp = client.get("/api/v1/media/avatar")
+    assert resp.status_code == 200
+
+    fin_slug = resp.json["slug"]
+    assert fin_slug != reg_slug
+    assert fin_slug in av_slugs
+
+
