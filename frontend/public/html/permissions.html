@@ -1,0 +1,39 @@
+<body>
+  <div class="bodyLargeContainer" id="permissionsContainer">
+    <div class="header">
+      <button
+        class="textButton"
+        type="button"
+        id="return"
+        hx-get="cornaCore/cornaCard"
+        hx-target="#permissionsContainer"
+        hx-swap="outerHTML"
+        hx-trigger="click"
+      >
+        Return
+      </button>
+
+      <h1 class="modalHeaderContainer">Your characters</h1>
+      <p class="modalHeaderDescription">
+        Decide what each character can do and assign them to your community
+      </p>
+    </div>
+    <div class="charactersContainer" id="charactersContainer"></div>
+
+    <div class="stackedButtonsContainer">
+      <button
+        class="filledButton"
+        id="createCharacter"
+        hx-get="cornaCore/characterCreator"
+        hx-target="#permissionsContainer"
+        hx-swap="outerHTML"
+        hx-trigger="click"
+      >
+        CREATE CHARACTER
+      </button>
+      <!-- <button class="textButton" id="changeDefaultCharacter">
+        CHANGE DEFAULT CHARACTER
+      </button> -->
+    </div>
+  </div>
+</body>

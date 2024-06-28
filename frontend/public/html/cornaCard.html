@@ -1,0 +1,53 @@
+<body>
+  <div class="bodySmallContainer" id="cornaCardContainer">
+    <button class="textButton closeCornaCard" type="button" id="close">
+      Close
+    </button>
+    <div class="identityContainer">
+      <h1 class="username" id="username"></h1>
+      <div class="statsContainer">
+        <p id="role" class="role"></p>
+        <div class="healthContainer">
+          <span class="label">HP:</span>
+          <span class="value" id="cred"></span>
+          <span class="value">/120</span>
+        </div>
+      </div>
+    </div>
+    <div class="avatarImageContainer">
+      <div class="image" id="avatarContainer">
+        <img id="avatarImage" src="" alt="Avatar" />
+      </div>
+    </div>
+    <div class="buttonsCornaCardContainer">
+      <div
+        class="buttonContainer"
+        id="yourCharacters"
+        hx-get="cornaCore/permissions"
+        hx-target="#cornaCardContainer"
+        hx-swap="outerHTML"
+        hx-trigger="click"
+      >
+        <button class="textButton" type="button">Your characters</button>
+        <button class="textButton">></button>
+      </div>
+      <div class="buttonContainer" id="signOut">
+        <button class="textButton" type="button">SIGN OUT</button>
+        <button class="textButton">></button>
+      </div>
+      <!-- 
+          <div class="buttonContainer" id="favourite">
+            <button class="textButton" type="button">
+              FAVOURITES 
+            </button>
+            <button class="textButton">></button>
+          </div>
+          <div class="buttonContainer" id="settings">
+            <button class="textButton" type="button">
+              Settings 
+            </button>
+            <button class="textButton">></button>
+          </div> -->
+    </div>
+  </div>
+</body>

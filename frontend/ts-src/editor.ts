@@ -47,23 +47,13 @@ interface EditorConfig {
 } 
 
 
-interface State {
+export interface State {
     /* Holds the state of the editor. */
 
     previousKey: string;
     previousRange: Range | null;
     uploadedImages: string[];
     editorConfig: EditorConfig;
-    domainName: string | null;
-}
-
-
-interface PostData {
-    content: string;
-    inner_html: string;
-    title: string| null;
-    type: string;
-    uploaded_images: string[];
 }
 
 
@@ -154,61 +144,6 @@ export async function getDomainName(): Promise<string | null> {
         }
     })();
     return domainName;
-}
-
-
-export function createPost(): void {
-    /*
-    * Traditionally you would not want to use innerText because
-    * it is less performant than textContent (in some browsers its
-    * literally a wrapper around textContent), however, we would like
-    * to keep the "layout" properties of the document content because
-    * it prevents things like deleting new lines which result in weird
-    * word concatenations at the ends of words.
-    * As we improve the editor we probably will not need to do this
-    * any more but for not it should be fine as this gets called only
-    * once during the post creation process.
-    */
-    const content: string | null = state.editorConfig.modalContent.textContent;
-    if (!content) {
-        return;
-    }
-
-    const innerHtml: string | null = state.editorConfig.modalContent.innerHTML;
-    if (!innerHtml) {
-        return;
-    }
-
-    // the container is stripped from the `innerHTML` sting so we want to
-    // add it back again. This will make displaying content easier later on
-    const inner_html: string = `<section>${innerHtml}</section>`;
-    const title: string | null = parseTitle();
-    const uploaded_images: string[] = parseImageExtension();
-    const type: string = "text";
-
-    const payload: PostData = {
-        content,
-        inner_html,
-        title,
-        type,
-        uploaded_images,
-    }
-
-    const method: ("get" | "delete" | "post" | "put") = "post";
-    const headers: { [key: string]: string } = {"Content-Type": "application/json"};
-    const urlExtension: string = `v1/posts/${state.domainName}/text-post`;
-
-    request(urlExtension, method, payload, headers)
-    .then((response: AxiosResponse) => {
-        if (response.status === 201) {
-            const successText: string = "YOUR POST WAS CREATED SUCCESSFULLY!! :)";
-            state.editorConfig.modalContent.textContent = successText;
-        }
-    })
-    .catch((error: AxiosError) => {
-        const errMsg: string = handleNetworkError(error);
-        state.editorConfig.modalContent.textContent = errMsg;
-    })
 }
 
 
@@ -513,46 +448,17 @@ export function insertImage() {
 export function initToolbar(): ToolBar {
 
     const boldButton = document.getElementById("bold") as HTMLButtonElement;
-    boldButton.addEventListener("click", bold);
-
     const italicButton = document.getElementById("italic") as HTMLButtonElement;
-    italicButton.addEventListener("click", italic);
-
     const underlineButton = document.getElementById("underline") as HTMLButtonElement;
-    underlineButton.addEventListener("click", underline);
-
     const bulletButton = document.getElementById("bullet") as HTMLButtonElement;
-    bulletButton.addEventListener("click", ul);
-
     const numberedButton = document.getElementById("numbered") as HTMLButtonElement;
-    numberedButton.addEventListener("click", ol);
-
     const leftAlignedButton = document.getElementById("leftAligned") as HTMLButtonElement;
-    leftAlignedButton.addEventListener("click", () => { justify("left"); })
-
     const centreAlignedButton = document.getElementById("centreAligned") as HTMLButtonElement;
-    centreAlignedButton.addEventListener("click", () => { justify("center"); })
-
     const rightAlignedButton = document.getElementById("rightAligned") as HTMLButtonElement;
-    rightAlignedButton.addEventListener("click", () => { justify("right"); })
-
     const pictureButton = document.getElementById("picture") as HTMLInputElement;
-    pictureButton.addEventListener("change", insertImage);
-
     const linkButton = document.getElementById("link") as HTMLButtonElement;
-    linkButton.addEventListener("click", link);
-
     const typefaceOption = document.querySelectorAll(".selectTypeface") as NodeListOf<HTMLOptionElement>;
-    typefaceOption.forEach((button: HTMLOptionElement) => {
-        button.addEventListener("change", () => {
-            document.execCommand(button.id, false, button.value);
-        })
-    })
-
     const colorInput = document.getElementById("colorInput") as HTMLInputElement;
-    colorInput.addEventListener("change", () => {
-        changeColor(colorInput.value);
-    })
 
     return {
         boldButton,
@@ -574,8 +480,7 @@ export function initToolbar(): ToolBar {
 
 export function initEditor(): EditorConfig {
 
-    const modalContent = document.getElementById("content") as HTMLDivElement;
-    modalContent.addEventListener("keydown", (e: KeyboardEvent) => { handleIndents(e); })
+    const modalContent = document.getElementById("modalDescription") as HTMLDivElement;
 
     const toolBar: ToolBar = initToolbar();
 
@@ -587,13 +492,39 @@ export function initEditor(): EditorConfig {
 }
 
 
-export async function init(): Promise<State> {
+function addEventListeners(): void {
+    // toolbar event listners
+    state.editorConfig.toolBar.boldButton.addEventListener("click", bold);
+    state.editorConfig.toolBar.italicButton.addEventListener("click", italic);
+    state.editorConfig.toolBar.underlineButton.addEventListener("click", underline);
+    state.editorConfig.toolBar.bulletButton.addEventListener("click", ul);
+    state.editorConfig.toolBar.numberedButton.addEventListener("click", ol);
+    state.editorConfig.toolBar.pictureButton.addEventListener("change", insertImage);
+    state.editorConfig.toolBar.linkButton.addEventListener("click", link);
+    state.editorConfig.toolBar.leftAlignedButton.addEventListener("click", () => { justify("left"); });
+    state.editorConfig.toolBar.centreAlignedButton.addEventListener("click", () => { justify("center"); });
+    state.editorConfig.toolBar.rightAlignedButton.addEventListener("click", () => { justify("right"); });
+    state.editorConfig.toolBar.colorInput.addEventListener("change", () => {
+        changeColor(state.editorConfig.toolBar.colorInput.value);
+    });
+    // H1, H2, H3 and P selectors
+    state.editorConfig.toolBar.typefaceOption.forEach((button: HTMLOptionElement) => {
+        button.addEventListener("change", () => {
+            document.execCommand(button.id, false, button.value);
+        });
+    });
+    // text area event listener
+    state.editorConfig.modalContent.addEventListener("keydown", (e: KeyboardEvent) => {
+        handleIndents(e);
+    });
 
-    const createButton = document.getElementById("create") as HTMLDivElement;
-    createButton.addEventListener("click", createPost);
+}
+
+
+function init(): State {
 
     const editorConfig: EditorConfig = initEditor();
-    const domainName: string | null = await getDomainName();
+    // const domainName: string | null = await getDomainName();
 
     return {
         /*
@@ -621,15 +552,17 @@ export async function init(): Promise<State> {
         */
         previousKey: "",
         editorConfig: editorConfig,
-        domainName: domainName,
     }
 
 }
 
 
-document.addEventListener("DOMContentLoaded", async function() {
-    state = await init();
-});
+export function initState(): State {
+    state = init();
+    addEventListeners();
 
-// holds the global state of the editor during its lifetime
+    return state;
+}
+
+// // holds the global state of the editor during its lifetime
 let state: State;

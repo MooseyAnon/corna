@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="static/css/cornaCore.css" />
+    <script
+      src="https://unpkg.com/htmx.org@1.9.11"
+      integrity="sha384-0gxUXCCR8yv9FM2b+U3FDbsKthCI66oH5IA9fHppQq9DDMHuMauqq1ZHBpJxQ0J0"
+      crossorigin="anonymous"
+    ></script>
+    <title>CornaCore</title>
+  </head>
+  <body>
+    <ul class="navigation" id="loggedOutNavigation">
+      <li
+        class="signIn navItem"
+        hx-get="cornaCore/signIn"
+        hx-target="#content"
+        hx-swap="outerHTML"
+        hx-trigger="click"
+      >
+        <a href="#">
+          <img
+            src="static/assets/signIn.png"
+            alt="Sign into your account"
+            class="navIcon"
+          />
+          <div class="navLabel">SIGN IN</div>
+          <div class="dot"></div>
+        </a>
+      </li>
+    </ul>
+    <ul class="navigation" id="loggedInNavigation">
+      <li class="navItem" id="yourCorna">
+        <a href="#">
+          <img
+            src="static/assets/Bubbles.png"
+            alt="Your corna icon"
+            class="navIcon"
+          />
+          <div class="navLabel">YOUR CORNA</div>
+          <div class="dot"></div>
+        </a>
+      </li>
+      <li class="navItem" id="create">
+        <a href="#">
+          <img
+            src="static/assets/Craete.png"
+            alt="Create options button"
+            class="navIcon"
+          />
+          <div class="navLabel" id="create">CREATE</div>
+          <div class="dot"></div>
+        </a>
+        <ul class="createOptions" id="createOptions">
+          <li
+            class="createOption"
+            id="text"
+            hx-get="cornaCore/textModal"
+            hx-target="#content"
+            hx-swap="outerHTML"
+            hx-trigger="click"
+          >
+            <a href="">
+              <img
+                src="static/assets/txt.png"
+                alt="Text post icon to create a text post "
+                class="createOptionImage"
+              />
+              <div class="createOptionLabel">Txt</div>
+            </a>
+          </li>
+          <li
+            class="createOption"
+            id="picture"
+            hx-get="cornaCore/imageModal"
+            hx-target="#content"
+            hx-swap="outerHTML"
+            hx-trigger="click"
+          >
+            <a href="">
+              <img
+                src="static/assets/img.png"
+                alt="Image post icon to create image post"
+                class="createOptionImage"
+              />
+              <div class="createOptionLabel">Img</div>
+            </a>
+          </li>
+          <li
+            class="createOption"
+            id="video"
+            hx-get="cornaCore/videoModal"
+            hx-target="#content"
+            hx-swap="outerHTML"
+            hx-trigger="click"
+          >
+            <a href="">
+              <img
+                src="static/assets/vid.png"
+                alt="Video post icon to create video post"
+                class="createOptionImage"
+              />
+              <div class="createOptionLabel">Vid</div>
+            </a>
+          </li>
+        </ul>
+      </li>
+      <li
+        class="navItem"
+        id="cornaCard"
+        hx-get="cornaCore/cornaCard"
+        hx-target="#content"
+        hx-swap="outerHTML"
+        hx-trigger="click"
+      >
+        <a href="#">
+          <img
+            src="static/assets/cornaCard.png"
+            alt="Your corna card"
+            class="navIcon"
+          />
+          <div class="navLabel">CORNA CARD</div>
+          <div class="dot"></div>
+        </a>
+      </li>
+    </ul>
+    <div class="overlay" id="overlay">
+      <background>
+        <div id="stars"></div>
+        <div id="stars2"></div>
+        <div id="stars3"></div>
+      </background>
+      <p class="status" id="statusUpdateMessage"></p>
+      <p class="validation" id="validation"></p>
+      <div class="cardContainer" id="cardContainer">
+        <div id="content"></div>
+      </div>
+    </div>
+    <script src="static/scripts/cornaCore.js"></script>
+  </body>
+</html>
