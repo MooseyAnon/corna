@@ -1,0 +1,21 @@
+.errorBody {
+  width: 100vw;
+  height: 100vh;
+  background: #000000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.errorMessage {
+  color: #d55c32;
+  font-family: spaceInvaders;
+  font-size: 25pt;
+  margin: 90px;
+  width: -webkit-fill-available;
+}
+
+.errorImage {
+  width: 20%;
+  height: auto;
+  margin: 90px;
+}
