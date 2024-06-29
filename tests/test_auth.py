@@ -506,3 +506,41 @@ def test_user_number_auto_increment(session, client):
         )
 
         assert user.number == i
+
+
+@pytest.mark.parametrize("username,expected_status",
+    [
+        ("john_snow", 201),
+        ("JOHN_SNOW", 201),
+        ("johnsnow", 201),
+        ("john_snow___", 201),
+        ("_john_snow", 201),
+        ("_john_snow_", 201),
+        ("_____", 201),
+        ("12345", 201),
+        ("john-snow", 422),
+        ("john_snow😭", 422),
+        ("johnsnow*", 422),
+        ("johnsnow//", 422),
+        ("johnsnow\\", 422),
+        ("john>snow", 422),
+        ("john@snow", 422),
+        ("john snow", 422),
+        (" john snow", 422),
+        # longer than 19 characters
+        ("123456789101112131415", 422),
+        ("", 422),
+        ("😭👋🏾🤢", 422),
+
+    ]
+)
+def test_username_is_valid(client, username, expected_status):
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "azor_ahi@starkentaprise.wstro",
+            "password": "Dany",
+            "username": username
+        })
+
+    assert resp.status_code == expected_status

@@ -5,12 +5,13 @@ and then it will be hashed using `werkzeug.security`.
 """
 from http import HTTPStatus
 import logging
+import re
 from typing import Any, Dict, Optional, Union
 
 import flask
 from flask_apispec import doc, marshal_with, use_kwargs
 from flask_sqlalchemy_session import current_session as session
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validates
 
 from corna import enums
 from corna.controls import auth_control
@@ -54,6 +55,28 @@ class UserCreateSchema(_BaseSchema):
         metadata={
             "description": "slug for chosen user avatar.",
         })
+
+    @validates("username")
+    def validate_username(self, username):  # pylint: disable=no-self-use
+        """Validate username is correctly formatted.
+
+        valid username:
+            - alphanumeric chars + '-': [A-Za-z0-9_]
+            - 1 - 19 characters: 1 >= username.length > 20
+
+        :param str username: the username to validate
+        """
+        pattern: str = r"^\w{1,19}$"  # same as: ^[A-Za-z0-9_]+$
+        # returns None if there is no match:
+        # - https://docs.python.org/3/library/re.html#re.Pattern.search
+        match = re.search(pattern, username)
+        if not match:
+            err_msg: str = (
+                "Username can only contain letters A-Z (upper or lower), "
+                "0-9 and underscores. Must be less than 20 characters."
+            )
+            utils.respond_json_error(
+                err_msg, HTTPStatus.UNPROCESSABLE_ENTITY)
 
     class Meta:  # pylint: disable=missing-class-docstring
         strict = True
