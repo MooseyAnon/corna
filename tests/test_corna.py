@@ -152,7 +152,7 @@ def test_domain_name_not_unique(session, client, corna):
         json={
             "email": "new.email@tester.com",
             "password": "some-fake=password",
-            "username": "nunu-user",
+            "username": "nunu_user",
             }
         )
     assert resp.status_code == 201

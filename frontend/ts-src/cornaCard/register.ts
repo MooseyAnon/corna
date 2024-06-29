@@ -105,11 +105,15 @@ function scrollTo(parentNode: HTMLButtonElement): void {
  * @returns { boolean }: true if username is valid
  */
 function isValidUsername(username: string | null): boolean {
-
-    const hasErrd: boolean = !username || hasSpace(clean(username));
+    // same as: ^[A-Za-z0-9_]+$
+    const matchPattern: RegExp = /^\w{1,19}$/
+    const hasErrd: boolean = (!username|| !matchPattern.test(clean(username)));
 
     if (hasErrd) {
-        displayErrorMessage("Make sure your username does not contain any spaces.")
+        displayErrorMessage(
+            `Invalid username. Username can only contain letters A-Z 
+            (upper or lower), 0-9 and underscores. Must be under 20 characters.`
+        );
     }
     return !hasErrd;
 }
