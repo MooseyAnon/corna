@@ -92,6 +92,8 @@ def create_role(**data):
     """Create a new role."""
     cookie = flask.request.cookies.get(SessionNames.SESSION.value)
     try:
+        # strip any starting or trailing space from role name
+        data["name"] = data["name"].strip()
         control.new(session, cookie, **data)
     except (control.DuplicateRoleError, errors.CornaNotFoundError) as error:
         return utils.respond_json_error(str(error), HTTPStatus.BAD_REQUEST)
