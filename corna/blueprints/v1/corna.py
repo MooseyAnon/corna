@@ -126,7 +126,7 @@ def create_corna(
     )
     data.update({
         "cookie": cookie,
-        "domain_name": domain_name,
+        "domain_name": domain_name.lower(),
     })
     try:
         corna_control.create(session, **data)
