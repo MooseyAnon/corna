@@ -1,12 +1,13 @@
 """Managing Roles."""
 
 from http import HTTPStatus
+import re
 from typing import Dict
 
 import flask
 from flask_apispec import doc, marshal_with, use_kwargs
 from flask_sqlalchemy_session import current_session as session
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validates
 
 from corna.controls import roles_control as control
 from corna.enums import SessionNames
@@ -50,6 +51,21 @@ class CreateUpdateRoleSend(Schema):
             "description": "The list of permissions for the role. For no "
             "permissions, leave list empty.",
         })
+
+    @validates("name")
+    def validate_role_name(self, name):  # pylint: disable=no-self-use
+        """Ensure role name is valid.
+
+        valid role name:
+            - must have at least one non-space character
+            - must be 40 characters or less
+
+        :param str name
+        """
+        if not name or name.isspace() or len(name) > 40:
+            utils.respond_json_error(
+                "Name must contain at least one non-space character.",
+                HTTPStatus.UNPROCESSABLE_ENTITY)
 
     class Meta:  # pylint: disable=missing-class-docstring
         strict = True
