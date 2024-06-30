@@ -107,7 +107,7 @@ function scrollTo(parentNode: HTMLButtonElement): void {
 function isValidUsername(username: string | null): boolean {
     // same as: ^[A-Za-z0-9_]+$
     const matchPattern: RegExp = /^\w{1,19}$/
-    const hasErrd: boolean = (!username|| !matchPattern.test(clean(username)));
+    const hasErrd: boolean = !username|| !matchPattern.test(username.trim());
 
     if (hasErrd) {
         displayErrorMessage(
@@ -171,11 +171,14 @@ function isValidPassword(
  * @returns { boolean }: true if domain name is valid
  */
 function isValidDomainName(domainName: string): boolean {
-    const hasErrd: boolean = !domainName || hasSpace(clean(domainName));
+    const matchPattern: RegExp = /^[A-Za-z0-9](?:[A-Za-z0-9\-]{0,17}[A-Za-z0-9])?$/
+    const hasErrd: boolean = !domainName || !matchPattern.test(clean(domainName));
 
     if (hasErrd) {
         displayErrorMessage(
-            "Make sure your domain name does not contain any spaces.")
+            `Invalid Corna domain. Domain can only contain letters a-z, 
+            0-9 and dashes. Domain must be less than 20 characters.`
+        )
     }
     return !hasErrd;
 }

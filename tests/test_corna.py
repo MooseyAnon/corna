@@ -392,3 +392,37 @@ def test_corna_create__private_corna(session, client, login):
     }
 
     assert perms.perms(corna.permissions) == expected
+
+
+@pytest.mark.parametrize("domain,expected_status",
+    [
+        ("a", 201),
+        ("a12345", 201),
+        ("12345", 201),
+        # 19 character domain
+        ("a-----------------b", 201),
+        ("some-fake-domain", 201),
+        ("SOME-FAKE-DOMAIN", 201),
+        ("_some-fake-domain", 422),
+        ("some-fake-domain-", 422),
+        ("some-fake_domain", 422),
+        ("-some-fake-domain", 422),
+        ("some -fake-domain", 422),
+        ("some>fake-domain", 422),
+        # 20 character domain
+        ("a------------------b", 422),
+        # 21 character domain, for sanity
+        ("a-------------------b", 422),
+        ("some😀", 422),
+        ("-", 422),
+        # this is route not found
+        ("", 405),
+        (" ", 422),
+    ])
+def test_corna_domain_is_valid(client, login, domain, expected_status):
+
+    resp = client.post(
+        f"/api/v1/corna/{domain}",
+        json={"title": corna_info["title"]},
+    )
+    assert resp.status_code == expected_status
