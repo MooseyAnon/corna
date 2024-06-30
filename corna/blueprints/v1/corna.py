@@ -1,6 +1,7 @@
 """Corna management endpoints."""
 
 from http import HTTPStatus
+import re
 from typing import Any, Dict, Optional, Union
 
 import flask
@@ -87,6 +88,42 @@ class DomainNameCheckResultSchema(Schema):
         })
 
 
+def is_valid(domain: str) -> None:
+    """Validate that domain name is formatted correctly.
+    
+    validates against the following rules:
+        - must start and end with: [A-Za-z0-9]
+        - can contain a "-" but cannot start or end with one
+        - must be less than 20 characters long
+
+    more info:
+        - https://stackoverflow.com/a/7933253
+        - https://stackoverflow.com/a/7111947
+
+    Note: we don't return anything because if the match fails we abort the
+    request.
+    
+    :param str domain: domain name to validate
+    """
+    # ending in the pattern is optional i.e. we only care about if the domain
+    # ends in [A-Za-z0-9] iff there is more than one character. This is
+    # because the other character could potentially be a dash. Thus this
+    # regex allows for single character domains.
+    # 
+    # reason for {0,17}: the domain should be 19 characters at most. This means
+    # that the characters in the middle i.e. minus first and last character,
+    # need to add up to 17
+    pattern: str = r"^[A-Za-z0-9](?:[A-Za-z0-9\-]{0,17}[A-Za-z0-9])?$"
+    match = re.search(pattern, domain)
+
+    if not match:
+        err_msg: str = (
+            "Invalid Corna domain. Domain can only contain letters a-z, "
+            "0-9 and dashes. Domain must be less than 20 characters."
+        )
+        utils.respond_json_error(err_msg, HTTPStatus.UNPROCESSABLE_ENTITY)
+
+
 @corna.after_request
 def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     """Add security headers to every response.
@@ -120,6 +157,8 @@ def create_corna(
     **data: Dict[str, Any]
 ) -> flask.wrappers.Response:
     """Create a new Corna."""
+    # ensure domain is valid
+    is_valid(domain_name)
     # we need to get the user identity via cookie
     cookie: Optional[str] = flask.request.cookies.get(
         enums.SessionNames.SESSION.value
