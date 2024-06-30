@@ -1594,3 +1594,25 @@ def test_create_role__user_has_role_but_invalid(client, session, corna):
     assert resp.status_code == 401
     # check db saved correctly
     assert session.query(models.Role).count() == 1
+
+
+@pytest.mark.parametrize("name,expected_status",
+    [
+        ("New Role", 201),
+        ("😀😭🤢", 201),
+        ("a" * 40, 201),
+        ("a" * 41, 422),
+        ("", 422),
+        ("        ", 422),
+    ]
+)
+def test_create_role__valid_role_name(client, corna, name, expected_status):
+    resp = client.post(
+        "/api/v1/roles",
+        json={
+            "name": name,
+            # default permissions
+            "permissions": ["read", "comment", "like", "follow"],
+            "domain_name": shared.corna_info["domain_name"],
+        })
+    assert resp.status_code == expected_status

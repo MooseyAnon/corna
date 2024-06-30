@@ -79,14 +79,32 @@ function addEventListeners() {
 }
 
 
+/**
+ * validate character name.
+ * 
+ * @param { string } characterName: the name to validate
+ * @returns { boolean }
+ */
+function isValid(characterName: string): boolean {
+    const hasErrd: boolean = !characterName || !characterName.trim()
+    if (hasErrd) {
+        displayErrorMessage("Character needs to be given a name.")
+    }
+    // we want to return the inverse of whatever `hasErrd` is.
+    return !hasErrd
+}
+
+
 function submitCharacter() {
 
     // clear any messages
     resetMessages();
 
+    if (!isValid(stateManager.characterNameInput.value)) { return; }
+
     const data = {
         "domain_name": stateManager.domainName,
-        "name": stateManager.characterNameInput.value,
+        "name": stateManager.characterNameInput.value.trim(),
         "permissions": stateManager.selectedSkills,
     }
 
