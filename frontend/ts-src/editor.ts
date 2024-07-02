@@ -77,7 +77,7 @@ export function handleIndents(e: KeyboardEvent): void {
                 */
                 (lineNode.parentNode as HTMLElement).style.marginLeft, 10) || 0;
 
-                currentIndent -= 20;
+                currentIndent = Math.max(currentIndent - 20, 0);
 
             (lineNode.parentNode as HTMLElement).style.marginLeft = `${currentIndent}px`; 
         }
