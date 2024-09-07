@@ -19,6 +19,6 @@ pycodestyle
 python-dateutil
 python-systemd
 pyYAML
-SQLAlchemy==1.4.*
+SQLAlchemy>1.4,<1.5
 sqltap
 testing.postgresql
