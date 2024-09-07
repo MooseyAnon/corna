@@ -1,4 +1,8 @@
-PYTHON := python3.6
+# Silence SQLAlchemy2.0 deprecation warnings
+export SQLALCHEMY_WARN_20=0
+export SQLALCHEMY_SILENCE_UBER_WARNING=1
+
+PYTHON := python3.12
 current_dir := $(shell pwd)
 
 check: check-coding-standards check-tests
