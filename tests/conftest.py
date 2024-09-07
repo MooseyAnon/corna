@@ -4,7 +4,8 @@ from pathlib import Path
 import platform
 import logging
 
-from flask import _app_ctx_stack, request as flask_request
+from flask import request as flask_request
+from greenlet import getcurrent
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -101,7 +102,7 @@ def _session(session_class):
     """Creates an empty database for a test."""
     app_scoped_session = scoped_session(
         session_class,
-        scopefunc=_app_ctx_stack.__ident_func__
+        scopefunc=getcurrent,
     )
 
     yield app_scoped_session
