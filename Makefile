@@ -16,7 +16,7 @@ check-pycodestyle:
 	/usr/bin/$(PYTHON) -m pycodestyle corna
 
 check-isort:
-	/usr/bin/$(PYTHON) -m isort corna --check --diff --skip venv
+	/usr/bin/$(PYTHON) -m isort corna --check-only --diff --skip venv
 
 check-tests:
 	/usr/bin/$(PYTHON) -m pytest -v
