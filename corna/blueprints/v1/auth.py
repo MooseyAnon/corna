@@ -10,12 +10,12 @@ from typing import Any, Dict, Optional, Union
 
 import flask
 from flask_apispec import doc, marshal_with, use_kwargs
-from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields, validates
 
 from corna import enums
 from corna.controls import auth_control
 from corna.middleware.alchemy import NoMediaError
+from corna.oss.flask_sqlalchemy_session import current_session as session
 from corna.utils import secure, utils
 from corna.utils.errors import (
     IncorrectPasswordError, NoneExistingUserError, NotLoggedInError,

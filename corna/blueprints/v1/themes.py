@@ -5,11 +5,11 @@ from typing import Dict
 
 import flask
 from flask_apispec import doc, marshal_with, use_kwargs
-from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields, validate
 
 from corna import enums
 from corna.controls import theme_control as control
+from corna.oss.flask_sqlalchemy_session import current_session as session
 from corna.utils import secure, utils
 from corna.utils.errors import NoneExistingUserError
 

@@ -5,11 +5,11 @@ from typing import Dict, List, Optional
 
 import flask
 from flask_apispec import doc, marshal_with
-from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields
 
 from corna import enums
 from corna.controls import user_control as control
+from corna.oss.flask_sqlalchemy_session import current_session as session
 from corna.utils import secure, utils
 
 user = flask.Blueprint("user", __name__)

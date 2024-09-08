@@ -1,6 +1,7 @@
 [MASTER]
 persistent = no
 load-plugins = pylint.extensions.docparams
+ignore=oss
 
 [MESSAGES CONTROL]
 disable =

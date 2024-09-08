@@ -2,7 +2,6 @@ alembic==1.0.10
 cryptography
 flask
 flask-apispec
-Flask-SQLAlchemy-Session
 freezegun
 furl
 gunicorn

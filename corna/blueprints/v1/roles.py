@@ -6,11 +6,11 @@ from typing import Dict
 
 import flask
 from flask_apispec import doc, marshal_with, use_kwargs
-from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields, validates
 
 from corna.controls import roles_control as control
 from corna.enums import SessionNames
+from corna.oss.flask_sqlalchemy_session import current_session as session
 from corna.utils import errors, secure, utils
 
 roles = flask.Blueprint("roles", __name__)

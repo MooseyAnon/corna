@@ -6,11 +6,11 @@ from typing import Any, Dict, Optional, Union
 
 import flask
 from flask_apispec import doc, marshal_with, use_kwargs
-from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields
 
 from corna import enums
 from corna.controls import corna_control
+from corna.oss.flask_sqlalchemy_session import current_session as session
 from corna.utils import secure, utils
 from corna.utils.errors import (
     DomainExistsError, NoneExistingUserError, PreExistingCornaError)

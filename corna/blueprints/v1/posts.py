@@ -4,12 +4,12 @@ from typing import Any, Dict
 
 import flask
 from flask_apispec import doc, use_kwargs
-from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields, validate
 
 from corna.controls import post_control
 from corna.controls.post_control import InvalidContentType, PostDoesNotExist
 from corna.enums import ContentType, SessionNames
+from corna.oss.flask_sqlalchemy_session import current_session as session
 from corna.utils import secure, utils
 from corna.utils.errors import CornaNotFoundError, UnauthorizedActionError
 from corna.utils.utils import login_required

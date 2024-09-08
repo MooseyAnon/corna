@@ -30,10 +30,7 @@ flask==3.0.3
     # via
     #   -r requirements.in
     #   flask-apispec
-    #   flask-sqlalchemy-session
 flask-apispec==0.11.4
-    # via -r requirements.in
-flask-sqlalchemy-session==1.1
     # via -r requirements.in
 freezegun==1.5.1
     # via -r requirements.in
@@ -130,7 +127,6 @@ sqlalchemy==1.4.54
     # via
     #   -r requirements.in
     #   alembic
-    #   flask-sqlalchemy-session
     #   sqltap
 sqlparse==0.5.1
     # via sqltap
@@ -153,5 +149,4 @@ webargs==8.4.0
 werkzeug==3.0.4
     # via
     #   flask
-    #   flask-sqlalchemy-session
     #   sqltap
