@@ -124,7 +124,7 @@ def test_when_user_not_logged_in_client(client):
 
 def test_user_attempt_with_invalid_cookie(client):
     client.set_cookie(
-        "/",
+        path="/",
         key=enums.SessionNames.SESSION.value,
         value="this-is-a-fake-cookie"
     )

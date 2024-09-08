@@ -45,14 +45,7 @@ def test_user_can_read__read_perms_set_on_corna(session, client, login):
 def test_user_can_read__private_corna_but_owner(session, client, login):
     # create private corna
     create_corna(client)
-    cookie = next(
-        (
-            cookie.value
-            for cookie in client.cookie_jar
-            if cookie.name == enums.SessionNames.SESSION.value
-        ),
-        None
-    )
+    cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is not None
     
     try:
@@ -60,7 +53,7 @@ def test_user_can_read__private_corna_but_owner(session, client, login):
         control.post_list(
             session,
             corna_info['domain_name'],
-            cookie=cookie,
+            cookie=cookie.value,
         )
         assert True
     except errors.UnauthorizedActionError:

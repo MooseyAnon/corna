@@ -216,7 +216,7 @@ def test_user_attempt_with_invalid_cookie(session, client, corna):
         with_image=False,
     )
     client.set_cookie(
-        "/",
+        path="/",
         key=enums.SessionNames.SESSION.value,
         value="this-is-a-fake-cookie"
     )
