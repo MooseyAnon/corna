@@ -90,7 +90,7 @@ class DomainNameCheckResultSchema(Schema):
 
 def is_valid(domain: str) -> None:
     """Validate that domain name is formatted correctly.
-    
+
     validates against the following rules:
         - must start and end with: [A-Za-z0-9]
         - can contain a "-" but cannot start or end with one
@@ -102,7 +102,7 @@ def is_valid(domain: str) -> None:
 
     Note: we don't return anything because if the match fails we abort the
     request.
-    
+
     :param str domain: domain name to validate
     """
     # ending in the pattern is optional i.e. we only care about if the domain
