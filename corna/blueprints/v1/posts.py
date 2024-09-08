@@ -107,12 +107,10 @@ def post(
 ) -> flask.wrappers.Response:
     """Create a text post."""
 
-    data.update(
-        dict(
-            cookie=flask.request.cookies.get(SessionNames.SESSION.value),
-            domain_name=domain_name,
-        )
-    )
+    data.update({
+        "cookie": flask.request.cookies.get(SessionNames.SESSION.value),
+        "domain_name": domain_name,
+    })
 
     try:
         post_control.create(session, **data)

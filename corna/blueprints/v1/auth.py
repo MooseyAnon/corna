@@ -57,7 +57,7 @@ class UserCreateSchema(_BaseSchema):
         })
 
     @validates("username")
-    def validate_username(self, username):  # pylint: disable=no-self-use
+    def validate_username(self, username):
         """Validate username is correctly formatted.
 
         valid username:
@@ -199,13 +199,13 @@ def set_cookie(
     """
     # pylint: disable-next=import-outside-toplevel
     from flask import current_app as app
-    cookie_attrs = dict(
-        httponly=True,
-        key=enums.SessionNames.SESSION.value,
-        samesite="Lax",
-        secure=True,
-        value=cookie,
-    )
+    cookie_attrs = {
+        "httponly": True,
+        "key": enums.SessionNames.SESSION.value,
+        "samesite": "Lax",
+        "secure": True,
+        "value": cookie,
+    }
 
     testing = app.config.get("TESTING")
     if not testing:

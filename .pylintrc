@@ -8,7 +8,6 @@ disable =
     # checkers
     design,
     # messages
-    bad-continuation,
     duplicate-code,
     invalid-name,
     locally-disabled,
