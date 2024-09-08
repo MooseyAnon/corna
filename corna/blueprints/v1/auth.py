@@ -147,7 +147,7 @@ class LoggedInResultSchema(Schema):
     """Result of login status check."""
 
     is_loggedin = fields.Boolean(
-        medtadata={
+        metadata={
             "description": "Thee result of login status check",
         })
 

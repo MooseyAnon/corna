@@ -93,7 +93,12 @@ class CreatedRoles(Schema):
 class CreatedRolesList(Schema):
     """Schema for user created roles."""
 
-    roles = fields.Nested(CreatedRoles, many=True)
+    roles = fields.Nested(
+        CreatedRoles,
+        many=True,
+        metadata={
+            "description": "All roles created by the current user",
+        })
 
 
 @user.route("/user/roles/created", methods=["GET"])

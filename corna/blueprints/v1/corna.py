@@ -48,7 +48,7 @@ class CornaCreateSchema(Schema):
 
     permissions = fields.List(
         fields.String(),
-        missing=["read", "comment", "like", "follow"],
+        load_default=["read", "comment", "like", "follow"],
         metadata={
             "description": "Corna wide default permissions. These are the "
                            "permissions used to validate access for any users "

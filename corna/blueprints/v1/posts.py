@@ -54,7 +54,7 @@ class TextPost(_BaseSchema):
 
     uploaded_images = fields.List(
         fields.String,
-        missing=[],
+        load_default=[],
         metadata={
             "description":
                 "A list of pre-uploaded images that are part of the post."
