@@ -6,7 +6,7 @@ from werkzeug.local import LocalProxy
 
 from corna.db import models
 from corna.middleware import alchemy
-from corna.utils import get_utc_now, secure, utils
+from corna.utils import encodings, get_utc_now, secure, utils
 from corna.utils.errors import (
     IncorrectPasswordError, NoneExistingUserError, UserExistsError)
 
@@ -110,7 +110,7 @@ def register_user(
     logger.info("successfully registered a new user.")
 
 
-def login_user(session: LocalProxy, email: str, password: str) -> bytes:
+def login_user(session: LocalProxy, email: str, password: str) -> str:
     """Login a user.
 
     :param sqlalchemy.Session session: session object
@@ -164,7 +164,7 @@ def login_user(session: LocalProxy, email: str, password: str) -> bytes:
     # it does the lookup comparisons without converting the incoming
     # hash to hex. this leads to guaranteed failures as unicode values
     # will never match the hex ones saved inside the db.
-    return secure.sign(cookie)
+    return encodings.from_bytes(secure.sign(cookie))
 
 
 def delete_user_session(session: LocalProxy, signed_cookie: str) -> None:
