@@ -17,10 +17,10 @@ import pathlib
 from typing import Optional
 
 import flask
-from flask_sqlalchemy_session import current_session as session
 
 from corna import enums
 from corna.controls import subdomain_control as control
+from corna.oss.flask_sqlalchemy_session import current_session as session
 from corna.utils import secure, utils
 
 THEME_DIR: pathlib.Path = utils.CORNA_ROOT / "themes"

@@ -8,11 +8,11 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 import flask
 from flask_apispec import FlaskApiSpec
-from flask_sqlalchemy_session import flask_scoped_session
 
 from .blueprints import frontend, subdomain
 from .blueprints.v1 import (
     auth, corna, dummy, media, posts, roles, themes, user)
+from corna.oss.flask_sqlalchemy_session import flask_scoped_session
 
 logger = logging.getLogger(__name__)
 

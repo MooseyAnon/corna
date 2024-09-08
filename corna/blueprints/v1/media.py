@@ -6,12 +6,12 @@ from typing import List
 import flask
 from flask import request
 from flask_apispec import doc, marshal_with, use_kwargs
-from flask_sqlalchemy_session import current_session as session
 from marshmallow import Schema, fields, validate
 from werkzeug.datastructures import FileStorage
 
 from corna import enums
 from corna.controls import media_control
+from corna.oss.flask_sqlalchemy_session import current_session as session
 from corna.utils import secure, utils
 
 media = flask.Blueprint("media", __name__)
