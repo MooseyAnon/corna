@@ -124,7 +124,7 @@ class EmailTable(Base):
         primary_key=True,
     )
     password_hash = Column(
-        String(128),
+        String(256),
         doc="hash of password",
     )
     user = relationship("UserTable", uselist=False, back_populates="email")
