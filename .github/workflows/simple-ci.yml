@@ -19,7 +19,7 @@ jobs:
   pylint:
 
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -33,26 +33,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-12 postgresql-contrib
 
-      - name: Install python3.6
-        run: |
-          sudo apt-get update
-          DEBIAN_FRONTEND=noninteractive sudo apt install software-properties-common -y
-          sudo add-apt-repository ppa:deadsnakes/ppa -y
-          sudo apt-get update
-          sudo apt-get install -y libpq-dev python3.6 python3.6-dev python3.6-venv
+      - name: Install Python3.12
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.12"
 
       - name: Install Requirements
         run: |
-          /usr/bin/python3.6 -m pip install --upgrade pip
-          /usr/bin/python3.6 -m pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
       # Runs a single command using the runners shell
       - name: Run pylint
-        run: make check-pylint-main
+        run: python -m pylint corna
 
   pycodestyle:
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -66,26 +63,26 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-12 postgresql-contrib
 
-      - name: Install python3.6
-        run: |
-          sudo apt-get update
-          DEBIAN_FRONTEND=noninteractive sudo apt install software-properties-common -y
-          sudo add-apt-repository ppa:deadsnakes/ppa -y
-          sudo apt-get update
-          sudo apt-get install -y libpq-dev python3.6 python3.6-dev python3.6-venv
+      - name: Install Python3.12
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.12"
 
       - name: Install Requirements
         run: |
-          /usr/bin/python3.6 -m pip install --upgrade pip
-          /usr/bin/python3.6 -m pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
       # Runs a single command using the runners shell
       - name: Run pycodestyle
-        run: make check-pycodestyle
+        run: python -m pycodestyle corna
 
   pytests:
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -99,26 +96,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-12 postgresql-contrib
 
-      - name: Install python3.6
-        run: |
-          sudo apt-get update
-          DEBIAN_FRONTEND=noninteractive sudo apt install software-properties-common -y
-          sudo add-apt-repository ppa:deadsnakes/ppa -y
-          sudo apt-get update
-          sudo apt-get install -y libpq-dev python3.6 python3.6-dev python3.6-venv
+      - name: Install Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Install Requirements
         run: |
-          /usr/bin/python3.6 -m pip install --upgrade pip
-          /usr/bin/python3.6 -m pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
       # Runs a single command using the runners shell
       - name: Run tests
-        run: make check-tests
+        run: SQLALCHEMY_WARN_20=0 SQLALCHEMY_SILENCE_UBER_WARNING=1 python -m pytest -v
 
   isort:
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -132,22 +126,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-12 postgresql-contrib
 
-      - name: Install python3.6
-        run: |
-          sudo apt-get update
-          DEBIAN_FRONTEND=noninteractive sudo apt install software-properties-common -y
-          sudo add-apt-repository ppa:deadsnakes/ppa -y
-          sudo apt-get update
-          sudo apt-get install -y libpq-dev python3.6 python3.6-dev python3.6-venv 
+      - name: Install Python3.12
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.12"
 
       - name: Install Requirements
         run: |
-          /usr/bin/python3.6 -m pip install --upgrade pip
-          /usr/bin/python3.6 -m pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
       # Runs a single command using the runners shell
       - name: Run isort
-        run: make check-isort
+        run: python -m isort corna --check-only --diff --skip venv
 
   eslint:
 
