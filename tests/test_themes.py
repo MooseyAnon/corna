@@ -6,7 +6,7 @@ import pytest
 from corna import enums
 from corna.controls import theme_control
 from corna.db import models
-from corna.utils import image_proc, mkdir, secure, utils
+from corna.utils import encodings, image_proc, mkdir, secure, utils
 from tests.shared_data import ASSET_DIR, single_user
 
 
@@ -69,8 +69,9 @@ def create_theme_helper(client, **kwargs):
 @pytest.fixture(name="cwfc")
 def _client_with_fake_cookie(client):
     client.set_cookie(
-        "/", enums.SessionNames.SESSION.value,
-        secure.sign("I am some fake cookie")
+        path="/",
+        key=enums.SessionNames.SESSION.value,
+        value=encodings.from_bytes(secure.sign("I am some fake cookie")),
     )
     return client
 

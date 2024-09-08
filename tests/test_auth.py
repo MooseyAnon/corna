@@ -150,20 +150,13 @@ def test_login(session, client, user):
     assert resp.status_code == 200
 
     # check cookie is set correctly
-    cookie = next(
-        (
-            cookie.value
-            for cookie in client.cookie_jar
-            if cookie.name == enums.SessionNames.SESSION.value
-        ),
-        None
-    )
+    cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is not None
 
     # check database bits are saved correctly
     assert len(session.query(models.SessionTable).all()) == 1
     # unsign cookie to search for it
-    cookie = secure.decoded_message(cookie)
+    cookie = secure.decoded_message(cookie.value)
     database_cookie = (
         session
         .query(models.SessionTable)
@@ -190,20 +183,13 @@ def test_user_already_logged_in(session, client, login):
         }
     )
     assert resp.status_code == 200
-    cookie = next(
-        (
-            cookie.value
-            for cookie in client.cookie_jar
-            if cookie.name == enums.SessionNames.SESSION.value
-        ),
-        None
-    )
+    cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is not None
 
     # ensure no new sessions were created
     assert len(session.query(models.SessionTable).all()) == 1
     # unsign cookie to search for it
-    cookie = secure.decoded_message(cookie)
+    cookie = secure.decoded_message(cookie.value)
     database_cookie = (
         session
         .query(models.SessionTable)
@@ -260,15 +246,7 @@ def test_headers(mocker, client, user):
     # make sure it does not get overwritten by the after_request
     # function
     # check there is a cookies in the cookie jar
-    assert len(client.cookie_jar) > 0
-    cookie = next(
-        (
-            cookie.value
-            for cookie in client.cookie_jar
-            if cookie.name == enums.SessionNames.SESSION.value
-        ),
-        None
-    )
+    cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is not None
 
     # check if our headers are in the response headers
@@ -296,15 +274,7 @@ def test_logout(session, client, login):
     # ensure user sessions exists
     assert len(session.query(models.SessionTable).all()) == 1
     # check there is a cookies in the cookie jar
-    assert len(client.cookie_jar) > 0
-    cookie = next(
-        (
-            cookie.value
-            for cookie in client.cookie_jar
-            if cookie.name == enums.SessionNames.SESSION.value
-        ),
-        None
-    )
+    cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is not None
     # logout
     resp = client.post("/api/v1/auth/logout")
@@ -316,14 +286,7 @@ def test_logout(session, client, login):
     assert len(session.query(models.EmailTable).all()) == 1
     assert len(session.query(models.UserTable).all()) == 1
     # ensure cookie is removed
-    cookie = next(
-        (
-            cookie.value
-            for cookie in client.cookie_jar
-            if cookie.name == enums.SessionNames.SESSION.value
-        ),
-        None
-    )
+    cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is None
 
 
@@ -334,15 +297,7 @@ def test_new_session_starts_for_logged_in_user(session, client, login):
     # get session id
     first_session = session.query(models.SessionTable).all()[0].session_id
     # get cookie from cookie_jar
-    assert len(client.cookie_jar) > 0
-    first_cookie = next(
-        (
-            cookie.value
-            for cookie in client.cookie_jar
-            if cookie.name == enums.SessionNames.SESSION.value
-        ),
-        None
-    )
+    first_cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert first_cookie is not None
 
     # try to log user in
@@ -360,17 +315,9 @@ def test_new_session_starts_for_logged_in_user(session, client, login):
     assert new_session != first_session
 
     # check new cookie
-    assert len(client.cookie_jar) > 0
-    new_cookie = next(
-        (
-            cookie.value
-            for cookie in client.cookie_jar
-            if cookie.name == enums.SessionNames.SESSION.value
-        ),
-        None
-    )
+    new_cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert new_cookie is not None
-    assert new_cookie != first_cookie
+    assert new_cookie.value != first_cookie.value
 
 
 def test_token_is_valid(session, client, login):
@@ -379,20 +326,12 @@ def test_token_is_valid(session, client, login):
     assert len(session.query(models.SessionTable).all()) == 1
 
     # get cookie from cookie_jar
-    assert len(client.cookie_jar) > 0
-    cookie = next(
-        (
-            cookie.value
-            for cookie in client.cookie_jar
-            if cookie.name == enums.SessionNames.SESSION.value
-        ),
-        None
-    )
+    cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is not None
 
-    assert secure.is_valid(cookie)
+    assert secure.is_valid(cookie.value)
 
-    unsigned_cookie = secure.decoded_message(cookie)
+    unsigned_cookie = secure.decoded_message(cookie.value)
     db_cookie = session.query(models.SessionTable).all()[0].cookie_id
     assert db_cookie == unsigned_cookie
 
@@ -467,7 +406,7 @@ def test_preexisting_session_creates_restart(client, session, login):
     assert session.query(models.SessionTable).count() == 1
     prev_sesh = session.query(models.SessionTable).first().session_id
 
-    client.cookie_jar.clear()
+    client._cookies.clear()
     # ensure we are not longer logged in
     resp = client.get("/api/v1/auth/login_status")
     assert resp.status_code == 200
