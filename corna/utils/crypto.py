@@ -10,22 +10,12 @@ https://docs.ansible.com/ansible/latest/user_guide/vault.html
 # This is third-party code so skip
 # pylint: skip-file
 
-import warnings
-
-try:
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            action='ignore',
-            message='Python 3.6 is no longer supported'
-        )
-        from cryptography.hazmat.backends import default_backend
-    from cryptography.hazmat.primitives import hashes, padding
-    from cryptography.hazmat.primitives.ciphers import (
-        Cipher as C_Cipher, algorithms, modes)
-    from cryptography.hazmat.primitives.hmac import HMAC
-    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-except ImportError as error:
-    raise (error)
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, padding
+from cryptography.hazmat.primitives.ciphers import (
+    Cipher as C_Cipher, algorithms, modes)
+from cryptography.hazmat.primitives.hmac import HMAC
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
 class VaultAES256:
