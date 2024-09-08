@@ -109,7 +109,7 @@ def is_valid(domain: str) -> None:
     # ends in [A-Za-z0-9] iff there is more than one character. This is
     # because the other character could potentially be a dash. Thus this
     # regex allows for single character domains.
-    # 
+    #
     # reason for {0,17}: the domain should be 19 characters at most. This means
     # that the characters in the middle i.e. minus first and last character,
     # need to add up to 17

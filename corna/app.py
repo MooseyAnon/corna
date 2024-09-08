@@ -12,7 +12,7 @@ from flask_apispec import FlaskApiSpec
 from .blueprints import frontend, subdomain
 from .blueprints.v1 import (
     auth, corna, dummy, media, posts, roles, themes, user)
-from corna.oss.flask_sqlalchemy_session import flask_scoped_session
+from .oss.flask_sqlalchemy_session import flask_scoped_session
 
 logger = logging.getLogger(__name__)
 

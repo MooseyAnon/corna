@@ -323,12 +323,12 @@ def _construct_text_post(post: models.PostTable) -> TextPost:
     domain_name: str = post.corna.domain_name
     post_url: str = build_url(post.url_extension, domain_name, post.type)
 
-    parsed_post: TextPost = dict(
-        type=post.type,
-        created=post.created.isoformat(),
-        post_url=post_url,
-        content=post.text.content,
-    )
+    parsed_post: TextPost = {
+        "type": post.type,
+        "created": post.created.isoformat(),
+        "post_url": post_url,
+        "content": post.text.content,
+    }
 
     if post.text.title:
         parsed_post["title"] = post.text.title
@@ -359,12 +359,12 @@ def _construct_image_post(post: models.PostTable) -> ImagePost:
         for image in post.images
     ]
 
-    parsed_post: ImagePost = dict(
-        type=post.type,
-        created=post.created.isoformat(),
-        post_url=post_url,
-        image_urls=url_list
-    )
+    parsed_post: ImagePost = {
+        "type": post.type,
+        "created": post.created.isoformat(),
+        "post_url": post_url,
+        "image_urls": url_list
+    }
 
     if post.text:
         if post.text.title:

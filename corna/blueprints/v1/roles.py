@@ -1,7 +1,6 @@
 """Managing Roles."""
 
 from http import HTTPStatus
-import re
 from typing import Dict
 
 import flask
@@ -53,7 +52,7 @@ class CreateUpdateRoleSend(Schema):
         })
 
     @validates("name")
-    def validate_role_name(self, name):  # pylint: disable=no-self-use
+    def validate_role_name(self, name):
         """Ensure role name is valid.
 
         valid role name:
