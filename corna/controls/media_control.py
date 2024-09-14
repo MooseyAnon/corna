@@ -1,6 +1,7 @@
 """Control layer for dealing with media files."""
 
 import logging
+import mimetypes
 import random
 from typing import List, Optional
 
@@ -100,7 +101,7 @@ def upload(
         # way to find the mimetype of a file and more often than not will not
         # be present. In light of this, in the future we need a more robust
         # solution. Look here for more deets: https://stackoverflow.com/q/43580
-        "mime_type": image.content_type,
+        "mime_type": mimetypes.guess_type(image.filename, strict=False)[0],
         "size": size,
         "url_extension": url_extension,
     }
