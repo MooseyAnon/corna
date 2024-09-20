@@ -1,12 +1,12 @@
 # Runtime dependencies
-postgresql12
-postgresql12-contrib
-postgresql12-server
 python3.12
+postgresql13
+postgresql13-contrib
+postgresql13-server
 # Build dependencies
 gcc
 python3.12-devel
 systemd-devel
-postgresql-devel
+postgresql13-devel
 # Build tools
 make

@@ -49,10 +49,16 @@ RUN /usr/bin/python3.12 -m ensurepip && \
 # Run as unprivileged user
 USER corna-user
 
+# After installing postgresql-devel, which is a requirement to build psycopg2
+# from source, the path to pg_config location is not added to the file path.
+# pg_config is a required executable to install psycopg2, so we need to manually
+# pass the path as part of our pip install step. We set the argument here.
+ARG PG_PATH=/usr/pgsql-13/bin/
+
 # install requirements before copying over source to make rebuilds
 # quicker in future i.e. source code moves faster than requirements
 COPY requirements.txt ./
-RUN /usr/bin/python3.12 -m pip install --user -r requirements.txt
+RUN PATH=$PATH:${PG_PATH} /usr/bin/python3.12 -m pip install --user -r requirements.txt
 
 # copy over source and set permissions
 COPY --chown=corna-user:corna-user \
