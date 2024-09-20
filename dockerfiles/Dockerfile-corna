@@ -1,4 +1,4 @@
-FROM centos:7.5.1804
+FROM rockylinux:9
 
 # Print commands as they are executed
 SHELL ["bash", "-xc"]
