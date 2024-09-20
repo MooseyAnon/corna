@@ -25,6 +25,17 @@ ARG GID=1000
 RUN groupadd -g ${GID} corna-user && \
     useradd -u ${UID} -g ${GID} corna-user
 
+# update yum
+RUN yum -y update && yum clean all && \
+    # We're seeing issues with installing postgresql-devel as it is dependant
+    # on a package called perl-IPC-Run which is annoyingly not available in
+    # either of the epel or extra rocky repos. On top of that, the base container
+    # does not come with dnf/yum config-manager so we have to install it directly
+    # here because our yum install step is what does the postgresql-devel install
+    # more info:
+    #   https://fluca1978.github.io/2024/02/08/PostgreSQL16DevPerlIPCRun.html
+    yum --enablerepo=crb install -y perl-IPC-Run
+
 # Install system dependencies
 COPY yum-deps yum-repos ./
 RUN grep -v ^# yum-repos | xargs -rt yum install -y && \
