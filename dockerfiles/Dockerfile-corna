@@ -42,7 +42,9 @@ RUN grep -v ^# yum-repos | xargs -rt yum install -y && \
     grep -v ^# yum-deps | xargs -rt yum install -y && \
     yum clean all
 
-RUN /usr/bin/python3.6 -m pip install --upgrade pip
+# install pip for python3.12
+RUN /usr/bin/python3.12 -m ensurepip && \
+    /usr/bin/python3.12 -m pip install --upgrade pip
 
 # Run as unprivileged user
 USER corna-user
@@ -50,7 +52,7 @@ USER corna-user
 # install requirements before copying over source to make rebuilds
 # quicker in future i.e. source code moves faster than requirements
 COPY requirements.txt ./
-RUN /usr/bin/python3.6 -m pip install --user -r requirements.txt
+RUN /usr/bin/python3.12 -m pip install --user -r requirements.txt
 
 # copy over source and set permissions
 COPY --chown=corna-user:corna-user \
