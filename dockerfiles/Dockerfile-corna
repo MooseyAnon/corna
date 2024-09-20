@@ -10,8 +10,10 @@ ENV \
 
 # Configure locale
 ARG LOCALE=en_GB.utf8
-RUN yum-config-manager \
-        --setopt override_install_langs=${LOCALE} \
+# we need to install language packs as they're no longer a part of RHEL 8 and
+# above by default.
+RUN yum install -y langpacks-en glibc-all-langpacks && \
+    yum --setopt override_install_langs=${LOCALE} \
         --setopt skip_missing_names_on_install=False \
         --save >/dev/null
 ENV LANG=${LOCALE} \
