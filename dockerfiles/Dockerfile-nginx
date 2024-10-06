@@ -6,4 +6,4 @@ COPY --chmod=600 tmp_private.pem /etc/nginx/key.pem
 COPY nginx.conf /etc/nginx/conf.d/corna.nginx.conf
 
 COPY frontend/public /www/static
-COPY themes/ /themes/static
+COPY themes/ /www/static

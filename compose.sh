@@ -18,13 +18,53 @@ help() {
 }
 
 
-ci() {
-    if ! docker compose run --rm corna make check; then
-        echo "CI: FAILED!"
-        cleanup
+remove_certs() {
+    # get rid of the certs during clean up, this prevents leaking
+    for file in "fullchain" "private"; do
+        local full_name="tmp_${file}.pem"
+        if [ -f "${full_name}" ]; then
+            rm "${full_name}"
+        fi
+    done
+}
+
+
+ensure_venv() {
+    # create a venv with the correct version of python, if not already existing
+    echo "checking for venv"
+    if [ ! -d "${PROJECT_ROOT}/venv" ]; then
+        echo "creating venv"
+        "${PYTHON}" -m venv venv
+        "${PROJECT_ROOT}/venv/bin/python" -m pip install --upgrade pip
+    fi
+}
+
+
+tmp_cert() {
+    # we want to have a temp copy for the ssl certs for local development
+    echo "saving tmp certs"
+
+    # filename to save cert to
+    local filename="${PROJECT_ROOT}/tmp_${1}.pem"
+
+    # file does not already exist so we need to create it
+    if [ ! -f "${filenmae}" ]; then 
+
+        ensure_venv  # ensure we have a venv
+
+        ANSIBLE_VAULT_PATH="${PROJECT_ROOT}/corna/utils/vault" \
+        ANSIBLE_VAULT_PASSWORD_FILE="${ANSIBLE_VAULT_PASSWORD_FILE}" \
+        venv/bin/python -c \
+            "import corna.utils as utils; print(utils.vault_item('keys.ssl-certs.${1}'))" \
+            >> "${filename}"
+    fi
+
+    if [[ ! $? -eq 0 ]]; then
+        echo "Error running vault for ${1} key"
         exit 1
     fi
-    echo "CI: PASSED!"
+
+    chmod 600 "${filename}"
 }
 
 
@@ -46,6 +86,10 @@ compose() {
 
 build() {
     local opt="${1}"
+
+    # create tmp certs
+    tmp_cert "fullchain"
+    tmp_cert "private"
 
     if [[ "${opt}" = "both" ]]; then
         docker compose up -d --build
@@ -93,6 +137,8 @@ cleanup() {
             rm $file
         fi
     done
+
+    remove_certs
 }
 
 trap cleanup SIGINT
@@ -144,6 +190,9 @@ EOT
 rsync \
     --chmod=Fu=rw \
     "${ANSIBLE_VAULT_PASSWORD_FILE}" .vault-password
+
+# pin current version python we are using
+PYTHON=python3.12
 
 run
 # clean up
