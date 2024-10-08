@@ -84,4 +84,11 @@ COPY --chown=corna-user:corna-user \
     setup.cfg \
     /home/corna-user/workspace/
 
+# copy vault pwd
+COPY \
+    --chown=corna-user:corna-user \
+    --chmod=0400 \
+    .vault-password \
+    /run/secrets/vault_password
+
 WORKDIR /home/corna-user/workspace
