@@ -97,23 +97,29 @@ function addEventListeners(): void {
         resetMessages();
 
         if (event.dataTransfer){
-            imagePreview(event.dataTransfer.files);
+            mediaFilePreview(event.dataTransfer.files);
         }
     });
 
     stateManager.formControls.inputFile.addEventListener("change", function() {
         // reset
         resetMessages()
-        imagePreview(stateManager.formControls.inputFile.files);
+        mediaFilePreview(stateManager.formControls.inputFile.files);
     });
 }
 
 
+/**
+ * Given a urlExtension build an image element to pull it from server.
+ * 
+ * @param { string } urlExtension: The url of the image
+ * @param { string[] } classList: A list of CSS classes to add to new element
+ * @returns { HTMLImageElement }
+ */
 function buildImgTag(
     urlExtension: string,
     classList: string[] = [],
 ): HTMLImageElement {
-    /* Given a urlExtension build an image element to pull it from server. */
     
     const srcUrl: string = `${getApiUrl()}/v1/media/download/${urlExtension}`;
     const img = createImageElement(classList, srcUrl) as HTMLImageElement;
@@ -129,6 +135,13 @@ function buildImgTag(
 }
 
 
+/**
+ * Given a urlExtension build an video element to pull it from server.
+ * 
+ * @param { string } urlExtension: The url of the video
+ * @param { string[] } classList: A list of CSS classes to add to new element
+ * @returns { HTMLVideoElement }
+ */
 function buildVideoTag(
     urlExtension: string,
     classList: string[] = [],
@@ -143,8 +156,17 @@ function buildVideoTag(
 }
 
 
-function uploadImage(image: File): AxiosPromise {
-    /* Make image upload request to server. */
+/**
+ * Make image upload request to server.
+ * 
+ * We need to do this because we want users to be able to preview the image
+ * before the create a post. If the user cancels midway, unused images will
+ * be cleaned up on the server.
+ * 
+ * @param { File } image: image file to upload
+ * @returns { AxiosPromise }
+ */
+function uploadMediaFile(image: File): AxiosPromise {
 
     const fileType: string = image.type.split("/")[0]
     const urlExtension: string = "v1/media/upload";
@@ -157,10 +179,14 @@ function uploadImage(image: File): AxiosPromise {
 }
 
 
-function imagePreview(files: FileList | null): void {
-    if (!files || !filesValid(files)) {
-        return;
-    }
+/**
+ * Create media file preview.
+ * 
+ * @param { FileList } files: list of files to create preview for
+ * @returns { void }
+ */
+function mediaFilePreview(files: FileList | null): void {
+    if (!files || !filesValid(files)) return;
 
     const sliderContainer = document.createElement("div") as HTMLDivElement;
     sliderContainer.id = "slider-container";
@@ -170,7 +196,7 @@ function imagePreview(files: FileList | null): void {
         const file: File = files[i];
         const fileType: string = file.type.split("/")[0]
 
-        uploadImage(file)
+        uploadMediaFile(file)
         .then((response: AxiosResponse) => {
             const imageData = response.data;
             const urlExtension: string = imageData.url_extension;
@@ -195,13 +221,21 @@ function imagePreview(files: FileList | null): void {
 }
 
 
+/**
+ * Try make after post cleanup sexy - thats what she said.
+ * 
+ * @param { boolean } successful: whether post was successful or not
+ * @returns { void }
+ */
 function afterPostCleanUp(successful: boolean): void {
 
     setTimeout(() => {
+        // this closes the window in an oldschool tv style way - from top to bottom
         stateManager.cardContainer.classList.add("dropped");
     }, 700);
 
     setTimeout(() => {
+        // this removes the entire card after the form (above) as been closed
         stateManager.bodyLargeContainer[0]!.classList.remove("clicked");
         stateManager.cardContainer.classList.remove("dropped");
 
@@ -213,6 +247,7 @@ function afterPostCleanUp(successful: boolean): void {
 }
 
 
+/* submit post */
 function post(): void {
     /*
     * Traditionally you would not want to use innerText because
@@ -225,8 +260,24 @@ function post(): void {
     * any more but for not it should be fine as this gets called only
     * once during the post creation process.
     */
-    const content: string | null = stateManager.formControls.formFields.editor.editorConfig.modalContent.textContent;
-    const innerHtml: string | null = stateManager.formControls.formFields.editor.editorConfig.modalContent.innerHTML;
+    const content: string | null = (
+        stateManager
+        .formControls
+        .formFields
+        .editor
+        .editorConfig
+        .modalContent
+        .textContent
+    );  // this is probs too long - she defo did not say this
+    const innerHtml: string | null = (
+        stateManager
+        .formControls
+        .formFields
+        .editor
+        .editorConfig
+        .modalContent
+        .innerHTML
+    );
 
     if (stateManager.postType === "text" && (!content || !innerHtml)) {
         resetMessages();
@@ -328,7 +379,7 @@ function init(type: string, domainName_: string): StateManager {
 
 
 export function createPostTest(postType: string, domainName: string | null): void {
-    if (!domainName) { return; }
+    if (!domainName) return;
 
     stateManager = init(postType, domainName as string);
     addEventListeners();

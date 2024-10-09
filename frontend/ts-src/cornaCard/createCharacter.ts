@@ -30,11 +30,18 @@ interface CharacterCreateElements {
 }
 
 
+/**
+ * Event listeners for creating a new character.
+ * 
+ * The main functionality here is selecting the character "skills" and
+ * giving the character a name.
+ */
 function character() {
 
     stateManager.characterNameInput.value = "";
     stateManager.chosenIdentifer.textContent = "";
     stateManager.skills.forEach((skill) => {
+        // reset all skills to unselected
         skill.classList.remove("activeSelection");
     });
 
@@ -44,14 +51,18 @@ function character() {
     });
 
     // skills event listeners
+    // toggle selection and add/remove from selected skills list
     stateManager.skills.forEach((skill: HTMLDivElement) => {
         skill.addEventListener("click", function () {
+
+            // remove highlighting from a previously highlighted skill selection
             if (this.classList.contains("activeSelection")) {
                 this.classList.remove("activeSelection");
+
                 const index = stateManager.selectedSkills.indexOf(this.textContent!);
-                if (index !== -1) {
-                    stateManager.selectedSkills.splice(index, 1);
-                }
+                if (index !== -1) stateManager.selectedSkills.splice(index, 1);
+
+            // add newly selected skill
             } else {
                 stateManager.selectedSkills.push(skill.textContent!);
                 this.classList.add("activeSelection");
@@ -61,14 +72,27 @@ function character() {
 }
 
 
+/**
+ * Add event listeners for submit button and selecting character icons.
+ *
+ * I identifier icons are essentially gimmicky little icons associated with each
+ * character. A character can only have one of them so most of the logic inside
+ * the loops is making sure that there is only one icon selected.
+ */
 function addEventListeners() {
+    // submit button
     stateManager.createCharacterButton.addEventListener("click", submitCharacter);
+
     //Allow for selection of identifier and highlight the selected one
     stateManager.identifierOptions.forEach((option) => {
         option.addEventListener("click", function () {
+            // if an icon is selected, deselect other icons
+            // this implementation means as soon as one icon is pressed it can
+            // only be "unselected" by clicking another icon
             stateManager.chosenIdentifer.textContent = option.textContent;
             option.classList.add("activeSelection");
 
+            // Deselect any other clicked icons
             stateManager.identifierOptions.forEach((otherOption) => {
                 if (otherOption !== option) {
                     otherOption.classList.remove("activeSelection");
@@ -87,20 +111,21 @@ function addEventListeners() {
  */
 function isValid(characterName: string): boolean {
     const hasErrd: boolean = !characterName || !characterName.trim()
-    if (hasErrd) {
-        displayErrorMessage("Character needs to be given a name.")
-    }
+    if (hasErrd) displayErrorMessage("Character needs to be given a name.");
     // we want to return the inverse of whatever `hasErrd` is.
     return !hasErrd
 }
 
 
+/**
+ * Create a new Character
+ */
 function submitCharacter() {
 
     // clear any messages
     resetMessages();
 
-    if (!isValid(stateManager.characterNameInput.value)) { return; }
+    if (!isValid(stateManager.characterNameInput.value)) return;
 
     const data = {
         "domain_name": stateManager.domainName,
@@ -147,7 +172,7 @@ function elementsInit(domainName_: string): CharacterCreateElements {
 
 
 export function createCharacter(domainName: string | null) {
-    if (!domainName) { return; }
+    if (!domainName) return;
 
     stateManager = elementsInit(domainName as string);
     addEventListeners();

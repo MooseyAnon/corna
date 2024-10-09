@@ -14,7 +14,6 @@ import {
     handlePromise,
     hasCapitalLetter,
     hasDigit,
-    hasSpace,
     isEmail,
     spaceAtStart,
     spaceAtEnd
@@ -171,7 +170,9 @@ function isValidPassword(
  * @returns { boolean }: true if domain name is valid
  */
 function isValidDomainName(domainName: string): boolean {
-    const matchPattern: RegExp = /^[A-Za-z0-9](?:[A-Za-z0-9\-]{0,17}[A-Za-z0-9])?$/
+    // must start and end with a letter, can have dashes in the middle and can only
+    // be at most 19 characters
+    const matchPattern: RegExp = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,17}[A-Za-z0-9])?$/
     const hasErrd: boolean = !domainName || !matchPattern.test(clean(domainName));
 
     if (hasErrd) {

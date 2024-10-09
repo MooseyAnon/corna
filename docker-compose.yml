@@ -74,7 +74,3 @@ services:
 networks:
   backend-network:
     driver: bridge
-
-secrets:
-  vault_password:
-    file: ./.vault-password

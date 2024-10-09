@@ -31,18 +31,15 @@ remove_certs() {
 
 ensure_venv() {
     # create a venv with the correct version of python, if not already existing
-    echo "checking for venv"
     if [ ! -d "${PROJECT_ROOT}/venv" ]; then
-        echo "creating venv"
         "${PYTHON}" -m venv venv
-        "${PROJECT_ROOT}/venv/bin/python" -m pip install --upgrade pip
+        "${PROJECT_ROOT}/venv/bin/python" -m pip install --upgrade pip &> /dev/null
     fi
 }
 
 
 tmp_cert() {
     # we want to have a temp copy for the ssl certs for local development
-    echo "saving tmp certs"
 
     # filename to save cert to
     local filename="${PROJECT_ROOT}/tmp_${1}.pem"
