@@ -49,6 +49,33 @@ RUN /usr/bin/python3.12 -m ensurepip && \
 # Run as unprivileged user
 USER corna-user
 
+# Copy vault pwd.
+#
+# ok, so this is kind of fucked but it makes development so much faster. Docker
+# compose secrects are so shit and dont work after you rebuild the container
+# completely defeating the whole point of zero downtime container replacement.
+# What about security, I hear you ask?
+# Well firstly, copying over the pwd as a file does not leave any fragments in
+# the container layers, so nothing comes up if you run `docker inspect`.
+# Secondly, there are several layers of security, so if someone reaches the point
+# that they can run `docker` commands on the container, we've either let them or
+# we're already fucked.
+#
+# What are said layers?
+# - Only root accounts can give docker permissions (we only have on root account)
+#    even `cornauser` (on servers) is not root
+# - corna user is password protected and is not ssh-able (you have to go via
+#    root account)
+# - the pwd is not on any severs, we only run built containers from our registry
+#
+# this is a temp solution till we grow up and use k8s like the cool kids as it
+# has proper secrets management and can sidecar the pwd in at build time
+COPY \
+    --chown=corna-user:corna-user \
+    --chmod=0400 \
+    .vault-password \
+    /run/secrets/vault_password
+
 # After installing postgresql-devel, which is a requirement to build psycopg2
 # from source, the path to pg_config location is not added to the file path.
 # pg_config is a required executable to install psycopg2, so we need to manually
