@@ -210,7 +210,7 @@ tag_and_push_nginx_container() {
 TAG=${1}
 # PROJECT_ROOT is an envvar
 DOCKERFILES=$PROJECT_ROOT/dockerfiles
-PYTHON=python3.6
+PYTHON=python3.12
 
 
 build() {
