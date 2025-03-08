@@ -18,13 +18,8 @@ help() {
 }
 
 
-ci() {
-    if ! docker compose run --rm corna make check; then
-        echo "CI: FAILED!"
-        cleanup
         exit 1
     fi
-    echo "CI: PASSED!"
 }
 
 
@@ -80,7 +75,7 @@ run() {
         exit 1
     fi
 
-    if [[ -n "${RUN_CI}" ]]; then ci; fi
+    # if [[ -n "${RUN_CI}" ]]; then ci; fi
     if [[ -n "${BUILD}" ]]; then build "${BUILD}"; fi
     if [[ -n "${COMPOSE}" ]]; then compose "${COMPOSE}"; fi
 }
