@@ -32,9 +32,14 @@ interface Character {
 }
 
 
+// these are placeholder icons for characters. In the future users will be
+// able to create custom characters
 const identiferIcons: string[] = ["🪄", "🎀", "⛑️", "🎩"]
 
 
+/**
+ * Build character DOM elements for any pre-existing characters user has created.
+ */
 export async function characters() {
     const charactersContainer = document.getElementById("charactersContainer") as HTMLDivElement;
     const roles: Role[] = await getCharacterList();
@@ -62,12 +67,16 @@ export async function characters() {
 }
 
 
+/**
+ * For a single character create DOM element and event listeners/targets.
+ */
 function buildCharacter(permission: Character): HTMLDivElement {
     const character = createDivElement(["character"]) as HTMLDivElement;
     const identifier = createDivElement(["characterIdentifer"]) as HTMLDivElement;
     const characterName = createDivElement(["characterName"]) as HTMLDivElement;
     const pill = createDivElement(["pill"]) as HTMLDivElement;
 
+    // set HTMX attributes for new element
     character.setAttribute("hx-get", "cornaCore/characterCard"); // Example URL, replace with your actual endpoint
     character.setAttribute("hx-trigger", "click");
     character.setAttribute("hx-target", "#permissionsContainer");
@@ -95,22 +104,24 @@ function buildCharacter(permission: Character): HTMLDivElement {
 }
 
 
+/**
+ * Display information for a given character.
+ * 
+ * @param { Character } permissions: the character and permission information
+ */
 function characterInfor(permission: Character) {
-    const memberButton = document.getElementById("addMemeber");
-
+    // grab all elements needed to update
     const headerCopy = document.getElementById("modalHeaderCopy") as HTMLDivElement;
-    headerCopy.textContent = "YOUR CHARACTER";
-
     const membersDetails = document.getElementById("membersDetails") as HTMLDivElement;
-    const identifierDetails = document.getElementById("identifierDetails") as HTMLDivElement;
-
     const characterCardName = document.getElementById("characterCardName") as HTMLDivElement;
-    characterCardName.textContent = permission.name;
-
     const characterIdentifer = document.getElementById("characterIdentifer") as HTMLDivElement;
+    const skills = document.getElementById("skills") as HTMLDivElement;
+
+    headerCopy.textContent = "YOUR CHARACTER";
+    characterCardName.textContent = permission.name;
     characterIdentifer.textContent = permission.identifier;
 
-    const skills = document.getElementById("skills") as HTMLDivElement;
+    // Add a DOM element for each skill the character has
     for (let i = 0; i < permission.skill.length; i++) {
         const skillElement = createDivElement(["value"]);
         skillElement.textContent = permission.skill[i];
@@ -118,12 +129,18 @@ function characterInfor(permission: Character) {
         skills.appendChild(skillElement);
     }
 
+    // Add initials of members with the current character so it can be browsed
     for (let i = 0; i < permission.member.length; i++) {
         const memberElement = createDivElement(["member"]);
+        const deleteButton = createDivElement(["deleteMemeber"]);
 
         const fullname = permission.member[i]
-        const initals = fullname.split(" ").map((part: any) => part.charAt(0)).join("");
+        const initals = fullname.split(" ").map((part: string) => part.charAt(0)).join("");
+
         memberElement.textContent = initals;
+
+        deleteButton.textContent = "remove";
+        deleteButton.style.display = "none";
 
         memberElement.addEventListener("mouseover", function() {
             deleteButton.style.display = "flex";
@@ -133,15 +150,11 @@ function characterInfor(permission: Character) {
             deleteButton.style.display = "none";
         });
 
-        const deleteButton = createDivElement(["deleteMemeber"]);
-        deleteButton.textContent = "remove";
-        deleteButton.style.display = "none";
-        memberElement.appendChild(deleteButton);
-
         deleteButton.addEventListener("click", function() {
-            console.log(`deleting the member: ${fullname}`);
+            console.log(`deleting the member: ${fullname}`);  // eslint-disable-line no-console
         });
 
+        memberElement.appendChild(deleteButton);
         membersDetails.appendChild(memberElement);
     }
 }
@@ -159,7 +172,9 @@ async function getCharacterList(): Promise<Role[]> {
         request("v1/user/roles/created")) as RRT;
 
     if (response) {
+        // sloppy late definition of the role data type
         type RoleData = { roles: Array<{ domain_name: string, name: string }> };
+
         const roleData: RoleData = response.data;
         for (let i = 0; i < roleData.roles.length; i++ ) {
             const role: { domain_name: string, name: string } = roleData.roles[i];
@@ -171,7 +186,7 @@ async function getCharacterList(): Promise<Role[]> {
         }
     }
 
-    else if (error) {
+    if (error) {
         const errMsg: string = handleNetworkError(error);
         displayErrorMessage(errMsg);
 

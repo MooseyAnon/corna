@@ -1,4 +1,20 @@
-/* Handle nav bar functionality */
+/* Handle nav bar functionality 
+
+This is the main entry point for the 'control panel' of Corna i.e. the
+sidebar. At its core this is a 'single page application' of multiple views
+powered by HMTX.
+
+This script holds centralised data needed by different HTMX components, while
+also listening for `htmx-swap` events in in order to trigger the related JS for
+said component.
+
+There are probably better ways of using HTMX (components are too large and
+we're doing stuff in JS that could be handled by HTML natively e.g. forms) but
+we suck at frontend so thats how things work at this current moment.
+
+This file gets linked into `cornaCard.html` which is where all the swaps take
+place - grep for `content`, thats the div that holds swapped components.
+*/
 
 import {
     RequestReturnType as RRT,
@@ -144,6 +160,19 @@ function updateNavigation(): void {
  * Typically each event requires use to swap in and/or out some snippet of
  * HTML code.
  * 
+ * The calling order of the swaps is as follows (look in comments for html
+ * file path):
+ *   - CornaCore -> children:
+ *      - signin
+ *      - register
+ *      - post -> children:
+ *          - text post
+ *          - video post
+ *          - image post
+ *      - cornaCard -> children:
+ *          - (character) permissions
+ *          - (character) creator
+ * 
  * @param { Event } event: A HTMX event
  * @returns { Promise<void> }
  */
@@ -157,25 +186,38 @@ async function processSwaps(event: Event): Promise<void> {
 
     const target = event.target as HTMLElement;
 
+    // this swaps in html/signin.html
     if (target.matches("#signInContainer")) {
+        // We pass in the refereshNav callback because we need to ensure we
+        // call the user information endpoint, but only after the user has
+        // successfully logged in or registered.
         login(refreshNav);
-        // bellow does not work because we need the system to call the update
-        // only after the loging/register button has been clicked
 
-        // await refreshLoginStatus();
-        // updateNavigation();
+    // this swaps in html/register.html
     } else if (target.matches("#registerContainer")) {
         await processNewUser();
+
+    // this swaps in html/cornaCard.html
     } else if (target.matches("#cornaCardContainer")) {
         cornaCardInit();
+
+    // this swaps in html/permissions.html
     } else if (target.matches("#permissionsContainer")) {
         await characters();
+
+    // this swaps in html/characterCreator.html
     } else if (target.matches("#characterCreator")) {
         createCharacter(state.domainName);
+
+    // this swaps in textModal.html
     } else if (target.matches("#textModal")) {
         createPostTest("text", state.domainName);
+
+    // this swaps in imageModal.html
     } else if (target.matches("#imageModal")) {
         createPostTest("picture", state.domainName);
+
+    // this swaps in videoModal.html
     } else if (target.matches("#videoModal")) {
         createPostTest("video", state.domainName);
     }
