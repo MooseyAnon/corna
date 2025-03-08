@@ -3,6 +3,8 @@
 .gitignore
 .gitattributes
 
+# MacOS
+._*
 
 # CI
 .codeclimate.yml

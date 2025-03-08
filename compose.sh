@@ -88,6 +88,7 @@ build() {
     tmp_cert "fullchain"
     tmp_cert "private"
 
+    make clean-macos
     if [[ "${opt}" = "both" ]]; then
         docker compose up -d --build
     else
