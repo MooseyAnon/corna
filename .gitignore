@@ -19,6 +19,7 @@ framedebug__*.png
 user_config.py
 venv/
 node_modules/
+._*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
