@@ -23,27 +23,36 @@
         <img src="./static/windowcil-98/images/bug-outline.svg" alt="Close" class="nav-icon" />
       </div>
     </nav>
+
+    <!-- homepage -->
     <main class="grid-container">
       {% for post in PostList %}
-      <div id="{{ post.href }}" class="post-container">
+      <div id="{{ post.href }}" class="post-container uuid_{{ post.uuid }}">
         {% if post.type == "text" %}
         <img
           id="{{ post.href }}"
           src="./static/windowcil-98/images/Text.png"
-          alt="File"
+          alt="text post"
           class="post-icon clickable-text-element"
         />
           {% if post.title %}
-          <p id="{{ post.href }}" class="clickable-text-element">{{ post.title[:7] }}...</p>
+          <p id="{{ post.href }}" class="clickable-text-element">
+          {{ post.title }}</p>
           {% endif%}
         {% elif post.type == "picture" %}
         <img
           src="./static/windowcil-98/images/Picture.png"
-          alt="Picture"
+          alt="picture post"
+          class="post-icon clickable-picture-element"
+        />
+        {% elif post.type == "video" %}
+        <img
+          src="./static/windowcil-98/images/video.png"
+          alt="video post"
           class="post-icon clickable-picture-element"
         />
           {% if post.title %}
-          <p class="clickable-picture-element">{{ post.title[:7] }}...</p>
+          <p class="clickable-picture-element">{{ post.title }}</p>
           {% endif %}
         {% endif %}
       </div>
@@ -51,12 +60,16 @@
       {% endfor %}
       </main>
 
+    {% for post in PostList %}
     <!-- ///////////////////////////// text modal //////////////////////// -->
-    <div class="text-modal">
+    {% if post.type == "text" %}
+    <div id="{{ post.uuid }}"class="text-modal">
       <div class="modal-header-container">
           <div class="modal-title">
               <img src = "./static/windowcil-98/images/Text.png" alt="Minimize" class="modal-icon"/>
-              <p>PLACEHOLDER</p>
+              {% if post.title %}
+              <p>{{ post.title }}</p>
+              {% endif %}
           </div>
           <div class="modal-navigation">
               <p class="modal-nav-minimise-icon">__</p>
@@ -65,21 +78,29 @@
       </div>
       <div class="modal-text-content-container">
           <div class="article">
-          <div class="text-image-container"><img src="./static/windowcil-98/images/Dummyimage.jpg" class="text-banner"></div>
-          <!-- <h1>Title of this article</h1>
-          <p>It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum</p>
-          </div> -->
+          <div class="text-image-container">
+            {% if post.images | length > 0 %}
+            <img src="{{ post.images[0] }}" class="text-banner">
+            {% else %}
+            <img src="./static/windowcil-98/images/Dummyimage.jpg" class="text-banner">
+            {% endif %}
+          </div>
+          {{ post.content }}
       </div>
     </div>
   </div>
+  {% endif %}
 
 
     <!-- /////////////////////////// picture modal ///////////////////// -->
-    <div class="picture-modal">
+    {% if post.type == "picture" %}
+    <div id="{{ post.uuid }}" class="picture-modal">
       <div class="modal-header-container">
   <div class="modal-title">
       <img src = "./static/windowcil-98/images/Inverted-picture.png" alt="Minimize" class="modal-icon"/>
-      <p>This is a picture modal</p>
+      {% if post.title %}
+      <p>{{ post.title }}</p>
+      {% endif %}
   </div>
   <div class="modal-navigation">
       <p class="modal-nav-minimise-icon">__</p>
@@ -87,7 +108,9 @@
   </div>
 </div>
 <div class="modal-picture-content-container">
-<img src = "./static/windowcil-98/images/Imageplaceholder.avif" alt="main image" class="picture-container"/>
+{% for image_src in post.images %}
+<img src ="{{ image_src }}" alt="main image" class="picture-container"/>
+{% endfor %}
 </div>
 <div class="pallette">
   <div class="selectedColour">
@@ -112,11 +135,61 @@
       <div style="background-color: darkslateblue; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
       <div style="background-color: darkturquoise; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
       <div style="background-color: darkgreen; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-      <div style="background-color: rgb(173, 0, 46); box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
-
+      <div style="background-color: rgb(173, 0, 46); box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>
   </div>
 </div>
     </div>
+    {% endif %}
+
+    <!-- ////////////////////////// video post /////////////////////////// -->
+    {% if post.type == "video" %}
+    <div id="{{ post.uuid }}" class="picture-modal">
+      <div class="modal-header-container">
+  <div class="modal-title">
+      <img src = "./static/windowcil-98/images/Inverted-picture.png" alt="Minimize" class="modal-icon"/>
+      {% if post.title %}
+      <p>{{ post.title }}</p>
+      {% endif %}
+  </div>
+  <div class="modal-navigation">
+      <p class="modal-nav-minimise-icon">__</p>
+      <p class="modal-nav-close-icon closeTextModalIcon" id="closePictureModalIcon" alt="close">&times;</p>
+  </div>
+</div>
+<div class="modal-picture-content-container">
+{% for image_src in post.images %}
+<video src ="{{ image_src }}" alt="main image" class="picture-container"/>
+{% endfor %}
+</div>
+<div class="pallette">
+  <div class="selectedColour">
+      <div class="backgroundcolour"></div>
+      <div class="pickedcolour"></div>
+  </div>
+  <div class="colourPallette">
+      <div style="background-color: aqua; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292; width: 32px;"></div>                                                                                                                        
+      <div style="background-color: darkblue; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: darkcyan; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                                            
+      <div style="background-color: darkgoldenrod; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: orchid; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: blueviolet; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color:brown; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: chartreuse; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: chocolate; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: black; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: deeppink; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: burlywood; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color:gold; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: pink; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: darkslateblue; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: darkturquoise; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: darkgreen; box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>                                                                                                                        
+      <div style="background-color: rgb(173, 0, 46); box-shadow: inset 3px 3px 0px 0px rgb(43 43 43); border-radius: 1px; border: 2px outset #929292;"></div>
+  </div>
+</div>
+    </div>
+    {% endif %}
+    {% endfor %}
 
 
     <!-- ////////////////////////// folder modal /////////////////////// -->

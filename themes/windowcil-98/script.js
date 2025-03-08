@@ -6,9 +6,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (domainList.length > 0) {
     subdomain = domainList[0];
   }
-  clickListener(document, "clickable-text-element", textModal);
-  // clickListener(document, "clickable-picture-element", pictureModal);
-  clickListener(document, "clickable-folder-element", folderModal);
+
+
+  // clickListener(document, "clickable-text-element", textModal);
+  clickListener(document, "post-container", pictureModal);
+  // clickListener(document, "clickable-folder-element", folderModal);
 
 });
 
@@ -169,19 +171,36 @@ function createModal(data) {
 }
 
 
-function pictureModal() {
-  _ = document.getElementsByClassName("picture-modal")[0];
+function pictureModal(el) {
+  // _ = document.getElementsByClassName("picture-modal")[0];
+  let uuidLong = null;
+  console.log(el.classList)
+  for (let i = 0; i < el.classList.length; i++) {
+    className = el.classList[i];
+    if (className.includes("uuid_")) {
+      uuidLong = className;
+    }
+  }
+  console.log(uuidLong);
+  if (!uuidLong) {
+    console.error("Unable to find modal to open");
+    return;
+  }
+  
+  uuid = uuidLong.split("_")[1];
+
+  let modEl = document.getElementById(uuid);
 
   const popupWidth = 630; // Width of the modal.
   const popupHeight = 400; // Height of the modal.
 
-  addDisplay(_, popupWidth, popupHeight);
+  addDisplay(modEl, popupWidth, popupHeight);
 }
 
 
 function addDisplay(el, width, height, ret=false) {
 
-  el = _.cloneNode(true);
+  el = el.cloneNode(true);
   var className = el.className.split(" ")[0];
 
   el.className = "";
@@ -220,7 +239,10 @@ function clickListener(el, className, method) {
 
   for (let i = 0; i < clickableElement.length; i++) {
     const element = clickableElement[i];
-    element.addEventListener("click", method);
+    element.addEventListener("click", function() {
+      console.log(this);
+      method(this);
+    });
   }
 }
 
