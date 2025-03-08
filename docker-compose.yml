@@ -33,8 +33,6 @@ services:
       - "${PICTURE_DIR}:/var/www/assets:rw"
     networks:
       - backend-network
-    secrets:
-      - vault_password
     restart: always
     healthcheck:
       # this is temp, we'll change this to a proper health
@@ -76,7 +74,3 @@ services:
 networks:
   backend-network:
     driver: bridge
-
-secrets:
-  vault_password:
-    file: ./.vault-password
