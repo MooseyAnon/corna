@@ -4,6 +4,7 @@ flask
 flask-apispec
 freezegun
 furl
+greenlet
 gunicorn
 isort
 mock
