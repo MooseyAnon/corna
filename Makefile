@@ -5,21 +5,35 @@ export SQLALCHEMY_SILENCE_UBER_WARNING=1
 PYTHON := python3.12
 current_dir := $(shell pwd)
 
+# Set python path based on OS. Currently, makefile does not work
+# for local development
+OS := $(shell uname -s)
+# use virtualenv if we're doing local development on MacOs
+ifeq ($(OS), Darwin)
+	PY_BIN := $(current_dir)/venv/bin
+	# Set postgres flags for binaries and linking on MacOS
+	export LDFLAGS="-L/opt/homebrew/opt/postgresql@13/lib"
+	export CPPFLAGS="-I/opt/homebrew/opt/postgresql@13/include"
+else
+	# set default for containers
+	PY_BIN := /usr/bin
+endif
+
 check: check-coding-standards check-tests
 
 check-coding-standards: check-pylint-main check-isort check-pycodestyle
 
 check-pylint-main:
-	/usr/bin/$(PYTHON) -m pylint corna
+	$(PY_BIN)/$(PYTHON) -m pylint corna
 
 check-pycodestyle:
-	/usr/bin/$(PYTHON) -m pycodestyle corna
+	$(PY_BIN)/$(PYTHON) -m pycodestyle corna
 
 check-isort:
-	/usr/bin/$(PYTHON) -m isort corna --check-only --diff --skip venv
+	$(PY_BIN)/$(PYTHON) -m isort corna --check-only --diff --skip venv
 
 check-tests:
-	/usr/bin/$(PYTHON) -m pytest -v
+	$(PY_BIN)/$(PYTHON) -m pytest -v
 
 node_modules:
 	test -d $(current_dir)/frontend/node_modules || npm install \
