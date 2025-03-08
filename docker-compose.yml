@@ -28,7 +28,7 @@ services:
       - "CORNA_PORT=${CORNA_PORT}"
       - "PICTURE_DIR=/var/www/assets"
       - "SSL_MODE=${SSL_MODE}"
-    command: /usr/bin/python3.6 -m gunicorn --worker-tmp-dir=/tmp --config=gunicorn_conf.py corna.wsgi:app
+    command: /usr/bin/python3.12 -m gunicorn --worker-tmp-dir=/tmp --config=gunicorn_conf.py corna.wsgi:app
     volumes:
       - "${PICTURE_DIR}:/var/www/assets:rw"
     networks:
