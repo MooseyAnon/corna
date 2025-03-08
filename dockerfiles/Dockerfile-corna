@@ -57,7 +57,7 @@ ARG PG_PATH=/usr/pgsql-13/bin/
 
 # install requirements before copying over source to make rebuilds
 # quicker in future i.e. source code moves faster than requirements
-COPY requirements.txt ./
+COPY --chown=corna-user:corna-user requirements.txt ./
 RUN PATH=$PATH:${PG_PATH} /usr/bin/python3.12 -m pip install --user -r requirements.txt
 
 # copy over source and set permissions
