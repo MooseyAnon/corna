@@ -64,6 +64,7 @@ nav > text {
   margin-top: 5px;
   margin-bottom: 2px;
   cursor: default;
+  text-wrap: wrap;
 }
 
 .text-modal {
