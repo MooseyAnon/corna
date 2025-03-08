@@ -1,5 +1,6 @@
 # Runtime dependencies
 python3.12
+# consider updating to pg16: https://endoflife.date/postgresql
 postgresql13
 postgresql13-contrib
 postgresql13-server
