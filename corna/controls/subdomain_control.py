@@ -91,6 +91,18 @@ def _image_api_href(url_extension: str) -> str:
     return href
 
 
+def _full_post_href(subdomain: str, url_extension: str) -> str:
+    """Return the full href of a post.
+
+    :param str subdomain: to the subdomain the post lives on
+    :param str url_extension: the URL extension of the post
+    :returns: the full url of the post
+    :rtype: str
+    """
+    href: str = f"https://{subdomain}.mycorna.com/p/{url_extension}"
+    return href
+
+
 def _parse_post(
     post: models.PostTable,
     subdomain: str
@@ -109,6 +121,7 @@ def _parse_post(
         "type": post.type,
         "domain_name": subdomain,
         "title": _post_title(post),
+        "full_href": _full_post_href(subdomain, post.url_extension)
     }
 
     content_key: str = (
