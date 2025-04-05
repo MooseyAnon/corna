@@ -20,6 +20,7 @@ user_config.py
 venv/
 node_modules/
 ._*
+frontend/public/scripts/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
