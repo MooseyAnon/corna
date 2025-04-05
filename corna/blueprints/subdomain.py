@@ -61,6 +61,33 @@ def user_homepage(domain):
     )
 
 
+@subdomain.route("/subdomain/<domain_name>/p/<url_ext>", methods=["GET"])
+def single_post_page(domain_name, url_ext):
+    """Serve a single post page."""
+    signed_cookie: Optional[str] = (
+        flask
+        .request
+        .cookies
+        .get(enums.SessionNames.SESSION.value)
+    )
+    post = control.single_post(
+        session,
+        url_ext,
+        domain_name,
+        cookie=signed_cookie,
+    )
+    corna_title = control.corna_title(session, domain_name)
+
+    root_theme_path = pathlib.Path(control.theme(session, domain_name))
+    template_path = f"{root_theme_path.parent}/post.html"
+
+    return flask.render_template(
+        template_path,
+        cornaTitle=corna_title,
+        post=post,
+    )
+
+
 @subdomain.route("/subdomain/<dom_name>/fragment/<url_ext>", methods=["GET"])
 def get_fragment(dom_name, url_ext):
     """Serve a single post as HTML fragment."""
