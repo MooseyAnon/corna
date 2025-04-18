@@ -43,11 +43,11 @@ interface StateManager {
 
 
 interface PostData {
-    content: string | null;
-    inner_html: string | null;
-    title: string| null;
+    content?: string | null;
+    inner_html?: string | null;
+    title?: string | null;
     type: string;
-    uploaded_images: string[];
+    uploaded_images?: string[];
 }
 
 
@@ -247,8 +247,14 @@ function afterPostCleanUp(successful: boolean): void {
 }
 
 
-/* submit post */
-function post(): void {
+/**
+ * Get all the info from the post form and return the data ready to b posted.
+ * 
+ * @returns { PostData } correctly formatted object to post
+ */
+function parsePostForm(): PostData {
+    // this will be typecast to PostData at the end of this function
+    const payload: Partial<PostData> = {}
     /*
     * Traditionally you would not want to use innerText because
     * it is less performant than textContent (in some browsers its
@@ -279,26 +285,43 @@ function post(): void {
         .innerHTML
     );
 
-    if (stateManager.postType === "text" && (!content || !innerHtml)) {
+    // put in required fields
+    payload.type = stateManager.postType;
+    payload.uploaded_images = stateManager.formControls.formFields.uploadedImages;
+
+    // We only want to add optional fields if they exist, the backend will handle
+    // missing fields.
+    const title: string | null = stateManager.formControls.formFields.postTitle.textContent;
+    if (title) { payload.title = title; }
+
+    if (innerHtml) {
+        // the container is stripped from the `innerHTML` sting so we want to
+        // add it back again. This will make displaying content easier later on
+        payload.inner_html = `<section>${innerHtml}</section>`;
+
+        // although this could lead to a bug down the road, it would be safe
+        // to assume that if innerHTML exists on the container then content will
+        // also exist.
+        //
+        // It may make more sense to invert this assumption *thinks*
+        payload.content = content;
+    }
+
+    return payload as PostData
+}
+
+
+/* submit post */
+function post(): void {
+    // get form data
+    const payload: PostData = parsePostForm();
+
+    // fail fast
+    if (stateManager.postType === "text" && (!payload.content || !payload.inner_html)) {
         resetMessages();
         displayErrorMessage("Text post needs...text ;)");
         afterPostCleanUp(false);
         return;
-    }
-
-    // the container is stripped from the `innerHTML` sting so we want to
-    // add it back again. This will make displaying content easier later on
-    const inner_html: string | null = innerHtml ? `<section>${innerHtml}</section>` : null;
-    const title: string | null = stateManager.formControls.formFields.postTitle.textContent;
-    const uploaded_images: string[] = stateManager.formControls.formFields.uploadedImages;
-    const type: string = stateManager.postType;
-
-    const payload: PostData = {
-        content,
-        inner_html,
-        title,
-        type,
-        uploaded_images,
     }
 
     const method: ("get" | "delete" | "post" | "put") = "post";
