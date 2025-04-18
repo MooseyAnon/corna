@@ -497,3 +497,24 @@ def test_vido_post(session, client, mocker, corna):
     assert vid.path == f"video/thi/sis/afa/kestringhash/{image_basename}"
     assert vid.url_extension == "abcdef"
     assert not vid.orphaned
+
+
+@freeze_time(FROZEN_TIME)
+def test_post__null_in_payload(session, client, corna):
+    """Check when there are 'null' values in the payload - from js."""
+
+    payload = {
+        "type": "text",
+        "title": "null",
+        "content": "hello world",
+        "inner_html": "<h1>hello world</h1>",
+    }
+
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
+        json=payload
+    )
+    assert resp.status_code == 201
+
+    post = session.query(models.TextContent).first()
+    assert post.title == None

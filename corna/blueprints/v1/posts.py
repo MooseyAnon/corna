@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 import flask
 from flask_apispec import doc, use_kwargs
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields, pre_load, validate
 
 from corna.controls import post_control
 from corna.controls.post_control import InvalidContentType, PostDoesNotExist
@@ -29,6 +29,22 @@ class _BaseSchema(Schema):
             "description": "the type of content being sent/received"
         },
     )
+
+    @pre_load
+    def _handle_javascript_null(self, data: dict, **_: dict) -> dict:
+        """Remove any fields that come with 'null'.
+
+        :param dict data: pre-loaded JSON data
+        :param dict kwags: marshmallow cruft that can be passed skipped
+        :returns: parsed data with nulls removed
+        :rtype: dict
+        """
+        cleaned_data: dict = {}  # holds any key where value is not 'null'
+        for key, item in data.items():
+            if item != "null":
+                cleaned_data[key] = item
+
+        return cleaned_data
 
 
 class TextPost(_BaseSchema):
