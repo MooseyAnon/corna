@@ -1,5 +1,7 @@
 /* Character cards */
 
+import htmx from 'htmx.org';
+
 import {
     RequestReturnType as RRT,
     handleNetworkError,
@@ -100,6 +102,7 @@ function buildCharacter(permission: Character): HTMLDivElement {
     character.appendChild(identifier);
     character.appendChild(pill);
 
+    htmx.process(character);
     return character;
 }
 
