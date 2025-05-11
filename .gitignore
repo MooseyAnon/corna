@@ -20,7 +20,12 @@ user_config.py
 venv/
 node_modules/
 ._*
+# generated at build time
 frontend/public/scripts/*
+# dont capture anything starting with tmp, only needed for local dev
+tmp*
+# used for setting up local dev
+.localenv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

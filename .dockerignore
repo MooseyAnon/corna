@@ -5,6 +5,7 @@
 
 # MacOS
 ._*
+.DS_Store
 
 # CI
 .codeclimate.yml
