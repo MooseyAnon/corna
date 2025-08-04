@@ -73,6 +73,8 @@ mypy==1.11.2
     # via -r requirements.in
 mypy-extensions==1.0.0
     # via mypy
+nh3==0.2.21
+    # via -r requirements.in
 orderedmultidict==1.0.1
     # via furl
 packaging==24.1
@@ -144,6 +146,8 @@ typing-extensions==4.12.2
     #   mypy
 urllib3==2.2.2
     # via requests
+validators==0.35.0
+    # via -r requirements.in
 webargs==8.4.0
     # via flask-apispec
 werkzeug==3.0.4
