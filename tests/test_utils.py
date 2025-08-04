@@ -76,3 +76,37 @@ def test_future(days):
 )
 def test_expiry_2(date, expected):
     assert secure.expired(date) == expected
+
+
+@pytest.mark.parametrize("dirty_html,expected_fragment", [
+    # XSS attempts - should strip or neutralize
+    ("<img src=x onerror=alert(1)>", "<img>"),
+    ('<a href="javascript:alert(1)">link</a>', '<a rel="noopener noreferrer">link</a>'),
+    ('<a onmouseover="alert(1)">hover</a>', '<a rel="noopener noreferrer">hover</a>'),
+    ('<script>alert("XSS")</script>', ''),
+    ('<IMG """><SCRIPT>alert("XSS")</SCRIPT>"\>', '<img>"\&gt;'),
+
+    # Valid HTML - should preserve
+    ('<b>bold</b>', '<b>bold</b>'),
+    ('<i>italic</i>', '<i>italic</i>'),
+    ('<a href="https://example.com">link</a>', '<a href="https://example.com" rel="noopener noreferrer">link</a>'),
+
+    # img tags must only contain our API url
+    ('<img src="https://example.com/img.png">', '<img>'),
+    ('<img src="https://api.mycorna.com">', '<img src="https://api.mycorna.com">'),
+
+    # Invalid but allowed tag+attribute - should strip attribute
+    ('<img src="invalid-url">', '<img>'),
+    ('<a href="not a url">click</a>', '<a rel="noopener noreferrer">click</a>'),
+
+    # Escaped HTML should stay escaped
+    ('<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>', '<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>'),
+
+    # Non-allowed tags should be stripped
+    ('<video src="x.mp4"></video>', ''),
+    ('<iframe src="https://evil.com"></iframe>', ''),
+])
+def test_clean_html(dirty_html, expected_fragment):
+    cleaned = utils.clean_html(dirty_html)
+    print(expected_fragment, "===", cleaned)
+    assert expected_fragment == cleaned

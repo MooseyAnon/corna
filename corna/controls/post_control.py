@@ -121,6 +121,10 @@ def create(
     )
     post_uuid: str = utils.get_uuid()
 
+    # clean any in coming html
+    if inner_html:
+        inner_html: str = utils.clean_html(inner_html)
+
     session.add(
         models.PostTable(
             deleted=False,
