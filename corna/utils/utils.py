@@ -4,11 +4,13 @@ import collections.abc
 from copy import deepcopy
 from functools import lru_cache, wraps
 from http import HTTPStatus
+import json
 import logging
 import pathlib
 import random
+import shutil
 import string
-from typing import Callable, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 import uuid
 
 import apispec
@@ -64,6 +66,35 @@ def get_uuid() -> str:
     :rtype: str
     """
     return str(uuid.uuid4())
+
+
+def load_json(path: pathlib.Path | str) -> Optional[dict[str, Any]]:
+    """Load json from a path.
+
+    :param str path: the path to the json file
+    :return: contents of json file or None
+    :rtype: Optional[dict]
+    """
+    if not isinstance(path, pathlib.Path):
+        path = pathlib.Path(path)
+
+    contents: Optional[dict[str, Any]] = None
+
+    if not path.exists():
+        logger.error("no path found at: '%s'", str(path))
+        return contents
+
+    if not path.is_file():
+        logger.error("Path is not a valid file. Path: '%s'", str(path))
+        return contents
+
+    with open(path, "r", encoding="utf-8") as fd:
+        try:
+            contents = json.load(fd)
+        except json.JSONDecodeError as e:
+            logger.error("JSON Decode Error in file '%s': %s", str(path), e)
+
+    return contents
 
 
 def current_user(
@@ -345,3 +376,46 @@ def clean_html(html: str) -> str:
         attributes=attributes,
         attribute_filter=attribute_filter,
     )
+
+
+def atomic_stream_write(
+    blob: FileStorage | io.BytesIO,
+    path: pathlib.Path,
+    suffix: str = ".tmp",
+) -> None:
+    """Atomically write a steam like object to the filesystem.
+
+    :param FileStorage blob: the blob to write
+    :param pathlib.Path path: write path
+    :param str suffix: the suffix to use for the temp file
+    """
+    # Overwrite-safe: write to temp then move
+    tmp_path: pathlib.Path = path.with_suffix(suffix)
+    # ensure we're back at the start
+    blob.stream.seek(0)
+    # to avoid any overwriting risks, we handle the saving ourselves rather
+    # than using the built in`.save()` method.
+    with open(tmp_path, "wb") as fd:
+        # write 1mb of data at a time
+        shutil.copyfileobj(blob.stream, fd, length=1024 * 1024)
+    tmp_path.replace(path)
+
+
+def atomic_text_write(path: pathlib.Path, text: str) -> None:
+    """Atomically write text to a file.
+
+    This is another on of those shoddy attempts at 'isolation' and 'atomicity'.
+    It doesn't really stop race-conditions but does prevent two processes
+    writing to the same file at the same time.
+
+    Might be worth adding read lock on files that need atomicity :thinks:
+
+    Note: This file does not update the pre-existing file, it overwrites it.
+    Its up to the caller to handle data preservation.
+
+    :param pathlib.Path path: write path
+    :param str text: the text data to update the file with.
+    """
+    tmp: pathlib.Path = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
