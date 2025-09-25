@@ -1,5 +1,6 @@
 """Tests for media endpoints."""
 
+import json
 import os
 import sys
 
@@ -33,6 +34,42 @@ def _all_media_based_stubs(request, tmpdir, mocker, monkeypatch):
         "PICTURE_DIR",
         tmpdir.mkdir("assets"),
     )
+
+    monkeypatch.setattr(
+        image_proc,
+        "CHUNK_DIR",
+        tmpdir.mkdir("assets/chunks"),
+    )
+
+
+def _metadata(received=[], total_chunks=3):
+    """Mock metadata."""
+    return {
+        "received": received,
+        "totalChunks": total_chunks,
+    }
+
+
+def _chunk_file(file_path, chunk_size=100 * 1024):
+    """Split a file into chunks.
+
+    :param file_path: Path to the file to be chunked.
+    :param chunk_size: Size of each chunk in bytes. Default is 100KB (100 * 1024).
+    :yield: A chunk of the file.
+    """
+    from io import BytesIO
+
+    with open(file_path, 'rb') as file:
+        while chunk := file.read(chunk_size):
+            yield BytesIO(chunk)
+
+
+def _ceiling_division(n, d):
+    """Return the ceiling of integer division.
+
+    Stolen from here: https://stackoverflow.com/a/17511341
+    """
+    return -(n // -d)
 
 
 def test_upload(session, client, mocker, login):
@@ -429,3 +466,56 @@ def test_random_avatar_gen(client, session, login):
     assert fin_slug in av_slugs
 
 
+
+
+def test_chunk_upload__full_upload(client, login):
+
+    fp = (shared_data.ASSET_DIR / "big-bunny.mp4")
+    chunk_size = 100 * 1024
+    file_size = os.stat(fp).st_size
+    total_chunks = _ceiling_division(file_size, chunk_size)
+
+    fake_upload_id = "0000011111"
+
+    req = {
+        "totalChunks": total_chunks,
+        "uploadId": fake_upload_id,
+    }
+
+    for index, chunk in enumerate(_chunk_file(fp)):
+
+        req["chunk"] = (chunk, 'application/octet-stream')
+        req["chunkIndex"] = index
+
+        resp = client.post("/api/v1/media/chunk/upload", data=req)
+        assert resp.status_code == 201
+        # ensure correct number of chunks are saved
+        assert int(resp.json["received"]) == index + 1 
+        assert resp.json["uploadId"] == fake_upload_id
+
+        if index < (total_chunks - 1):
+            assert resp.json["message"] == f"chunk {index} stored"
+
+        # check when upload completed
+        else:
+            assert resp.json["message"] == "upload complete"
+
+    # ensure main dirs/files are created
+    assert (image_proc.CHUNK_DIR / fake_upload_id / "meta.json").exists()
+    assert (image_proc.CHUNK_DIR / fake_upload_id / "parts").exists()
+
+    received = None
+    # read metadata file and check fields are legit
+    with open((image_proc.CHUNK_DIR / fake_upload_id / "meta.json"), "r") as fd:
+        m_data = json.load(fd)
+
+        assert m_data["totalChunks"] == total_chunks
+        assert len(m_data["received"]) == total_chunks
+
+        received = set(m_data["received"])
+
+    # loop through expected indexes and see if they all exist
+    for i in range(total_chunks):
+        assert (image_proc.CHUNK_DIR / fake_upload_id / "parts" / f"{i:06d}.part").exists()
+        # check if its in received
+        assert i in received

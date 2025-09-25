@@ -1,5 +1,6 @@
 """Control layer for dealing with media files."""
 
+import json
 import logging
 import mimetypes
 import pathlib
@@ -14,7 +15,7 @@ from werkzeug.datastructures import FileStorage
 from corna.db import models
 from corna.enums import MediaTypes
 from corna.middleware import alchemy
-from corna.utils import get_utc_now, image_proc, secure, utils
+from corna.utils import get_utc_now, image_proc, mkdir, secure, utils
 
 logger = logging.getLogger(__name__)
 
@@ -229,3 +230,126 @@ def random_avatar(session: Session) -> Avatar:
         f"{utils.UNVERSIONED_API_URL}/v1/media/download/{avatar.url_extension}"
 
     return {"url": url, "slug": avatar.url_extension}
+
+
+def process_chunk(
+    chunk: FileStorage,
+    chunk_index: int,
+    total_chunks: int,
+    upload_id: str,
+) -> dict[str, str | int]:
+    """Process an incoming chunk of media blob.
+
+    Using a set atomic read/writes to handle processing incoming chunks of
+    media files this function either a) saves the incoming chunk or b) saves
+    the entire file to the DB (and blob storage) if upload of chunks is
+    complete.
+
+    Each upload comes with a unique upload ID. This serves two functions:
+    a) allows us to partition the incoming chunks by upload ID in the local FS
+    preventing chunks of different media from being mixed up, b) allows us to
+    resume chunking uploads if the client loses connection or needs to retry.
+
+    TODO: handle duplicate chunks. We can check the metadata file for existing
+    chunks.
+
+    :param FileStorage chunk: the incoming chunk
+    :param int chunk_index: the chunk number relative to the file i.e
+        kth chunk in total_size/chunk_size.
+    :param int total_chunks: the total number of chunks expected for the file
+        i.e. total_size/chunk_size
+    :param str upload_id: unique ID for the upload. Used for local FS
+        partitioning
+
+    :return: a results object containing upload data of the chunk
+    :rtype: dict
+    """
+    # save chunk
+    save_chunk(blob=chunk, upload_id=upload_id, chunk_index=chunk_index)
+    # update meta
+    saved_chunks: int = update_meta(
+        upload_id=upload_id,
+        chunk_index=chunk_index,
+        total_chunks=total_chunks,
+    )
+
+    complete = saved_chunks >= total_chunks
+
+    return {
+        "message":
+            "upload complete" if complete else f"chunk {chunk_index} stored",
+        "received": saved_chunks,
+        "total": total_chunks,
+        "uploadId": upload_id,
+    }
+
+
+def save_chunk(
+    blob: FileStorage,
+    upload_id: str,
+    chunk_index: int,
+):
+    """Atomically save a single chunk of a media file to the local FS.
+
+    :param FileStorage blob: the media blob to save
+    :param str upload_id: the unique ID associated with the chunk
+    :param int chunk_index: the chunk number relative to the file i.e
+        kth chunk in total_size/chunk_size.
+    """
+    # we want all chunks from the same video to be co-located, so we partition
+    # based on upload_id. This also makes cleaning up easier as we can delete
+    # the partition once the upload is complete without the risk of deleting
+    # unrelated chunks.
+    #
+    # path-to-parts = <file-system>/<chunk-dir>/<upload-id>/parts
+    parts_dir: pathlib.Path = mkdir(
+        f"{image_proc.CHUNK_DIR}/{upload_id}/parts")
+
+    # save the chunk to a deterministic location: 000000.part, 000001.part, ...
+    # with the filename of each part being based on its index
+    part_path: pathlib.Path = parts_dir / f"{chunk_index:06d}.part"
+    utils.atomic_stream_write(blob, part_path, suffix=".part.tmp")
+
+    # we want to return the base directory for this chunk i.e. the partition
+    # so other functions can use it to add other components
+    return parts_dir.parent
+
+
+def update_meta(
+    upload_id: str,
+    chunk_index: int,
+    total_chunks: int,
+) -> int:
+    """Update meta data file for upload.
+
+    Each file upload has its own meta data file which lives in its partition.
+
+    :param str upload_id: the unique ID associated with the chunk
+    :param int chunk_index: The chunks are uploaded as a continous stream,
+        this is the number (or index) of the chunk being saved relative to
+        the total number of chunks for the file i.e if this is the Kth chunk
+        of the file, then chunk_index == K.
+    :param int total_chunks: the expected number of chunks for the file.
+        This is sent from the client and is usually calculated as
+        chunk_size/file_size
+
+    :returns: the number of successfully received chunks
+    :rtype: int
+    """
+    meta_path: str = f"{image_proc.CHUNK_DIR}/{upload_id}/meta.json"
+    # default empty dict to use if there is not pre-existing metadata file
+    meta: dict[str, str | int] = {}
+
+    if (metadata := utils.load_json(meta_path)):
+        # use pre-existing data
+        meta.update(metadata)
+
+    # Track received indexes (dedupe)
+    rec: set[int] = set(meta.get("received", []))
+    rec.add(chunk_index)
+    meta["received"] = sorted(rec)
+    meta["totalChunks"] = total_chunks
+
+    utils.atomic_text_write(pathlib.Path(meta_path), json.dumps(meta))
+
+    return len(rec)

@@ -198,3 +198,95 @@ class GenerateAvatarReturn(Schema):
 def gen_avatar():
     """Get URL for a random avatar."""
     return media_control.random_avatar(session)
+
+
+class UploadChunkSendSchema(Schema):
+    """Schema for sending data /chunk/upload."""
+
+    chunkIndex = fields.Integer(
+        required=True,
+        metadata={
+            "description": "The number of the chunk (0 indexed) i.e. if there "
+                           "are K chunks the index is K - 1.",
+        })
+
+    totalChunks = fields.Integer(
+        required=True,
+        metadata={
+            "description": "The total number of chunks for the file upload",
+        })
+
+    uploadId = fields.String(
+        required=True,
+        metadata={
+            "description": "Unique identifier for the upload.",
+        })
+
+    class Meta:  # pylint: disable=missing-class-docstring
+        strict = True
+
+
+class UploadChunkReturnSchema(Schema):
+    """Schema for returning data from /chunk/upload."""
+
+    message = fields.String(
+        metadata={
+            "description": "The response message",
+        })
+
+    received = fields.String(
+        metadata={
+            "description": "number of chunks received",
+        })
+
+    total = fields.String(
+        metadata={
+            "description": "total number of expected chunks",
+        })
+
+    uploadId = fields.String(
+        metadata={
+            "description": "upload ID for the file",
+        })
+
+
+@media.route("/media/chunk/upload", methods=["POST"])
+@utils.login_required
+# ok so this is an interesting and fucked up discovery, here goes:
+# if you don't marshal your response when using `webargs` (flask-apispec
+# uses this under the hood), `webargs` will casually decide to wrap you function
+# ANYWAYS, wtf???? So it will call `flask.jsonify` on your behalf. This causes
+# the endpoint to break if you try to call jsonify/dumps yourself.
+#
+# This is not obvious at all and fucking stupid. I've just spend about 3 hours
+# trying to figure out why a simple `flask.jsonify` call was breaking the
+# endpoint. As much a I fuck with FOSS devs and can't complain when I'm using
+# other peoples hard work for free, I am allowed to be temporarily pissed off
+# at the three hours I will never get back :middle-finger:
+#
+# Note: later versions have solved this by allowing you to pass:
+# `as_kwargs=True`, ensuring webargs is only involved in the deserialization
+# step.
+@marshal_with(UploadChunkReturnSchema(), code=201)
+@use_kwargs(UploadChunkSendSchema(), location="form")
+def chunk_uploader(chunkIndex: int, totalChunks: int, uploadId: str):
+    """Handle the uploading of media file chunks"""
+    chunk = request.files.get("chunk")
+    if not chunk:
+        utils.respond_json_error("Media file required", HTTPStatus.BAD_REQUEST)
+
+    try:
+        ret: dict[str, int | str] = media_control.process_chunk(
+            chunk=chunk,
+            chunk_index=chunkIndex,
+            total_chunks=totalChunks,
+            upload_id=uploadId,
+        )
+
+    except OSError:
+        utils.respond_json_error(
+            "Unable to save chunk. Try again.",
+            HTTPStatus.INTERNAL_SERVER_ERROR
+        )
+
+    return ret, 201
