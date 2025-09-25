@@ -38,6 +38,10 @@ export function request<T>(
     method: ("get" | "delete" | "post" | "put") = "get",
     payload?: T,
     headers?: RawAxiosRequestHeaders,
+    // pass through any other AxiosRequestConfig options when needed without
+    // breaking the signature on any pre-existing uses of this function.
+    // Also ensure we omit the fields handled by the function e.g. method, headers etc
+    extras?: Omit<AxiosRequestConfig, "method" | "url" | "data" | "headers">,
 ): AxiosPromise {
     /* Generalised requestion function that wraps axios.request.
     *
@@ -57,6 +61,7 @@ export function request<T>(
         data: payload,
         withCredentials: true,
         headers: headers,
+        ...(extras ?? {}),
 
     }; 
     return axios.request(requestConf);

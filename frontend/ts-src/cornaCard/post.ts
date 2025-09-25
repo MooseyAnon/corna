@@ -1,6 +1,7 @@
 /* Handle creating a new user post. */
 
-import { AxiosError, AxiosPromise, AxiosResponse } from "axios";
+import { AxiosError, AxiosResponse } from "axios";
+import { uploadMediaFile } from "./../lib/media.js"
 import { getApiUrl, request, handleNetworkError } from "./../lib/network";
 import {
     createImageElement,
@@ -157,29 +158,6 @@ function buildVideoTag(
 
 
 /**
- * Make image upload request to server.
- * 
- * We need to do this because we want users to be able to preview the image
- * before the create a post. If the user cancels midway, unused images will
- * be cleaned up on the server.
- * 
- * @param { File } image: image file to upload
- * @returns { AxiosPromise }
- */
-function uploadMediaFile(image: File): AxiosPromise {
-
-    const fileType: string = image.type.split("/")[0]
-    const urlExtension: string = "v1/media/upload";
-    const method: ("get" | "delete" | "post" | "put") = "post";
-    const payload: { image: File, type: string } = { image: image, type: fileType };
-    const headers: { [key: string]: string } = { "Content-Type": "multipart/form-data" };
-    
-    return request(urlExtension, method, payload, headers);
-
-}
-
-
-/**
  * Create media file preview.
  * 
  * @param { FileList } files: list of files to create preview for
@@ -213,6 +191,10 @@ function mediaFilePreview(files: FileList | null): void {
             }
 
             stateManager.formControls.formFields.uploadedImages.push(urlExtension);
+        })
+        .catch((error: AxiosError) => {
+            const errMsg: string = handleNetworkError(error);
+            displayErrorMessage(errMsg);
         })
     }
 
