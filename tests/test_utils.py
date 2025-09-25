@@ -1,9 +1,10 @@
 import datetime
+import pathlib
 
 from freezegun import freeze_time
 import pytest
 
-from corna.utils import encodings, future, secure, utils
+from corna.utils import encodings, future, mkdir, secure, utils
 
 FROZEN_TIME = "2023-04-05T03:21:34"
 
@@ -110,3 +111,23 @@ def test_clean_html(dirty_html, expected_fragment):
     cleaned = utils.clean_html(dirty_html)
     print(expected_fragment, "===", cleaned)
     assert expected_fragment == cleaned
+
+
+def test_mkdir__converts_to_path_obj(tmpdir):
+    """
+    We want to make sure we convert our stings into path objects while
+    also making sure the directory gets made.
+
+    We've had some problems where the caller assumes `mkdir` takes `path` by
+    reference, when infact it's by value - especially if its a string.
+
+    this is essentially a sanity test to avoid any weird regressions.
+    """
+    str_path = f"{tmpdir.mkdir('assets')}/random/path"
+    path = mkdir(str_path)
+
+    assert isinstance(str_path, str)
+    assert isinstance(path, pathlib.PosixPath)
+
+    assert path.exists()
+    assert str(path) == str_path

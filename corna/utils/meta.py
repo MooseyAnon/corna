@@ -33,7 +33,10 @@ def future(days: int = 14) -> datetime.datetime:
     return now + skip
 
 
-def mkdir(path: Union[pathlib.Path, str], exists_ok: bool = True) -> None:
+def mkdir(
+    path: Union[pathlib.Path, str],
+    exists_ok: bool = True,
+) -> pathlib.PosixPath:
     """Recursively make directories in a path.
 
     Note: this is only here to make logging a bit cleaner.
@@ -41,6 +44,8 @@ def mkdir(path: Union[pathlib.Path, str], exists_ok: bool = True) -> None:
     :param pathlib.Path path: path or directory to make
     :param bool exists_ok: Its useful to overwrite the exists_ok option
         when attempting to do existence checks during directory creation.
+    :returns: the original path, but ensures its a pathlib.PosixPath obj.
+    :rtype: pathlib.PosixPath
     :raises FileExistsError: when ran with exists_ok=False and the dir
         exists.
     """
@@ -52,3 +57,4 @@ def mkdir(path: Union[pathlib.Path, str], exists_ok: bool = True) -> None:
 
     # attempt to recursively make path
     path.mkdir(parents=True, exist_ok=exists_ok)
+    return path
