@@ -496,6 +496,34 @@ def concat_chunks(
     return stream
 
 
+def chunk_status(upload_id: str) -> int:
+    """Get status for chunked uploads.
+
+    This essentially checks if all the chunks of a file have been uploaded
+    as a function of the diff between the total expected chunks and the
+    currently received chunks.
+
+    totalChunks - received > 0 == chunks still missing
+    totalChunks - received <= 0 == upload complete
+
+    :param str upload_id: the Id associated with the upload
+    :return: the current outstanding chunks, if any
+    :rtype: int
+    :raises FileNotFoundError: if metadata file is not found
+    :raises ValueError: if metadata file is malformed
+    """
+    # calculate directory
+    meta_file: str = f"{image_proc.CHUNK_DIR}/{upload_id}/meta.json"
+
+    if not (metadata := utils.load_json(meta_file)):
+        raise FileNotFoundError
+
+    if (received := metadata.get("received")) is None:
+        raise ValueError
+
+    return metadata["totalChunks"] - len(received)
+
+
 def clean_chunks(upload_id: str) -> None:
     """Clean up chunk artifacts.
 
