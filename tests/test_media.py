@@ -466,6 +466,70 @@ def test_random_avatar_gen(client, session, login):
     assert fin_slug in av_slugs
 
 
+def test_chunk_status__no_chunks_uploaded(client):
+
+    fake_upload_id = "000111111"
+    base_path = image_proc.CHUNK_DIR.mkdir(fake_upload_id)
+
+    meta_path = base_path / "meta.json"
+
+    with open(meta_path, "w") as fd:
+        fd.write(json.dumps(_metadata()))
+
+    resp = client.get(f"/api/v1/media/chunk/status/{fake_upload_id}")
+    assert resp.status_code == 200
+
+    assert resp.json["complete"] == False
+    assert resp.json["message"] == "3 chunks missing"
+
+
+def test_chunk_status__upload_complete(client):
+
+    fake_upload_id = "000111111"
+    base_path = image_proc.CHUNK_DIR.mkdir(fake_upload_id)
+
+    meta_path = base_path / "meta.json"
+
+    with open(meta_path, "w") as fd:
+        fd.write(json.dumps(_metadata(received=["00000", "11111"], total_chunks=2)))
+
+    resp = client.get(f"/api/v1/media/chunk/status/{fake_upload_id}")
+    assert resp.status_code == 200
+
+    assert resp.json["complete"] == True
+    assert resp.json["message"] == "upload complete"
+
+
+def test_chunk_status__no_metadata_file(client):
+    """
+    No metadata file here means that either the upload_id is wrong or there
+    has been no attempt to upload chunks using the corresponding id i.e. the
+    upload_id does not exist.
+
+    These two cases are essentially the same thing.
+    """
+    fake_upload_id = "000111111"
+
+    resp = client.get(f"/api/v1/media/chunk/status/{fake_upload_id}")
+    assert resp.status_code == 404
+
+    assert resp.json["message"] == "No upload being processed"
+
+
+def test_chunk_status__malformed_metadata_file(client):
+
+    fake_upload_id = "000111111"
+    base_path = image_proc.CHUNK_DIR.mkdir(fake_upload_id)
+
+    meta_path = base_path / "meta.json"
+
+    with open(meta_path, "w") as fd:
+        fd.write(json.dumps({"random-key": "random-value"}))
+
+    resp = client.get(f"/api/v1/media/chunk/status/{fake_upload_id}")
+    assert resp.status_code == 500
+
+    assert resp.json["message"] == "Error processing upload metadata"
 
 
 def test_chunk_upload__full_upload(client, login):

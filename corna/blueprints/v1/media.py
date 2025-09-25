@@ -355,3 +355,50 @@ def merge_upload_chunks(uploadId: str, filename: str, contentType: str):
     # defer cleanup as if this fails, we can just do it in the background
     media_control.clean_chunks(uploadId)
     return ret, 201
+
+
+class UploadStatusReturnSchema(Schema):
+    """Return schema for /chunk/status."""
+
+    message = fields.String(
+        metadata={
+            "description": "status message",
+        })
+
+    complete = fields.Boolean(
+        metadata={
+            "description": "boolean value denoting if backend has received "
+                           "all expected chunks for the file",
+        })
+
+
+@media.route("/media/chunk/status/<upload_id>", methods=["GET"])
+@marshal_with(UploadStatusReturnSchema(), code=200)
+def get_upload_status(upload_id: str):
+    """Get status for chunked uploads."""
+    try:
+        status: int = media_control.chunk_status(upload_id)
+
+    except FileNotFoundError:
+        utils.respond_json_error(
+            "No upload being processed",
+            HTTPStatus.NOT_FOUND,
+        )
+
+    except ValueError:
+        utils.respond_json_error(
+            "Error processing upload metadata",
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+
+    ret_msg: str = (
+        f"{status} chunks missing"
+        if status > 0 else "upload complete"
+    )
+
+    response: dict = {
+        "message": ret_msg,
+        "complete": status <= 0,
+    }
+
+    return response
