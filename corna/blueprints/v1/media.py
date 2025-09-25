@@ -137,12 +137,42 @@ def download(url_extension: str):
     """Download a file from the server."""
 
     try:
-        path: str = media_control.download(session, url_extension)
+        media_file = media_control.download(session, url_extension)
+        path: str = media_control.to_path(media_file)
 
     except FileNotFoundError as e:
         utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
 
-    return flask.send_file(path)
+    if (
+        not (media_file.type == enums.MediaTypes.VIDEO)
+        or not (
+            ranges := media_control.get_range(request.headers, media_file.size)
+        )
+    ):
+        # send full file if not video or does not contain range header
+        return flask.send_file(path)
+
+    start, end = ranges
+    file_size = media_file.size
+    # validate ranges
+    if start >= file_size or end >= file_size:
+        # Range not satisfiable
+        utils.respond_json_error(
+            "Invalid ranges", HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+
+    length: int = end - start + 1
+
+    response = flask.Response(
+        media_control.video_stream(path, start, end),
+        status=206,
+        mimetype='video/mp4',
+        direct_passthrough=True
+    )
+    response.headers.add('Content-Range', f'bytes {start}-{end}/{file_size}')
+    response.headers.add('Accept-Ranges', 'bytes')
+    response.headers.add('Content-Length', str(length))
+
+    return response
 
 
 class GenerateAvatarReturn(Schema):

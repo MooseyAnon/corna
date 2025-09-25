@@ -126,7 +126,9 @@ def test_download(session, client, login):
         / "thi/sis/afa/kehash12345" 
         / expected_filename
     )
-    assert media_control.download(session, url_extension) == expected_path
+    # this returns a db column
+    media_obj = media_control.download(session, url_extension)
+    assert media_control.to_path(media_obj) == expected_path
 
 
 def test_download_fail(client):
@@ -204,7 +206,8 @@ def test_download_video(session, client, login):
         / "thi/sis/afa/kestringhash" 
         / expected_filename
     )
-    assert media_control.download(session, url_extension) == expected_path
+    media_obj = media_control.download(session, url_extension)
+    assert media_control.to_path(media_obj) == expected_path
 
 
 def test_upload_gif_with_dot_gif_extension(session, client, mocker, login):

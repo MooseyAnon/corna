@@ -22,7 +22,10 @@ DIGESTMOD: Callable = hashlib.sha256
 # list of allowed request headers
 ACCESS_CONTROL_ALLOWED_HEADERS = [
     "Accept",
+    "Accept-Ranges",
     "Authorization",
+    "Content-Length",
+    "Content-Range",
     "Content-Type",
     "Origin",
     "X-Requested-With",
