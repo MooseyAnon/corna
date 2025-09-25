@@ -18,6 +18,8 @@ PICTURE_DIR: Optional[str] = os.environ.get("PICTURE_DIR")
 # directory for hold media chunks for large files. This dir gets periodically
 # cleaned up.
 CHUNK_DIR: str = f"{PICTURE_DIR}/chunks"
+# 100MB - current file size limit for images/videos
+MAX_BLOB_SIZE: int = 100 * 1024 * 1024
 # Using md5 there seems to be some small chance of collisions
 # however, my maths is not good enough to calculate it myself
 # and there seems to be some conflicting points RE answers I've

@@ -519,3 +519,268 @@ def test_chunk_upload__full_upload(client, login):
         assert (image_proc.CHUNK_DIR / fake_upload_id / "parts" / f"{i:06d}.part").exists()
         # check if its in received
         assert i in received
+
+
+def test_chunk_upload__merge(mocker, client, login):
+    mocker.patch(
+        "corna.utils.utils.get_uuid",
+        return_value="00000000-0000-0000-0000-000000000000",
+    )
+
+    # test setup
+    fp = (shared_data.ASSET_DIR / "big-bunny.mp4")
+    chunk_size = 100 * 1024
+    file_size = os.stat(fp).st_size
+    total_chunks = _ceiling_division(file_size, chunk_size)
+
+    fake_upload_id = "0000011111"
+
+    req = {
+        "totalChunks": total_chunks,
+        "uploadId": fake_upload_id,
+    }
+
+    for index, chunk in enumerate(_chunk_file(fp)):
+
+        req["chunk"] = (chunk, 'application/octet-stream')
+        req["chunkIndex"] = index
+
+        resp = client.post("/api/v1/media/chunk/upload", data=req)
+        assert resp.status_code == 201
+        # ensure correct number of chunks are saved
+        assert int(resp.json["received"]) == index + 1 
+        assert resp.json["uploadId"] == fake_upload_id
+
+        if index < (total_chunks - 1):
+            assert resp.json["message"] == f"chunk {index} stored"
+
+        # check when upload completed
+        else:
+            assert resp.json["message"] == "upload complete"
+
+    # ensure main dirs/files are created
+    assert (image_proc.CHUNK_DIR / fake_upload_id / "meta.json").exists()
+    assert (image_proc.CHUNK_DIR / fake_upload_id / "parts").exists()
+
+    # --------- test starts here ---------
+    req = {
+        "filename": "big-bunny.mp4",
+        "uploadId": fake_upload_id,
+        "contentType": "video",
+    }
+
+    resp = client.post("/api/v1/media/chunk/merge", json=req)
+    assert resp.status_code == 201
+
+    expected = {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "filename": "big-bunny.mp4",
+        "mime_type": "video/mp4",
+        "size": file_size,
+        "url_extension": "abcdef",
+    }
+
+    assert resp.json == expected
+
+
+def test_chunk_upload__merge_ensure_cleanup(mocker, client, session, login):
+    mocker.patch(
+        "corna.utils.utils.get_uuid",
+        return_value="00000000-0000-0000-0000-000000000000",
+    )
+
+    # test setup
+    fp = (shared_data.ASSET_DIR / "big-bunny.mp4")
+    chunk_size = 100 * 1024
+    file_size = os.stat(fp).st_size
+    total_chunks = _ceiling_division(file_size, chunk_size)
+
+    fake_upload_id = "0000011111"
+
+    req = {
+        "totalChunks": total_chunks,
+        "uploadId": fake_upload_id,
+    }
+
+    for index, chunk in enumerate(_chunk_file(fp)):
+
+        req["chunk"] = (chunk, 'application/octet-stream')
+        req["chunkIndex"] = index
+
+        resp = client.post("/api/v1/media/chunk/upload", data=req)
+        assert resp.status_code == 201
+
+    # ensure main dirs/files are created
+    assert (image_proc.CHUNK_DIR / fake_upload_id / "meta.json").exists()
+    assert (image_proc.CHUNK_DIR / fake_upload_id / "parts").exists()
+
+    # --------- test starts here ---------
+    req = {
+        "filename": "big-bunny.mp4",
+        "uploadId": fake_upload_id,
+        "contentType": "video",
+    }
+
+    resp = client.post("/api/v1/media/chunk/merge", json=req)
+    assert resp.status_code == 201
+
+    expected = {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "filename": "big-bunny.mp4",
+        "mime_type": "video/mp4",
+        "size": file_size,
+        "url_extension": "abcdef",
+    }
+
+    assert resp.json == expected
+
+    # check cleanup
+    assert not (image_proc.CHUNK_DIR / fake_upload_id).exists()
+
+    # ensure file is actually saved
+    expected_path = image_proc.PICTURE_DIR / "video/thi/sis/afa/kestringhash"
+    assert expected_path.exists()
+    assert len(expected_path.listdir()) == 1
+    for file in expected_path.listdir():
+        # assert we've saved some data successfully
+        assert os.stat(file).st_size == file_size
+
+    # make sure db is ok
+    assert session.query(models.Media).count() == 1
+    # ensure no images were created
+    assert session.query(models.Images).count() == 0
+    # ensure no posts have been created
+    assert session.query(models.PostTable).count() == 0
+
+    media = session.query(models.Media).first()
+    assert media is not None
+    assert media.type == "video"
+    assert media.image_uuid is None
+
+    assert media.orphaned == True
+
+
+def test_chunk_upload__merge_file_too_large(monkeypatch, client, login):
+    monkeypatch.setattr(image_proc, "MAX_BLOB_SIZE", 100)
+
+    # test setup
+    fp = (shared_data.ASSET_DIR / "big-bunny.mp4")
+    chunk_size = 100 * 1024
+    file_size = os.stat(fp).st_size
+    total_chunks = _ceiling_division(file_size, chunk_size)
+
+    fake_upload_id = "0000011111"
+
+    req = {
+        "totalChunks": total_chunks,
+        "uploadId": fake_upload_id,
+    }
+
+    for index, chunk in enumerate(_chunk_file(fp)):
+
+        req["chunk"] = (chunk, 'application/octet-stream')
+        req["chunkIndex"] = index
+
+        resp = client.post("/api/v1/media/chunk/upload", data=req)
+        assert resp.status_code == 201
+
+    # ----- test starts here -----
+    req = {
+        "filename": "big-bunny.mp4",
+        "uploadId": fake_upload_id,
+        "contentType": "video",
+    }
+
+    resp = client.post("/api/v1/media/chunk/merge", json=req)
+    assert resp.status_code == 500
+
+    assert resp.json["message"] == "[Errno 27] File too large for processing"
+
+
+def test_chunk_upload__merge_in_press(client, login):
+    # create fake lock
+    fake_upload_id = "000111111"
+    base_path = image_proc.CHUNK_DIR.mkdir(fake_upload_id)
+
+    meta_path = base_path / ".merge.lock"
+
+    with open(meta_path, "w") as fd:
+        fd.write(json.dumps({"random-key": "random-value"}))
+
+
+    fp = (shared_data.ASSET_DIR / "big-bunny.mp4")
+    chunk_size = 100 * 1024
+    file_size = os.stat(fp).st_size
+    total_chunks = _ceiling_division(file_size, chunk_size)
+
+    req = {
+        "totalChunks": total_chunks,
+        "uploadId": fake_upload_id,
+    }
+
+    for index, chunk in enumerate(_chunk_file(fp)):
+
+        req["chunk"] = (chunk, 'application/octet-stream')
+        req["chunkIndex"] = index
+
+        resp = client.post("/api/v1/media/chunk/upload", data=req)
+        assert resp.status_code == 201
+
+    req = {
+        "filename": "big-bunny.mp4",
+        "uploadId": fake_upload_id,
+        "contentType": "video",
+    }
+
+    resp = client.post("/api/v1/media/chunk/merge", json=req)
+    assert resp.status_code == 400
+
+    assert resp.json["message"] == "Merge in progress"
+
+
+def test_chunk_upload__merge_has_upload_id(client, login):
+    fake_upload_id = "000111111"
+    req = {
+        "filename": "big-bunny.mp4",
+        "uploadId": fake_upload_id,
+        "contentType": "video",
+    }
+
+    resp = client.post("/api/v1/media/chunk/merge", json=req)
+    assert resp.status_code == 500
+
+    assert resp.json["message"] == f"No upload associcated with Id '{fake_upload_id}'"
+
+
+def test_chunk_upload__merge_incomplete_upload(client, login):
+     # test setup
+    fp = (shared_data.ASSET_DIR / "big-bunny.mp4")
+    chunk_size = 100 * 1024
+    file_size = os.stat(fp).st_size
+    total_chunks = _ceiling_division(file_size, chunk_size)
+
+    fake_upload_id = "0000011111"
+
+    req = {
+        "totalChunks": total_chunks,
+        "uploadId": fake_upload_id,
+    }
+
+    chunk = _chunk_file(fp)
+    req["chunk"] = (next(chunk), 'application/octet-stream')
+    req["chunkIndex"] = 0
+
+    resp = client.post("/api/v1/media/chunk/upload", data=req)
+    assert resp.status_code == 201
+
+    # --- test starts here ----
+    req = {
+        "filename": "big-bunny.mp4",
+        "uploadId": fake_upload_id,
+        "contentType": "video",
+    }
+
+    resp = client.post("/api/v1/media/chunk/merge", json=req)
+    assert resp.status_code == 500
+
+    assert resp.json["message"] == f"Incomplete file, 10 chunks missing"
