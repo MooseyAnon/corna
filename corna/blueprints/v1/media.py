@@ -290,3 +290,68 @@ def chunk_uploader(chunkIndex: int, totalChunks: int, uploadId: str):
         )
 
     return ret, 201
+
+
+class MergeChunksSendSchema(Schema):
+    """Schema for sending data /chunk/merge."""
+
+    filename = fields.String(
+        required=True,
+        metadata={
+            "description": "The name of the file being uploaded",
+        })
+
+    uploadId = fields.String(
+        required=True,
+        metadata={
+            "description": "Unique identifier for the upload.",
+        })
+
+    contentType = fields.String(
+        validate=validate.OneOf(
+            [media_type.value for media_type in enums.MediaTypes]
+        ),
+        required=True,
+        metadata={
+            "description": "Media type e.g. audio, image, video etc",
+        },
+    )
+
+    class Meta:  # pylint: disable=missing-class-docstring
+        strict = True
+
+
+@media.route("/media/chunk/merge", methods=["POST"])
+@utils.login_required
+@marshal_with(FileUploadReturn(), code=201)
+@use_kwargs(MergeChunksSendSchema())
+def merge_upload_chunks(uploadId: str, filename: str, contentType: str):
+    """Merge uploaded chunks."""
+    try:
+        merged_file = media_control.merge_chunks(
+            filename=filename, upload_id=uploadId)
+        ret = media_control.upload(session, merged_file, contentType)
+
+    except media_control.MergingError as err:
+        # if we're unable to merge, something serious has gone wrong and the
+        # caller my need to retry
+        code: int = (
+            HTTPStatus.BAD_REQUEST
+            if str(err) == "Merge in progress" else
+            HTTPStatus.INTERNAL_SERVER_ERROR
+        )
+        utils.respond_json_error(str(err), code)
+
+    except OSError as err:
+        # we should cleanup if the file is too big as it will never
+        # successfully be saved to the db.
+        # If it is some other kind of fs related error, the client can retry
+        if "File to large to save" in str(err):
+            media_control.clean_chunks(uploadId)
+
+        utils.respond_json_error(str(err), HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    session.commit()
+    # defer cleanup as if this fails, we can just do it in the background
+    media_control.clean_chunks(uploadId)
+    return ret, 201

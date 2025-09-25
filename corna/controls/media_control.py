@@ -1,11 +1,15 @@
 """Control layer for dealing with media files."""
 
+import errno
+import io
 import json
 import logging
 import mimetypes
+import os
 import pathlib
 import random
 import re
+import shutil
 from typing import Iterator, List, Optional
 
 from sqlalchemy.orm.scoping import scoped_session as Session
@@ -18,6 +22,10 @@ from corna.middleware import alchemy
 from corna.utils import get_utc_now, image_proc, mkdir, secure, utils
 
 logger = logging.getLogger(__name__)
+
+
+class MergingError(ValueError):
+    """Raised if a request tries to initialise merging after it has started."""
 
 
 class UploadResponse(TypedDict):
@@ -315,6 +323,102 @@ def save_chunk(
     return parts_dir.parent
 
 
+def merge_chunks(filename: str, upload_id: str) -> FileStorage:
+    """Merged chunks of a large file.
+
+    :param str filename: the name of the file
+    :param str upload_id: Id associated with the upload
+
+    :returns: werkzeug FileStorage object ready to be saved by backend
+    :rtype: FileStorage
+    :raises MergingError: if upload not found or is incomplete
+    """
+    base_dir: pathlib.Path = pathlib.Path(f"{image_proc.CHUNK_DIR}/{upload_id}")
+
+    # check if this is a valid upload
+    if not (metadata := utils.load_json(base_dir / "meta.json")):
+        raise MergingError(f"No upload associcated with Id '{upload_id}'")
+
+    # check if we've saved all the chunks
+    if (missing := metadata["totalChunks"] - len(metadata["received"])) > 0:
+        raise MergingError(f"Incomplete file, {missing} chunks missing")
+
+    logger.info("Merging chunks for video with Id: '%s'", upload_id)
+    bytestream: io.BytesIO = assembler(
+        base_dir=base_dir, total_chunks=metadata["totalChunks"])
+    filestorage: FileStorage = utils.to_filestorage(bytestream, filename)
+    return filestorage
+
+
+def assembler(
+    base_dir: pathlib.Path,
+    total_chunks: int,
+) -> io.BytesIO:
+    """Atomically assemble chunks of a media file.
+
+    This is a pretty shoddy implementation of 'locking'. This function
+    creates a lock file before chunks get merged, if any process tries to start
+    a merge operation while the file exists, an error is raised. This is a
+    simple way to avoid duplication.
+
+    :param pathlib.Path base_dir: the directory containing the parts of the
+        media file. As chunks are partitioned by uploadId, the base_dir is
+        essentially the partition the file lives in.
+    :param int total_chunks: the expected number of chunks for the file.
+        This is sent from the client and is usually calculated as
+        chunk_size/file_size
+
+    :returns: the complete media file, as an in memory byte stream via BytesIO
+    :rtype: BytesIO
+    :raises OSError: if the file size exceed the system max file size
+    :raises MergingError: if a process attempts to acquire a lock during
+        merging (FileExistsError)
+    :raises MergingError: if there is an error during merging (OSError)
+    """
+    lock: pathlib.Path = base_dir / ".merge.lock"
+    parts_dir: pathlib.Path = base_dir / "parts"
+
+    # we dont want to save files that exceed the system limit
+    size: int = file_size(parts_dir, total_chunks)
+    if size > image_proc.MAX_BLOB_SIZE:
+        logger.error(
+            "File to large to save. uploadID: '%s', size: '%s'",
+            base_dir.stem, size)
+        raise OSError(errno.EFBIG, "File too large for processing")
+
+    try:
+        # Create a tmp file which acts like a lock. Creating this file is
+        # eqivellent to 'acquiring' a lock.
+        # Flags:
+        #   - os.O_CREAT: Create the file if it doesn't exist.
+        #   - os.O_EXCL: Fail if the file already exists
+        #   - os.O_WRONLY: Open for write only
+        fd: int = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.close(fd)
+        # concatenate the chunks
+        # We write the concatenated file to memory for two reasons:
+        # - max size is (currently) 100mb which should be fine in memory
+        # - if we write it to a file first, we have to read it back out in
+        #   order to turn it into a FileStorage object which is what the
+        #   rest of our system expect.
+        # TL:DR its faster to read/write the output once, rather than doing two
+        # reads on the same file just to write it once.
+        bytestream: io.BytesIO = concat_chunks(parts_dir, total_chunks)
+
+    except FileExistsError as e:
+        raise MergingError("Merge in progress") from e
+
+    except OSError as e:
+        raise MergingError(f"Unable to merge: {str(e)}") from e
+
+    finally:
+        # cleanup lock if it was successfully acquired
+        if lock.exists():
+            os.unlink(str(lock))
+
+    return bytestream
+
+
 def update_meta(
     upload_id: str,
     chunk_index: int,
@@ -353,3 +457,88 @@ def update_meta(
     utils.atomic_text_write(pathlib.Path(meta_path), json.dumps(meta))
 
     return len(rec)
+
+
+def concat_chunks(
+    parts_dir: pathlib.Path,
+    total_chunks: int,
+) -> io.BytesIO:
+    """Concatenate chunks of a media file.
+
+    This function ignores any duplicates by taking advantage of the index based
+    naming convention of the chunks.
+
+    Furthermore, we write the concatenated file to memory.
+    This is for two reasons:
+      - max size is (currently) 100mb which should be fine in memory
+      - if we write it to a file first, we have to read it back out in
+        order to turn it into a FileStorage object which is what the
+        rest of our system expect.
+    TL:DR its faster to read/write the output once, rather than doing two
+    reads on the same file just to write it once.
+
+    :param pathlib.Path parts_dir: the directory containing the parts
+    :param int total_chunks: the total number of chunks expected
+    :return: the merged file in memory as a bytesteam
+    :rtype: io.BytesIO
+    """
+    stream = io.BytesIO()
+    # Merge in deterministic order: 000000.part, 000001.part, ...
+    # with open(final_path, "wb") as out:
+    for i in range(total_chunks):
+        part: pathlib.Path = parts_dir / f"{i:06d}.part"
+        with open(part, "rb") as src:
+            # 1MB copy buffer
+            shutil.copyfileobj(src, stream, length=1024 * 1024)
+
+    # reset stream
+    stream.seek(0)
+    return stream
+
+
+def clean_chunks(upload_id: str) -> None:
+    """Clean up chunk artifacts.
+
+    :param str upload_id: the upload_id associated with the media file
+        being uploaded.
+    """
+    # base_dir for a partition is: <FS>/<chunks-dir>/<uploadID>
+    base_dir = pathlib.Path(f"{image_proc.CHUNK_DIR}/{upload_id}")
+    meta_path: pathlib.Path = base_dir / "meta.json"
+    chunk_dir: pathlib.Path = base_dir / "parts"
+
+    logger.info("deleting artifacts of upload '%s'...", upload_id)
+
+    for chunk in chunk_dir.iterdir():
+        chunk.unlink(missing_ok=True)
+
+    chunk_dir.rmdir()
+    meta_path.unlink(missing_ok=True)
+    base_dir.rmdir()
+
+    logger.info("successfully deleted artifacts for upload '%s'", upload_id)
+
+
+def file_size(parts_dir: pathlib.Path, total_chunks: int) -> int:
+    """Calculate the file size based on chunks.
+
+    While we could do: chunk[0] * total_chunks, to calculate the file size
+    it is not guarenteed that the caller (and clients) will upload at a
+    consistent rate. We have a size limit on nginx but it relatively high
+    and offers a lot of room for variation in upload size of chunks.
+
+    The safest approach is the stupidest one: loop through and count.
+
+    This function takes advantage of the index based naming convention of the
+    chunk and thus can avoid any duplicated or malformed chunks.
+
+    :param pathlib.Path parts_dir: the directory containing the chunks
+    :param int total_chunks:
+    :return: the total size of the file
+    :rtype: int
+    """
+    total_size: int = 0
+    for i in range(total_chunks):
+        path: pathlib.Path = parts_dir / f"{i:06d}.part"
+        total_size += os.stat(path).st_size
+    return total_size

@@ -4,8 +4,10 @@ import collections.abc
 from copy import deepcopy
 from functools import lru_cache, wraps
 from http import HTTPStatus
+import io
 import json
 import logging
+import mimetypes
 import pathlib
 import random
 import shutil
@@ -419,3 +421,41 @@ def atomic_text_write(path: pathlib.Path, text: str) -> None:
     tmp: pathlib.Path = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(text, encoding="utf-8")
     tmp.replace(path)
+
+
+def to_filestorage(
+    stream_or_path: io.BytesIO | str,
+    filename: str,
+) -> FileStorage:
+    """Covert a blob object or a file descriptor to a FileStorage object.
+
+    :param io.BytesIO stream_or_path: either a stream like object or a path
+        to a file to read into memory
+    :param str filename: the desired filename of the resulting FileStorage obj
+    :return: a FileStorage object containing the file data
+    :rtype: FileStorage
+    """
+    # try and guess the mimetype from the filename. Fall back to
+    # `application/octet-stream` for unknown files
+    mimetype: str = (
+        mimetypes.guess_type(filename, strict=False)[0]
+        or "application/octet-stream"
+    )
+
+    fs: Optional[FileStorage] = None
+
+    if isinstance(stream_or_path, io.BytesIO):
+        fs = FileStorage(
+            stream=stream_or_path, filename=filename, content_type=mimetype)
+
+    else:
+
+        with open(stream_or_path, "rb") as fd:
+            file_content: bytes = fd.read()
+            # FileStorage expects a stream like object which has a `read()`
+            # method. So thats why we have to do this.
+            file_stream = io.BytesIO(file_content)
+            fs = FileStorage(
+                stream=file_stream, filename=filename, content_type=mimetype)
+
+    return fs
