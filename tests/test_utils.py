@@ -85,7 +85,7 @@ def test_expiry_2(date, expected):
     ('<a href="javascript:alert(1)">link</a>', '<a rel="noopener noreferrer">link</a>'),
     ('<a onmouseover="alert(1)">hover</a>', '<a rel="noopener noreferrer">hover</a>'),
     ('<script>alert("XSS")</script>', ''),
-    ('<IMG """><SCRIPT>alert("XSS")</SCRIPT>"\>', '<img>"\&gt;'),
+    (r'<IMG """><SCRIPT>alert("XSS")</SCRIPT>"\>', r'<img>"\&gt;'),
 
     # Valid HTML - should preserve
     ('<b>bold</b>', '<b>bold</b>'),
