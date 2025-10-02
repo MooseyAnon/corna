@@ -10,6 +10,7 @@ isort
 nh3
 mock
 mypy
+opencv-python
 typing_extensions
 psycopg2
 pylint

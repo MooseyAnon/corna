@@ -120,6 +120,8 @@ def test_upload(session, client, mocker, login):
     assert media.type == type_
 
     assert image.hash == "thisisafakehash12345"
+    assert image.height == 1600
+    assert image.width == 2400
 
 
 def test_file_not_saved_properly(session, client, mocker, login):
@@ -211,15 +213,22 @@ def test_upload_video(session, client, mocker, login):
     assert session.query(models.Media).count() == 1
     # ensure no images were created
     assert session.query(models.Images).count() == 0
+    # ensure video has been saved
+    assert session.query(models.Videos).count() == 1
     # ensure no posts have been created
     assert session.query(models.PostTable).count() == 0
 
     media = session.query(models.Media).first()
+    video = session.query(models.Videos).first()
     assert media is not None
     assert media.type == type_
     assert media.image_uuid is None
 
     assert media.orphaned == True
+
+    assert video.hash == "thisisafakestringhash"
+    assert video.height == 1080
+    assert video.width == 1920
 
 
 def test_download_video(session, client, login):

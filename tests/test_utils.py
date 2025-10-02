@@ -4,7 +4,8 @@ import pathlib
 from freezegun import freeze_time
 import pytest
 
-from corna.utils import encodings, future, mkdir, secure, utils
+from corna.utils import encodings, future, image_proc, mkdir, secure, utils
+from tests import shared_data
 
 FROZEN_TIME = "2023-04-05T03:21:34"
 
@@ -131,3 +132,32 @@ def test_mkdir__converts_to_path_obj(tmpdir):
 
     assert path.exists()
     assert str(path) == str_path
+
+
+@pytest.mark.parametrize("path,expected", [
+    ("anders-jilden.jpg", (1600, 2400)),
+    ("avatar-blue.png", (901, 529)),
+    ("earth.gif", (400, 400)),
+    ("giphy.webp", (270, 480)),
+])
+def test_get_image_dimension(path, expected):
+    t_img = utils.to_filestorage((shared_data.ASSET_DIR / path), path)
+    assert image_proc.image_dimensions(t_img) == expected
+
+
+def test_get_video_dimension():
+    t_vid = utils.to_filestorage(
+        (shared_data.ASSET_DIR / "big-bunny.mp4"), "big-bunny.mp4")
+
+    assert image_proc.video_dimensions(t_vid) == (1080, 1920)
+
+
+@pytest.mark.parametrize("height,width,expected", [
+    (1080, 1920, "16/9"),
+    (901, 529, "529/901"),
+    (1600, 2400, "3/2"),
+    (400, 400, "1/1"),
+    (270, 480, "16/9"),
+])
+def test_get_aspect_ratio(height, width, expected):
+    assert image_proc.aspect_ratio(height, width) == expected
