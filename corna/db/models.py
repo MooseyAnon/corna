@@ -410,8 +410,18 @@ class Media(Base):
         nullable=True,
         doc="UUID of image (if media is an image)",
     )
+    video_uuid = Column(
+        UUID,
+        ForeignKey("videos.uuid"),
+        nullable=True,
+        doc="UUID of video (if media is a video)",
+    )
     image = relationship(
         "Images",
+        back_populates="media",
+    )
+    video = relationship(
+        "Videos",
         back_populates="media",
     )
     post_uuid = Column(
@@ -442,9 +452,44 @@ class Images(Base):
         Text,
         doc="The hash of the image",
     )
+    height = Column(
+        Integer,
+        doc="The height of the image",
+    )
+    width = Column(
+        Integer,
+        doc="The width of the image",
+    )
     media = relationship(
         "Media",
         back_populates="image",
+    )
+
+
+class Videos(Base):
+    """Table for video data."""
+
+    __tablename__ = "videos"
+
+    uuid = Column(
+        UUID,
+        primary_key=True,
+    )
+    hash = Column(
+        Text,
+        doc="The hash of the video",
+    )
+    height = Column(
+        Integer,
+        doc="The height of the video",
+    )
+    width = Column(
+        Integer,
+        doc="The width of the video",
+    )
+    media = relationship(
+        "Media",
+        back_populates="video",
     )
 
 

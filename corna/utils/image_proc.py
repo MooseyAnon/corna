@@ -1,11 +1,15 @@
 """Image processing functionality."""
 
+from fractions import Fraction
 import hashlib
 import logging
 import os
 import random
+import tempfile
 from typing import Callable, Optional, Set
 
+import cv2
+import numpy as np
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
@@ -14,6 +18,7 @@ from corna.utils import mkdir
 logger = logging.Logger(__name__)
 
 IMAGE_EXTENSIONS: Set[str] = {"gif", "jpg", "jpeg", "png", "webp"}
+VIDEO_EXTENSIONS: Set[str] = {"avi", "flv", "mkv", "mp4", "mov", "wmv"}
 PICTURE_DIR: Optional[str] = os.environ.get("PICTURE_DIR")
 # directory for hold media chunks for large files. This dir gets periodically
 # cleaned up.
@@ -170,3 +175,136 @@ def is_image(filename: str) -> bool:
         "." in filename
         and filename.rsplit(".", 1)[1].lower() in IMAGE_EXTENSIONS
     )
+
+
+def is_video(filename: str) -> bool:
+    """Verify is a file is an video.
+
+    :param str filename: the name of the media file
+    :return: true if file is an video
+    :rtype: bool
+    """
+    return (
+        "." in filename
+        and filename.rsplit(".", 1)[1].lower() in VIDEO_EXTENSIONS
+    )
+
+
+# pylint: disable=no-member
+def image_dimensions(image: FileStorage) -> tuple[int, int]:
+    """Get the image dimensions.
+
+    :param FileStorage image: the image
+    :return: a tuple containing the height and width (in that order)
+    :rtype: tuple
+    :raises FileNotFoundError: if file can't be read
+    :raises ValueError: if the file is empty
+    """
+    np_arr: np.ndarray = np.frombuffer(image.read(), np.uint8)
+    img: np.ndarray = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+    if img is None:
+        raise FileNotFoundError(f"Can't read file with name '{image.name}'")
+
+    height, width, _ = img.shape
+
+    if height == 0:
+        raise ValueError("Invalid image: image height is 0.")
+
+    image.seek(0)
+    return height, width
+
+
+# pylint: disable=no-member
+def video_dimensions(video: FileStorage) -> tuple[int, int]:
+    """Get the dimensions of a video.
+
+    :param FileStorage video: the video
+    :return: a tuple containing the height and width (in that order)
+    :rtype: tuple
+    :raises ValueError: if the file is empty or if file can't be read
+    """
+
+    # We need to save to a temp file as openCV can't read from in-mem buffers
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+        video.save(tmp)
+        tmp_path = tmp.name
+
+    height = width = 0
+    try:
+        cap = cv2.VideoCapture(tmp_path)
+        if not cap.isOpened():
+            raise ValueError("Failed to open video file.")
+
+        width: int = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height: int = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        cap.release()
+
+        if height == 0:
+            raise ValueError(
+                "Video height is zero; cannot compute aspect ratio.")
+
+    finally:
+        # Clean up temp file
+        os.remove(tmp_path)
+
+    video.seek(0)
+    return height, width
+
+
+def aspect_ratio(height: int, width: int, tolerance=0.02) -> str:
+    """Get the aspect ratio of a image or video.
+
+    :param int height: height of image/video
+    :param int width: width of image/video
+    :param float tolerance: the acceptible error tolerance for lookup misses
+        TL;DR this will decided if the "closest" match is too far.
+    :returns: aspect ratio in a string format e.e. '16/9'
+    :rtype: str
+    :raises ValueError: if height is 0 - preventing zero division errors
+    """
+    # Found this on some random website, I dont even know how legit this is.
+    # But covers all the common ratios.
+    COMMON_ASPECT_RATIOS: list[tuple[int, int]] = [
+        (16, 9),    # Widescreen HD/Full HD/4K
+        (4, 3),     # Old TVs, webcams, iPads
+        (3, 2),     # Photography (DSLR, 35mm film)
+        (1, 1),     # Square (Instagram, profile pics)
+        (21, 9),    # Ultra-wide monitors, cinematic
+        (18, 9),    # Modern phones (aka 2:1)
+        (2, 1),     # Some ultra-wide mobile screens
+        (5, 4),     # Old standard monitors (1280x1024)
+        (9, 16),    # Portrait video (TikTok, IG Reels)
+        (10, 16),   # Instagram stories
+        (9, 18),    # Tall phone screens
+        (3, 4),     # Portrait webcam
+        (2, 3),     # Portrait photography
+        (1, 2),     # Very tall images
+        (1, 1.91),  # Facebook landscape ads
+    ]
+
+    if height == 0:
+        raise ValueError("Height cannot be zero")
+
+    actual_ratio: float = width / height
+
+    # find the closest ratio to the actual ratio. This is a minimisation
+    # mechanism. The closer (test_ration - actual_ratio) is to 0, the more
+    # likely that we've found the correct ratio.
+    closest: tuple[int, int] = min(
+        COMMON_ASPECT_RATIOS,
+        key=lambda r: abs((r[0] / r[1]) - actual_ratio)
+    )
+
+    closest_ratio: float = closest[0] / closest[1]
+    # the error rate is essentially the difference between the closest ratio
+    # and the actual ratio. The closer this is to 0, the better.
+    error: float = abs(closest_ratio - actual_ratio) / actual_ratio
+
+    # if the error rate is within our tolerance range, return it
+    if error <= tolerance:
+        return f"{closest[0]}/{closest[1]}"
+
+    # fallback: return exact simplified ratio
+    frac = Fraction(width, height).limit_denominator()
+    return f"{frac.numerator}/{frac.denominator}"

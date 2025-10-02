@@ -1,5 +1,6 @@
 """Control layer for dealing with media files."""
 
+from dataclasses import dataclass
 import errno
 import io
 import json
@@ -45,74 +46,157 @@ class Avatar(TypedDict):
     slug: str
 
 
-def _image(
-    session: Session,
-    hash: str,  # pylint: disable=redefined-builtin
-) -> str:
-    """Save a new image to the DB.
+@dataclass
+class MediaAsset:
+    """Media asset DTO.
 
-    :param Session session: connection to the DB
-    :param str hash: the hash of the image
-    :returns: image UUID
-    :rtype: str
+    This is here to make it easier to a) group all required asset data together
+    and b) make it easier to create the db relationships when saving data to
+    the db.
     """
+    media_type: str
+    path: str
+    uuid: str
+
+
+def process_image(
+    session: Session,
+    file: FileStorage,
+    media_type: str,
+) -> MediaAsset:
+    """Process incoming image.
+
+    :param Session session: db session
+    :param FileStorage file: the media asset
+    :param str media_type: the asset media type e.g. thumbnail, video, gif etc
+    :returns: a MediaAsset data transfer object (DTO)
+    :rtype: MediaAsset
+    :raises ValueError: if the asset is not an image
+    """
+    if not image_proc.is_image(file.filename):
+        raise ValueError("Image file required.")
+
     uuid: str = utils.get_uuid()
-    session.add(models.Images(uuid=uuid, hash=hash))
-    return uuid
+    image_hash = image_proc.hash_image(file)
+
+    height, width = image_proc.image_dimensions(file)
+    path: str = image_proc.save(file, media_type, image_hash)
+
+    session.add(
+        models.Images(
+            uuid=uuid,
+            hash=image_hash,
+            height=height,
+            width=width,
+        )
+    )
+
+    return MediaAsset(media_type=media_type, path=path, uuid=uuid)
+
+
+def process_video(
+    session: Session,
+    file: FileStorage,
+    media_type: str,
+) -> MediaAsset:
+    """Process incoming video.
+
+    :param Session session: db session
+    :param FileStorage file: the media asset
+    :param str media_type: the asset media type e.g. thumbnail, video, gif etc
+    :returns: a MediaAsset data transfer object (DTO)
+    :rtype: MediaAsset
+    :raises ValueError: if the media type video
+    """
+    if not image_proc.is_video(file.filename):
+        raise ValueError("Video file required.")
+
+    uuid: str = utils.get_uuid()
+    video_hash: str = image_proc.random_hash()
+
+    height, width = image_proc.video_dimensions(file)
+    path = image_proc.save(file, media_type, video_hash)
+
+    session.add(
+        models.Videos(
+            uuid=uuid,
+            hash=video_hash,
+            height=height,
+            width=width,
+        )
+    )
+
+    return MediaAsset(media_type=media_type, path=path, uuid=uuid)
+
+
+def process_media_asset(
+    session: Session,
+    file: FileStorage,
+    media_type: str,
+) -> MediaAsset:
+    """Handle incoming media assets.
+
+    :param Session session: db session
+    :param FileStorage file: the media asset
+    :param str media_type: the asset media type e.g. thumbnail, video, gif etc
+    :returns: a MediaAsset data transfer object (DTO)
+    :rtype: MediaAsset
+    :raises ValueError: if the media type is not supported yet e.g. audio
+    """
+    if image_proc.is_image(file.filename):
+        return process_image(session, file, media_type)
+
+    if image_proc.is_video(file.filename):
+        return process_video(session, file, media_type)
+
+    raise ValueError(f"Unsupported media type: {media_type}")
 
 
 def upload(
     session: Session,
-    image: FileStorage,
+    file: FileStorage,
     type: str,  # pylint: disable=redefined-builtin
 ) -> UploadResponse:
-    """Upload an image.
+    """Upload an file.
 
     :param Session session: db session
-    :param FileStorage image: The image to save
+    :param FileStorage file: The file to save
     :param str type: The type of file being uploaded
-    :returns: information about the unloaded image
+    :returns: information about the unloaded file
     :rtype: UploadResponse
     """
-    image_uuid: Optional[str] = None
-    if image_proc.is_image(image.filename):
-        image_hash: str = image_proc.hash_image(image)
-        image_uuid = _image(session, image_hash)
-
-    else:
-        image_hash: str = image_proc.random_hash()
+    asset: MediaAsset = process_media_asset(session, file, type)
 
     url_extension: str = secure.generate_unique_token(
         session=session,
         column=models.Media.url_extension,
         func=utils.random_short_string
     )
-    path: str = image_proc.save(image, type, image_hash)
-    size: int = image_proc.size(path)
+    size: int = image_proc.size(asset.path)
     uuid: str = utils.get_uuid()
 
-    session.add(
-        models.Media(
-            uuid=uuid,
-            path=path,
-            size=size,
-            type=type,
-            orphaned=True,
-            post_uuid=None,
-            created=get_utc_now(),
-            image_uuid=image_uuid,
-            url_extension=url_extension,
-        )
+    media = models.Media(
+        uuid=uuid,
+        path=asset.path,
+        size=size,
+        type=type,
+        orphaned=True,
+        post_uuid=None,
+        created=get_utc_now(),
+        image_uuid=asset.uuid if image_proc.is_image(file.filename) else None,
+        video_uuid=asset.uuid if image_proc.is_video(file.filename) else None,
+        url_extension=url_extension,
     )
+    session.add(media)
 
     response: UploadResponse = {
         "id": uuid,
-        "filename": image.filename,
+        "filename": file.filename,
         # the werkzeug documentation acknowledges that this is an unreliable
         # way to find the mimetype of a file and more often than not will not
         # be present. In light of this, in the future we need a more robust
         # solution. Look here for more deets: https://stackoverflow.com/q/43580
-        "mime_type": mimetypes.guess_type(image.filename, strict=False)[0],
+        "mime_type": mimetypes.guess_type(file.filename, strict=False)[0],
         "size": size,
         "url_extension": url_extension,
     }
