@@ -6,6 +6,7 @@ postgresql13-contrib
 postgresql13-server
 # Build dependencies
 gcc
+mesa-libGL
 python3.12-devel
 systemd-devel
 postgresql13-devel
