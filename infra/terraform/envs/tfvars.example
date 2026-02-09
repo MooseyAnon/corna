@@ -1,0 +1,33 @@
+project_name        = "corna"
+project_description = "Corna infrastructure (dev)"
+project_purpose     = "Web Application"
+project_environment = "Development"
+
+region           = "lon1"
+enable_vpc       = true
+vpc_cidr         = "10.20.0.0/16"
+
+droplet_name     = "corna-host"
+droplet_size     = "s-1vcpu-2gb"
+droplet_image    = "rockylinux-9-x64"
+admin_username   = "moose"
+ssh_pub_key_path = "~/.ssh/id_ed25519.pub"
+
+tags = ["corna","managed","public-edge"]
+
+enable_db       = true
+db_engine       = "pg"
+db_version      = "16"
+db_size         = "db-s-1vcpu-1gb"
+db_name         = "corna-db"
+db_node_count   = 1
+db_allow_tag    = "corna"
+db_allow_cidrs  = []
+
+enable_registry = true
+registry_name   = "corna-registry"
+registry_tier   = "basic"
+
+enable_spaces   = true
+spaces_bucket   = "corna-assets"
+spaces_region   = "lon1"
