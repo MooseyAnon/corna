@@ -1,14 +1,14 @@
 # Runtime dependencies
 python3.12
 # consider updating to pg16: https://endoflife.date/postgresql
-postgresql13
-postgresql13-contrib
-postgresql13-server
+postgresql16
+postgresql16-contrib
+postgresql16-server
 # Build dependencies
 gcc
 mesa-libGL
 python3.12-devel
 systemd-devel
-postgresql13-devel
+postgresql16-devel
 # Build tools
 make
