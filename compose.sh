@@ -185,9 +185,8 @@ SSL_MODE=prefer
 EOT
 
 
-rsync \
-    --chmod=Fu=rw \
-    "${ANSIBLE_VAULT_PASSWORD_FILE}" .vault-password
+cp "$ANSIBLE_VAULT_PASSWORD_FILE" .vault-password
+chmod 600 .vault-password
 
 # pin current version python we are using
 PYTHON=python3.12
