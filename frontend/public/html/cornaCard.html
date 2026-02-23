@@ -1,4 +1,4 @@
-<body>
+
   <div class="bodySmallContainer" id="cornaCardContainer">
     <button class="textButton closeCornaCard" type="button" id="close">
       Close
@@ -20,15 +20,17 @@
       </div>
     </div>
     <div class="buttonsCornaCardContainer">
-      <div
-        class="buttonContainer"
-        id="yourCharacters"
+      <div class="buttonContainer" id="yourCharacters">
+      <button
+        class="textButton"
+        type="button"
         hx-get="cornaCore/permissions"
         hx-target="#cornaCardContainer"
         hx-swap="outerHTML"
         hx-trigger="click"
       >
-        <button class="textButton" type="button">Your characters</button>
+        Your characters
+      </button>
         <button class="textButton">></button>
       </div>
       <div class="buttonContainer" id="signOut">
@@ -50,4 +52,3 @@
           </div> -->
     </div>
   </div>
-</body>
