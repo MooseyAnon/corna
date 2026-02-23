@@ -70,8 +70,8 @@ function openModal(): void {
 }
 
 
-function isModalSwap(event: any): boolean {
-    const target: HTMLElement | null = event?.detail?.target ?? null;
+function isModalSwap(event: Event): boolean {
+    const target = event.target as HTMLElement | null;
     // We only consider swaps into #content as “modal swaps”.
     return !!target && target.id === "content";
 }
@@ -214,50 +214,87 @@ function updateNavigation(): void {
  * @param { Event } event: A HTMX event
  * @returns { Promise<void> }
  */
-async function processSwaps(event: Event): Promise<void> {
-
-    // the event has no target, there is nothing to do.
-    if (!event.target) { return; }
-
+async function processSwaps(): Promise<void> {
     // remove any error/status messages that may be on screen from last swap.
-    resetMessages()
+    resetMessages();
 
-    const target = event.target as HTMLElement;
+    /**
+     * Handle post-HTMX swap initialisation.
+     *
+     * We no longer rely on the event target to determine what was swapped.
+     * Instead, we treat `#content` as the single swap mount point for all
+     * primary view changes.
+     *
+     * Using hx-swap="innerHTML" means the container itself remains stable
+     * while only its children are replaced. This allows us to:
+     * - Avoid fragile event.target assumptions
+     * - Always initialise against a known root (#content)
+     * - Keep view lifecycle logic deterministic
+     *
+     * All fragment initialisation should now be derived from the current
+     * contents of #content rather than from the swap event payload.
+     */
+    const content = document.getElementById("content") as HTMLDivElement | null;
+    if (!content) { return; }
 
-    // this swaps in html/signin.html
-    if (target.matches("#signInContainer")) {
-        // We pass in the refereshNav callback because we need to ensure we
-        // call the user information endpoint, but only after the user has
-        // successfully logged in or registered.
-        login(refreshNav);
+    // Helper: enforce domain existence for flows that require it
+    const requireDomain = (): string | null => {
+        if (!state.domainName) {
+            displayErrorMessage("No Corna domain found. Please create one or re-login.");
+            return null;
+        }
+        return state.domainName;
+    };
 
-    // this swaps in html/register.html
-    } else if (target.matches("#registerContainer")) {
-        await processNewUser();
+    // Map swapped-in container -> handler
+    const routes: Array<[string, () => void | Promise<void>]> = [
+        // swaps in html/signin.html
+        ["#signInContainer", () => login(refreshNav)],
 
-    // this swaps in html/cornaCard.html
-    } else if (target.matches("#cornaCardContainer")) {
-        cornaCardInit();
+        // swaps in html/register.html
+        ["#registerContainer", () => processNewUser()],
 
-    // this swaps in html/permissions.html
-    } else if (target.matches("#permissionsContainer")) {
-        await characters();
+        // swaps in html/cornaCard.html
+        ["#cornaCardContainer", () => cornaCardInit()],
 
-    // this swaps in html/characterCreator.html
-    } else if (target.matches("#characterCreator")) {
-        createCharacter(state.domainName);
+        // swaps in html/permissions.html
+        ["#permissionsContainer", () => characters()],
 
-    // this swaps in textModal.html
-    } else if (target.matches("#textModal")) {
-        createPostTest("text", state.domainName);
+        // swaps in html/characterCreator.html
+        ["#characterCreator", () => {
+            const dn = requireDomain();
+            if (!dn) { return; }
+            createCharacter(dn);
+        }],
 
-    // this swaps in imageModal.html
-    } else if (target.matches("#imageModal")) {
-        createPostTest("picture", state.domainName);
+        // swaps in textModal.html
+        ["#textModal", () => {
+            const dn = requireDomain();
+            if (!dn) { return; }
+            createPostTest("text", dn);
+        }],
 
-    // this swaps in videoModal.html
-    } else if (target.matches("#videoModal")) {
-        createPostTest("video", state.domainName);
+        // swaps in imageModal.html
+        ["#imageModal", () => {
+            const dn = requireDomain();
+            if (!dn) { return; }
+            createPostTest("picture", dn);
+        }],
+
+        // swaps in videoModal.html
+        ["#videoModal", () => {
+            const dn = requireDomain();
+            if (!dn) { return; }
+            createPostTest("video", dn);
+        }],
+    ];
+
+    for (const [selector, handler] of routes) {
+        // Look inside #content for the swapped-in view root
+        if (content.querySelector(selector)) {
+            await handler();
+            return;
+        }
     }
 }
 
@@ -294,20 +331,20 @@ document.addEventListener("DOMContentLoaded", async function() {
     await refreshNav();
 
     document.addEventListener("htmx:beforeSwap", function(event: Event) {
-        if (!isModalSwap(event as any)) { return; }
+        if (!isModalSwap(event)) { return; }
         openModal();
     });
 
     // afterSettle fires after transitions/attributes settle rather than on just
     // DOM swaps
-    document.addEventListener("htmx:afterSettle", async function(event: Event) {
-        await processSwaps(event);
+    document.addEventListener("htmx:afterSettle", async function() {
+        await processSwaps();
     });
 
     const createEl = document.getElementById("create") as HTMLElement | null;
     if (createEl) {
         createEl.addEventListener("click", function(event: MouseEvent) {
-            createOptionsHover(event, this as any);
+            createOptionsHover(event, this as HTMLOListElement);
 
             if (!state.flags.createClickOutBound) {
                 document.addEventListener("click", clickOut);
