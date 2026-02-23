@@ -11,6 +11,7 @@ from corna.controls import roles_control as control
 from corna.enums import SessionNames
 from corna.oss.flask_sqlalchemy_session import current_session as session
 from corna.utils import errors, secure, utils
+from corna.utils.utils import login_required
 
 roles = flask.Blueprint("roles", __name__)
 
@@ -71,6 +72,7 @@ class CreateUpdateRoleSend(Schema):
 
 
 @roles.route("/roles", methods=["POST"])
+@login_required
 @use_kwargs(CreateUpdateRoleSend())
 @doc(
     tags=["Roles"],
@@ -104,6 +106,7 @@ def create_role(**data):
 
 
 @roles.route("/roles", methods=["PUT"])
+@login_required
 @use_kwargs(CreateUpdateRoleSend())
 @doc(
     tags=["Roles"],
@@ -154,6 +157,7 @@ class DeleteRoleSend(Schema):
 
 
 @roles.route("/roles", methods=["DELETE"])
+@login_required
 @use_kwargs(DeleteRoleSend())
 @doc(
     tags=["Roles"],
@@ -201,6 +205,7 @@ class AddRemovePermToRoleSend(Schema):
 
 
 @roles.route("/roles/permissions/add", methods=["PUT"])
+@login_required
 @use_kwargs(AddRemovePermToRoleSend())
 @doc(
     tags=["Roles"],
@@ -233,6 +238,7 @@ def add_to_role(**data):
 
 
 @roles.route("/roles/permissions/remove", methods=["PUT"])
+@login_required
 @use_kwargs(AddRemovePermToRoleSend())
 @doc(
     tags=["Roles"],
@@ -287,6 +293,7 @@ class GiveTakeRoleSend(Schema):
 
 
 @roles.route("/roles/give", methods=["POST"])
+@login_required
 @use_kwargs(GiveTakeRoleSend())
 @doc(
     tags=["Roles"],
@@ -321,6 +328,7 @@ def give_role(**data):
 
 
 @roles.route("/roles/take", methods=["POST"])
+@login_required
 @use_kwargs(GiveTakeRoleSend())
 @doc(
     tags=["Roles"],
@@ -367,6 +375,7 @@ class PermissionsListReturn(Schema):
 
 
 @roles.route("/roles/<domain_name>/<role_name>/permissions", methods=["GET"])
+@login_required
 @marshal_with(PermissionsListReturn(), code=200)
 @doc(
     tags=["Roles"],
@@ -436,6 +445,7 @@ class RoleUserListReturn(Schema):
 
 
 @roles.route("/roles/<domain_name>/<role_name>/users", methods=["GET"])
+@login_required
 @marshal_with(RoleUserListReturn(), code=200)
 @doc(
     tags=["Roles"],
@@ -473,6 +483,7 @@ class CornaRoleListReturn(Schema):
 
 
 @roles.route("/roles/<domain_name>")
+@login_required
 @marshal_with(CornaRoleListReturn(), code=200)
 @doc(
     tags=["Roles"],
@@ -509,6 +520,7 @@ class UserRoleListReturn(Schema):
 
 
 @roles.route("/roles/<domain_name>/<username>", methods=["GET"])
+@login_required
 @marshal_with(UserRoleListReturn(), code=200)
 @doc(
     tags=["Roles"],
@@ -546,6 +558,7 @@ class UserPermissionsListReturn(Schema):
 
 
 @roles.route("/roles/<domain_name>/users/<perm>", methods=["GET"])
+@login_required
 @marshal_with(UserPermissionsListReturn(), code=200)
 @doc(
     tags=["Roles"],

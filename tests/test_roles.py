@@ -209,13 +209,13 @@ def test_create_role__banned_role(client, session, corna):
     assert perms.perms(role.permissions) == expected
 
 
-def test_create_role__missing_name(client, session):
+def test_create_role__missing_name(client, session, login):
     resp = client.post("/api/v1/roles", json={"permissions": []})
     assert resp.status_code == 422
     assert session.query(models.Role).count() == 0
 
 
-def test_create_role__missing_perms(client, session):
+def test_create_role__missing_perms(client, session, login):
     resp = client.post("/api/v1/roles", json={"name": "Should not work"})
     assert resp.status_code == 422
     assert session.query(models.Role).count() == 0
