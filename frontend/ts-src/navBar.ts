@@ -51,6 +51,29 @@ interface State {
     loggedOutNavigation: HTMLUListElement;
     overlay: HTMLDivElement;
     domainName: string | null;
+
+    flags: {
+        modalOpen: boolean;
+        hoverBound: boolean;
+        createClickOutBound: boolean;
+        yourCornaBound: boolean;
+    };
+}
+
+
+function openModal(): void {
+    if (state.flags.modalOpen) { return; }
+    state.flags.modalOpen = true;
+
+    window.parent.postMessage("open", "*");
+    showOverlay();
+}
+
+
+function isModalSwap(event: any): boolean {
+    const target: HTMLElement | null = event?.detail?.target ?? null;
+    // We only consider swaps into #content as “modal swaps”.
+    return !!target && target.id === "content";
 }
 
 
@@ -102,12 +125,21 @@ async function getDomain(): Promise<string | null> {
  * @returns { void }
  */ 
 function setYourCorna(domainName: string | null): void {
+    const yourCornaOption = document.getElementById("yourCorna") as HTMLElement | null;
+    if (!yourCornaOption) { return; }
 
-    if (!domainName) { return; }
+    // Always update the latest domain on the element.
+    if (domainName) {
+        yourCornaOption.dataset.domainName = domainName;
+    }
 
-    const yourCornaOption = document.getElementById("yourCorna") as HTMLOListElement;
+    // Bind once.
+    if (state.flags.yourCornaBound) { return; }
+    state.flags.yourCornaBound = true;
 
-    yourCornaOption.addEventListener("click", async function() {
+    yourCornaOption.addEventListener("click", function() {
+        const dn = (yourCornaOption.dataset.domainName ?? "").trim();
+        if (!dn) { return; }
         /**
          * The nav bar is an iframe that lives on each page of the website.
          * As a result if we make the "Your Corna" button a regular anchor tag
@@ -118,8 +150,8 @@ function setYourCorna(domainName: string | null): void {
          * the button has been clicked. This allows the parent page - which
          * is the page we actually want to change - to handle the redirect.
          */
-        window.parent.postMessage(`domainName=${domainName}`, "*");
-    })
+        window.parent.postMessage(`domainName=${dn}`, "*");
+    });
 }
 
 
@@ -133,7 +165,13 @@ async function refreshNav(): Promise<void> {
     await refreshLoginStatus();
 
     updateNavigation();
-    hoverEventListeners();
+
+    // Bind hover listeners once; refreshNav can run after login/register.
+    if (!state.flags.hoverBound) {
+        hoverEventListeners();
+        state.flags.hoverBound = true;
+    }
+
 
     if (state.isLoggedIn) {
         state.domainName = await getDomain();
@@ -242,6 +280,12 @@ function init(): State {
         loggedOutNavigation,
         overlay,
         domainName,
+        flags: {
+            modalOpen: false,
+            hoverBound: false,
+            createClickOutBound: false,
+            yourCornaBound: false,
+        },
     }
 }
 
@@ -249,26 +293,34 @@ function init(): State {
 document.addEventListener("DOMContentLoaded", async function() {
     await refreshNav();
 
-    document.addEventListener("htmx:beforeSwap", function() {
-        // send message to parent page that the modal has been opened.
-        window.parent.postMessage("open", "*");
-        showOverlay();
+    document.addEventListener("htmx:beforeSwap", function(event: Event) {
+        if (!isModalSwap(event as any)) { return; }
+        openModal();
     });
 
-    document.addEventListener("htmx:afterSwap", async function(event: Event) {
-        const cardContainer = document.getElementById("cardContainer") as HTMLDivElement;
-        cardContainer.addEventListener("click", function(event: MouseEvent) {
-            // prevent the post model from closing while interacting with it
-            event.stopPropagation();
-        });
-
+    // afterSettle fires after transitions/attributes settle rather than on just
+    // DOM swaps
+    document.addEventListener("htmx:afterSettle", async function(event: Event) {
         await processSwaps(event);
     });
 
-    document.getElementById("create")!.addEventListener("click", function(event: MouseEvent) {
-        createOptionsHover(event, this as HTMLOListElement);
-        document.addEventListener("click", clickOut);
+    const createEl = document.getElementById("create") as HTMLElement | null;
+    if (createEl) {
+        createEl.addEventListener("click", function(event: MouseEvent) {
+            createOptionsHover(event, this as any);
+
+            if (!state.flags.createClickOutBound) {
+                document.addEventListener("click", clickOut);
+                state.flags.createClickOutBound = true;
+            }
+        });
+    }
+
+    // ensure we update state when modal is closed
+    document.addEventListener("corna:modalClosed", function() {
+        state.flags.modalOpen = false;
     });
+
 });
 
 

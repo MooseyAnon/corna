@@ -6,6 +6,7 @@ import { getApiUrl, request, handleNetworkError } from "./../lib/network";
 import {
     createImageElement,
     createVideoElement,
+    queryRequired,
 } from "./../lib/utils";
 
 import { State, initState } from "./../editor.js";
@@ -16,6 +17,11 @@ import {
     displayStatusMessage,
     resetMessages,
 } from "./utils.js";
+
+/**
+ * Some typedef's to make post orchestration scale better.
+ */
+type PostType = "text" | "picture" | "video";
 
 
 interface FormControls {
@@ -35,11 +41,13 @@ interface FormFields {
 
 
 interface StateManager {
-    bodyLargeContainer: HTMLCollectionOf<HTMLDivElement>;
+    modalRoot: HTMLDivElement;
     cardContainer: HTMLDivElement;
     formControls: FormControls;
     domainName: string;
-    postType: string;
+    postType: PostType;
+    sessionId: number;
+    isActive: boolean;
 }
 
 
@@ -52,41 +60,85 @@ interface PostData {
 }
 
 
-function filesValid(files: FileList): boolean {
+interface PostTypeConfig {
+    allowedFileKind: "image" | "video";
+    maxFiles: number;
+    uploadLabel: string;  // used for user-facing messaging
+}
 
-    if (files.length > 1) {
-        displayErrorMessage("Can only upload 1 file per post");
+
+const POST_CONFIG: Record<PostType, PostTypeConfig> = {
+    text: { allowedFileKind: "image", maxFiles: 1, uploadLabel: "header image" },
+    picture: { allowedFileKind: "image", maxFiles: 1, uploadLabel: "image" },
+    video: { allowedFileKind: "video", maxFiles: 1, uploadLabel: "video" },
+};
+
+
+/**
+ * Map postType -> modal root element id.
+ *
+ * @param { PostType } postType: the post type being created
+ * @returns { string } the modal root id for that post type
+ */
+function getModalRootId(postType: PostType): string {
+    if (postType === "text") return "textModal";
+    if (postType === "picture") return "imageModal";
+    return "videoModal";
+}
+
+
+/**
+ * Get the config for a given post type.
+ *
+ * @param { PostType } postType: the post type being created
+ * @returns { PostTypeConfig } config values for that post type
+ */
+function getPostConfig(postType: PostType): PostTypeConfig {
+    return POST_CONFIG[postType];
+}
+
+
+function filesValid(files: FileList): boolean {
+    // let the config object handle the details for each post type.
+    // this function shouldn't care.
+    const cfg = getPostConfig(stateManager.postType)
+
+    if (files.length > cfg.maxFiles) {
+        displayErrorMessage(`Can only upload ${cfg.maxFiles} file per post`);
         return false;
     }
-
-    let isValid: boolean = true;
 
     for (let i = 0; i < files.length; i++) {
         const file: File = files[i];
         const fileType: string = file.type.split("/")[0]
 
-        isValid = (
-            (stateManager.postType === "text" && fileType === "image")
-            || (stateManager.postType === "picture" && fileType === "image")
-            || (stateManager.postType === "video" && fileType === "video")
-        )
-
-        // fail fast
-        if (!isValid) {
+        if (fileType !== cfg.allowedFileKind) {
             displayErrorMessage("Incorrect file type");
-            return isValid;
+            return false;
         }
     }
 
-    return isValid;
+    return true;
 }
 
 
 function addEventListeners(): void {
+    const root = stateManager.modalRoot;
+
+    // Prevent stacking listeners if the same modal is swapped in multiple times.
+    if (root.dataset.bound === "1") { return; }
+    root.dataset.bound = "1";
 
     stateManager.formControls.createButton.addEventListener("click", function() {
         resetMessages();
         createPost();
+    });
+
+    stateManager.formControls.closeButton.addEventListener("click", function() {
+        // Mark inactive so async callbacks don't mutate a closed/swapped modal.
+        stateManager.isActive = false;
+        resetMessages();
+        closeOverlay();
     });
 
     stateManager.formControls.dropArea.addEventListener("dragover", function(event: DragEvent) {
@@ -97,14 +149,13 @@ function addEventListeners(): void {
         event.preventDefault();
         resetMessages();
 
-        if (event.dataTransfer){
+        if (event.dataTransfer) {
             mediaFilePreview(event.dataTransfer.files);
         }
     });
 
     stateManager.formControls.inputFile.addEventListener("change", function() {
-        // reset
-        resetMessages()
+        resetMessages();
         mediaFilePreview(stateManager.formControls.inputFile.files);
     });
 }
@@ -166,25 +217,31 @@ function buildVideoTag(
 function mediaFilePreview(files: FileList | null): void {
     if (!files || !filesValid(files)) return;
 
+    const sessionId = stateManager.sessionId;
+
     const sliderContainer = document.createElement("div") as HTMLDivElement;
     sliderContainer.id = "slider-container";
     sliderContainer.classList.add("slider-container");
 
+    // Clear UI immediately (current behaviour)
+    stateManager.formControls.dropArea.innerHTML = "";
+    stateManager.formControls.dropArea.appendChild(sliderContainer);
+
     for (let i = 0; i < files.length; i++) {
         const file: File = files[i];
-        const fileType: string = file.type.split("/")[0]
+        const fileType: string = file.type.split("/")[0];
 
         uploadMediaFile(file)
         .then((response: AxiosResponse) => {
+            // Bail if this modal is no longer the active session.
+            if (!stateManager.isActive || stateManager.sessionId !== sessionId) { return; }
+
             const imageData = response.data;
             const urlExtension: string = imageData.url_extension;
 
-            // const is block scoped so we can only use it inside the block
-            // hence why we're repeating some code
             if (fileType === "image") {
                 const media = buildImgTag(urlExtension, ["slider-image"]) as HTMLImageElement;
                 sliderContainer.appendChild(media);
-
             } else if (fileType === "video") {
                 const media = buildVideoTag(urlExtension, ["slider-video"]) as HTMLVideoElement;
                 sliderContainer.appendChild(media);
@@ -193,13 +250,11 @@ function mediaFilePreview(files: FileList | null): void {
             stateManager.formControls.formFields.uploadedImages.push(urlExtension);
         })
         .catch((error: AxiosError) => {
+            if (!stateManager.isActive || stateManager.sessionId !== sessionId) { return; }
             const errMsg: string = handleNetworkError(error);
             displayErrorMessage(errMsg);
-        })
+        });
     }
-
-    stateManager.formControls.dropArea.innerHTML = "";
-    stateManager.formControls.dropArea.appendChild(sliderContainer);
 }
 
 
@@ -218,7 +273,7 @@ function afterPostCleanUp(successful: boolean): void {
 
     setTimeout(() => {
         // this removes the entire card after the form (above) as been closed
-        stateManager.bodyLargeContainer[0]!.classList.remove("clicked");
+        stateManager.modalRoot.classList.remove("clicked");
         stateManager.cardContainer.classList.remove("dropped");
 
         if (successful) {
@@ -327,67 +382,79 @@ function post(): void {
 
 function createPost(): void {
     displayStatusMessage("Please wait whilst the magic happens...");
-    stateManager.bodyLargeContainer[0]!.classList.add("clicked");
+    stateManager.modalRoot.classList.add("clicked");
     post();
 }
 
 
-function initFormFields(): FormFields {
+function initFormFields(root: HTMLElement): FormFields {
     const editor: State = initState();
-    const postTitle = document.getElementById("modalTitle") as HTMLDivElement;
+    const postTitle = queryRequired<HTMLDivElement>(root, "#modalTitle", "modalTitle");
     const uploadedImages: string[] = [];
 
     return {
         editor,
         postTitle,
         uploadedImages,
-    }
+    };
 }
 
 
-function initFormControls(): FormControls {
-
-    const createButton = document.getElementById("createPost") as HTMLDivElement;
-    const closeButton = document.getElementById("closePost") as HTMLDivElement;
-    const dropArea = document.getElementById("drop-area") as HTMLDivElement;
-    const inputFile = document.getElementById("input-file") as HTMLInputElement;
-    const formFields: FormFields = initFormFields();
+function initFormControls(root: HTMLElement): FormControls {
+    const createButton = queryRequired<HTMLDivElement>(root, "#createPost", "createPost");
+    const closeButton = queryRequired<HTMLDivElement>(root, "#closePost", "closePost");
+    const dropArea = queryRequired<HTMLDivElement>(root, "#drop-area", "drop-area");
+    const inputFile = queryRequired<HTMLInputElement>(root, "#input-file", "input-file");
+    const formFields: FormFields = initFormFields(root);
 
     return {
         createButton,
         closeButton,
         dropArea,
         inputFile,
-        formFields
-    }
+        formFields,
+    };
 }
 
 
-function init(type: string, domainName_: string): StateManager {
-    // these are outside of the form, they the parent containers of the form
-    const bodyLargeContainer = document.getElementsByClassName(
-        "bodyLargeContainer") as HTMLCollectionOf<HTMLDivElement>
+
+function init(postType: PostType, domainName_: string): StateManager {
+    const rootId = getModalRootId(postType);
+    const modalRoot = document.getElementById(rootId) as HTMLDivElement | null;
+
+    if (!modalRoot) {
+        throw new Error(`post.ts: modal root not found (#${rootId})`);
+    }
+
     const cardContainer = document.getElementById("cardContainer") as HTMLDivElement;
-    const formControls: FormControls = initFormControls();
-    const domainName: string = domainName_;
-    const postType: string = type;
+    const formControls: FormControls = initFormControls(modalRoot);
 
     return {
-        bodyLargeContainer,
+        modalRoot,
         cardContainer,
-        domainName,
+        domainName: domainName_,
         formControls,
         postType,
-    }
-
+        sessionId: (stateManager?.sessionId ?? 0) + 1,
+        isActive: true,
+    };
 }
+
 
 
 export function createPostTest(postType: string, domainName: string | null): void {
     if (!domainName) return;
 
-    stateManager = init(postType, domainName as string);
-    addEventListeners();
+    const typedPostType = postType as PostType;
+
+    try {
+        stateManager = init(typedPostType, domainName);
+        addEventListeners();
+    } catch (e) {
+        displayErrorMessage("Failed to load post creator. Please try again.");
+        // Also surface the real error in dev tools
+        console.error(e);  // eslint-disable-line no-console
+    }
 }
 
 

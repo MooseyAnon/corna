@@ -10,11 +10,13 @@ import {
     clean,
     isEmail,
     handlePromise,
+    queryOptional,
+    queryRequired,
     spaceAtStart,
     spaceAtEnd
 } from "./../lib/utils.js";
 
-import { closeOverlay, resetMessages } from "./utils.js";
+import { closeOverlay, resetMessages, displayErrorMessage } from "./utils.js";
 
 
 /**
@@ -32,24 +34,30 @@ interface LoginData {
  * @returns { void }
  */
 export function login(refreshCallback: () => Promise<void>): void {
-    const loginButton = document.getElementById("signIn") as HTMLButtonElement;
+    const root = document.getElementById("signInContainer") as HTMLElement | null;
+    if (!root) { return; }
 
+    // Prevent stacking listeners if the sign-in view is swapped in multiple times.
+    if (root.dataset.bound === "1") { return; }
+    root.dataset.bound = "1";
+
+    const loginButton = queryOptional<HTMLButtonElement>(root, "#signIn");
     if (!loginButton) { return; }
 
     loginButton.addEventListener("click", async function(e: UIEvent) {
         e.preventDefault();
-        await parseForm(refreshCallback);
-    })
+        await parseForm(root, refreshCallback);
+    });
 
-    const inputs = document.getElementsByClassName("inputs") as HTMLCollectionOf<HTMLInputElement>;
-    if (inputs) {
-        const input = inputs[0]
-        input.addEventListener("keydown", async function(e: KeyboardEvent) {
+    // Listen for Enter anywhere inside the inputs container.
+    const inputsContainer = queryOptional<HTMLElement>(root, ".inputs");
+    if (inputsContainer) {
+        inputsContainer.addEventListener("keydown", async function(e: KeyboardEvent) {
             if (e.key === "Enter") {
                 e.preventDefault();
-                await parseForm(refreshCallback);
+                await parseForm(root, refreshCallback);
             }
-        })
+        });
     }
 }
 
@@ -57,6 +65,7 @@ export function login(refreshCallback: () => Promise<void>): void {
 /**
  * Grab all inputs and validate.
  * 
+ * @param { HTMLElement } root: the modal root element to scope the query
  * @param { () => Promise<void> } refreshCallback: A callback to refersh the
  *      nav bar after logging in successfully. It is done here because we need
  *      to wait till we ensure that login has been done successfully until we
@@ -64,17 +73,23 @@ export function login(refreshCallback: () => Promise<void>): void {
  *      the login process has been completed.
  * @returns { void }
  */
-async function parseForm(refreshCallback: () => Promise<void>): Promise<void> {
+async function parseForm(
+    root: HTMLElement,
+    refreshCallback: () => Promise<void>
+): Promise<void> {
     // remove any previous error message
     resetMessages();
 
     const postUrl: string = "v1/auth/login";
 
-    const emailInput = document.getElementById("emailInput") as HTMLInputElement;
-    const passwordInput = document.getElementById("passwordInput") as HTMLInputElement;
+    const emailInput = queryRequired<HTMLInputElement>(root, "#emailInput", "emailInput");
+    const passwordInput = queryRequired<HTMLInputElement>(root, "#passwordInput", "passwordInput");
 
     // these functions will call error handling functions
-    if (!isValidEmail(emailInput) || !isValidPassword(passwordInput)) { return; }
+    if (!isValidEmail(emailInput) || !isValidPassword(passwordInput)) {
+        displayErrorMessage("Invalid email or password");
+        return;
+    }
 
     const loginData: LoginData = {
         email: clean(emailInput.value),
@@ -91,7 +106,7 @@ async function parseForm(refreshCallback: () => Promise<void>): Promise<void> {
 
     if (error) {
         const errMsg: string = handleNetworkError(error);
-        errorMessage(errMsg);
+        displayErrorMessage(errMsg);
 
         emailInput.value = "";  // clear inputs
         passwordInput.value = "";  // clear inputs
@@ -114,8 +129,6 @@ function isValidEmail(email: HTMLInputElement | null): boolean {
         || !isEmail(clean(email.value))
     );
 
-    if (hasErrd) { errorMessage("Please enter a valid email address"); }
-
     return !hasErrd
 }
 
@@ -134,22 +147,5 @@ function isValidPassword(password: HTMLInputElement | null): boolean {
         || spaceAtEnd(password.value)
     );
 
-    if (hasErrd) {
-        errorMessage(
-            "Please ensure your password does "
-            + "not start or end with a space."
-        )
-    }
     return !hasErrd
-}
-
-/**
- * Display error message.
- *
- * @param { string } msg: the error message to display
- * @returns { void }
- */
-function errorMessage(msg: string): void {
-    const errorMessage = document.getElementById("validation") as HTMLDivElement;
-    errorMessage.textContent = msg;
 }

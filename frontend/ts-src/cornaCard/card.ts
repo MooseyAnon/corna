@@ -6,7 +6,7 @@ import {
     request,
 } from "./../lib/network";
 
-import { handlePromise } from "./../lib/utils.js";
+import { handlePromise, queryOptional } from "./../lib/utils.js";
 
 import { displayErrorMessage } from "./utils.js";
 
@@ -34,6 +34,19 @@ interface CornaCard {
 }
 
 
+/**
+ * Get the root element for the Corna card fragment.
+ *
+ * This fragment is HTMX-swapped, so we should scope DOM queries to the swapped
+ * container to avoid collisions with other views.
+ *
+ * @returns {HTMLElement | null} Root container for this fragment.
+ */
+function getCornaCardRoot(): HTMLElement | null {
+    return document.getElementById("cornaCardContainer");
+}
+
+
 async function getUserDetails(): Promise<CornaCard | null> {
     let userDetails: CornaCard | null = null;
 
@@ -51,34 +64,52 @@ async function getUserDetails(): Promise<CornaCard | null> {
 }
 
 
-function cardInit(): CornaCardElements {
-    const username = document.getElementById("username") as HTMLHeadingElement;
-    const cred = document.getElementById("cred") as HTMLSpanElement;
-    const role = document.getElementById("role") as HTMLParagraphElement;
-    const avatar = document.getElementById("avatarImage") as HTMLImageElement;
+function cardInit(root: HTMLElement): CornaCardElements | null {
+    const username = queryOptional<HTMLHeadingElement>(root, "#username");
+    const cred = queryOptional<HTMLSpanElement>(root, "#cred");
+    const role = queryOptional<HTMLParagraphElement>(root, "#role");
+    const avatar = queryOptional<HTMLImageElement>(root, "#avatarImage");
+
+    if (!username || !cred || !role || !avatar) {
+        displayErrorMessage("Corna card failed to load (missing UI elements).");
+        return null;
+    }
 
     return {
         username,
         cred,
         role,
         avatar,
-    }
+    };
 }
 
 
-function init(): StateManager {
-    const cornaCardElements: CornaCardElements = cardInit();
-    const closeButton = document.getElementById("close") as HTMLButtonElement;
+function init(root: HTMLElement): StateManager | null {
+    const cornaCardElements = cardInit(root);
+    if (!cornaCardElements) { return null; }
+
+    const closeButton = queryOptional<HTMLButtonElement>(root, "#close");
+    if (!closeButton) {
+        displayErrorMessage("Corna card failed to load (missing close button).");
+        return null;
+    }
 
     return {
         closeButton,
         cornaCardElements,
-    }
+    };
 }
 
 
 export async function cornaCardInit(): Promise<void> {
-    stateManager = init();
+    const root = getCornaCardRoot();
+    if (!root) {
+        displayErrorMessage("Corna card failed to load (missing container).");
+        return;
+    }
+
+    const stateManager = init(root);
+    if (!stateManager) { return; }
 
     const currentUser: CornaCard | null = await getUserDetails();
 
@@ -89,7 +120,3 @@ export async function cornaCardInit(): Promise<void> {
         stateManager.cornaCardElements.avatar.src = currentUser.avatar;
     }
 }
-
-
-// global state manager, gets created at HTMX swap time
-let stateManager: StateManager;

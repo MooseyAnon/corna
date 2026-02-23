@@ -193,6 +193,45 @@ export function createVideoElement(
 }
 
 
+/**
+ * Query a required element within a root container.
+ * Throws if missing to avoid silent null crashes later.
+ *
+ * @template T
+ * @param { HTMLElement } root: the modal root element to scope the query
+ * @param { string } selector: selector for the required element
+ * @param { string } label: label used in thrown error for debugging
+ * @returns { T } the found element
+ */
+export function queryRequired<T extends HTMLElement>(
+    root: HTMLElement,
+    selector: string,
+    label: string,
+): T {
+    const el = root.querySelector(selector) as T | null;
+    if (!el) {
+        throw new Error(`post.ts: missing required element '${label}' (${selector})`);
+    }
+    return el;
+}
+
+
+/**
+ * Query an optional element within a root container.
+ *
+ * @template T
+ * @param { HTMLElement } root: the modal root element to scope the query
+ * @param { string } selector: selector for the optional element
+ * @returns { T | null } the found element or null
+ */
+export function queryOptional<T extends HTMLElement>(
+    root: HTMLElement,
+    selector: string,
+): T | null {
+    return root.querySelector(selector) as T | null;
+}
+
+
 // This is copied from here:
 // - https://github.com/tysoncadenhead/cartesian-js/blob/master/src/handle.ts
 export function handlePromise<E, T>(

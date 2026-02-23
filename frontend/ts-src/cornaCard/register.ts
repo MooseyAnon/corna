@@ -15,6 +15,7 @@ import {
     hasCapitalLetter,
     hasDigit,
     isEmail,
+    queryOptional,
     spaceAtStart,
     spaceAtEnd
 } from "./../lib/utils.js";
@@ -79,10 +80,6 @@ interface ThemeOption {
  */
 function scrollTo(parentNode: HTMLButtonElement): void {
     const registerButton = document.getElementById("Register") as HTMLButtonElement;
-    registerButton.addEventListener("click", async function() {
-        // register theme selection
-        await createCorna();
-    });
 
     registerButton.style.display = "block"
     parentNode.style.display = "none";
@@ -284,6 +281,9 @@ async function domainIsAvailable(domainName: string): Promise<boolean> {
 async function themeSelection(): Promise<void> {
     const themes = await themeList() as ThemeOption[];
 
+    // Prevent duplication if the register view is entered multiple times.
+    regConf.themeGallery.innerHTML = "";
+
     for (let i = 0; i < themes.length; i++) {
         const theme: ThemeOption = themes[i];
 
@@ -394,7 +394,7 @@ async function createCorna(): Promise<void> {
 
     const validDomain = (
         isValidDomainName(regConf.domainName.value)
-        && domainIsAvailable(regConf.domainName.value)
+        && await domainIsAvailable(regConf.domainName.value)
     )
 
     // validation code takes care of error messaging
@@ -418,7 +418,7 @@ async function createCorna(): Promise<void> {
     }, `v1/corna/${regConf.domainName.value}`, displayErrorMessage);
 
     // send message to parent page for handling redirect.
-    window.parent.postMessage(`domainName=${regConf.domainName.value}`);
+    window.parent.postMessage(`domainName=${regConf.domainName.value}`, "*");
 }
 
 
@@ -458,16 +458,26 @@ async function userRegister(): Promise<void> {
 /**
  * Initialize global state manager
  * 
+ * @param { HTMLElement } root: fragment root container
  * @returns { RegisterConfig }
  */
-function initState(): RegisterConfig {
-    const username = document.getElementById("usernameInput") as HTMLInputElement;
-    const email = document.getElementById("emailInput") as HTMLInputElement;
-    const password = document.getElementById("passwordInput") as HTMLInputElement;
-    const themeDetailsSection = document.getElementById("themeDetails") as HTMLDivElement;
-    const themeGallery = document.getElementById("themeGallery") as HTMLDivElement;
-    const domainName = document.getElementById("urlInput") as HTMLInputElement;
-    const title = document.getElementById("tabtitleInput") as HTMLInputElement;
+function initState(root: HTMLElement): RegisterConfig {
+    // we'll keep these optional so we can present a helpful message to users
+    const username = queryOptional<HTMLInputElement>(root, "#usernameInput");
+    const email = queryOptional<HTMLInputElement>(root, "#emailInput");
+    const password = queryOptional<HTMLInputElement>(root, "#passwordInput");
+    const themeDetailsSection = queryOptional<HTMLDivElement>(root, "#themeDetails");
+    const themeGallery = queryOptional<HTMLDivElement>(root, "#themeGallery");
+    const domainName = queryOptional<HTMLInputElement>(root, "#urlInput");
+    const title = queryOptional<HTMLInputElement>(root, "#tabtitleInput");
+
+    if (
+        !username || !email || !password || !themeDetailsSection
+        || !themeGallery || !domainName || !title
+    ) {
+        displayErrorMessage("Registration form failed to load. Please try again.");
+        throw new Error("register.ts: missing required DOM elements");
+    }
 
     const hasScrolled: boolean = false;
     const blocked: boolean = false;
@@ -497,9 +507,17 @@ function initState(): RegisterConfig {
  * user.
  */
 export async function processNewUser(): Promise<void> {
+    // pass in the root element to enable correct scoping of queries
+    const regCont = document.getElementById("registerContainer") as HTMLElement | null;
+    if (!regCont) throw new Error(`register.ts: modal root not found (#${regCont})`);
+
+    // Prevent stacking listeners if this view is swapped in multiple times.
+    if (regCont && regCont.dataset.bound === "1") { return; }
+    if (regCont) { regCont.dataset.bound = "1"; }
+
     // init the conf here because we need to do it at HTMX swap time not
     // at import time, which will cause it to be empty
-    regConf = initState();
+    regConf = initState(regCont);
 
     // we want to show an avatar when the user starts the registration process
     const avatar: { url: string, slug: string } = await getAvatar();
@@ -511,14 +529,26 @@ export async function processNewUser(): Promise<void> {
     // build theme options
     await themeSelection();
 
-    const nextToThemeButton = document.getElementById("nextToTheme") as HTMLButtonElement;
-    nextToThemeButton.addEventListener("click", async function() {
-        resetMessages();
-        await userRegister();
-        if (!regConf.blocked) {
-            scrollTo(this);
-        }
-    })
+    const nextToThemeButton = queryOptional<HTMLButtonElement>(regCont, "#nextToTheme");
+    const registerButton = queryOptional<HTMLButtonElement>(regCont, "#Register");
+
+    if (registerButton) {
+        registerButton.addEventListener("click", async function() {
+            resetMessages();
+            await createCorna();
+        });
+    }
+
+    if (nextToThemeButton) {
+        nextToThemeButton.addEventListener("click", async function() {
+            resetMessages();
+            await userRegister();
+            if (!regConf.blocked) {
+                scrollTo(this);
+            }
+        });
+    }
+
 
 }
 

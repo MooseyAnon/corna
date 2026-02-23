@@ -88,12 +88,12 @@ export function resetMessages(): void {
  */
 export function showOverlay(): void {
     stateManager.overlay.style.display = "flex";
-    stateManager.overlay.addEventListener("click", function() {
-        closeOverlay();
-        // We send a message to the parent page because that is who deals
-        // with page resizing.
-        window.parent.postMessage("close", "*");
-    })
+
+    // Bind once; otherwise we stack handlers every time the modal opens.
+    if (!overlayClickBound) {
+        stateManager.overlay.addEventListener("click", onOverlayClick);
+        overlayClickBound = true;
+    }
 }
 
 
@@ -105,11 +105,25 @@ export function closeOverlay(): void {
     removeViews(views());
 
     stateManager.overlay.style.display = "none";
-    // replace view with empty card (modal)
-    const emptyContentDiv: HTMLDivElement = createDivElement();
-    emptyContentDiv.id = "content";
-    stateManager.cardContainer.appendChild(emptyContentDiv);
+
+    // Ensure we end up with exactly one #content node inside #cardContainer.
+    // Reuse an existing one if present to avoid accidental accumulation.
+    let content = document.getElementById("content") as HTMLDivElement | null;
+
+    if (!content) {
+        content = createDivElement() as HTMLDivElement;
+        content.id = "content";
+        stateManager.cardContainer.appendChild(content);
+    } else {
+        // Clear any leftover children if something failed to swap cleanly.
+        content.innerHTML = "";
+    }
+
+    // let global state know we've closed the overlay, this will allow the
+    // state to be updated.
+    document.dispatchEvent(new Event("corna:modalClosed"))
 }
+
 
 
 /**
@@ -172,6 +186,12 @@ function init(): CornaCardElements {
     const errorMessage = document.getElementById("validation") as HTMLParagraphElement;
     const overlay = document.getElementById("overlay") as HTMLDivElement;
     const statusMessage = document.getElementById("statusUpdateMessage") as HTMLParagraphElement;
+
+    // Prevent clicks inside the card from closing the overlay.
+    // This must be bound once (not per-swap), otherwise it stacks.
+    cardContainer.addEventListener("click", function(event: MouseEvent) {
+        event.stopPropagation();
+    });
 
     return {
         cardContainer,
