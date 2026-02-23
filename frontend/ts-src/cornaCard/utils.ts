@@ -34,6 +34,15 @@ interface Views {
 }
 
 
+let overlayClickBound: boolean = false;
+
+function onOverlayClick(): void {
+    closeOverlay();
+    // Parent page deals with iframe resizing.
+    window.parent.postMessage("close", "*");
+}
+
+
 /**
  * Displays error messages on each View.
  * 
