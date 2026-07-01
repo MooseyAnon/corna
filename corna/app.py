@@ -3,6 +3,7 @@
 import inspect
 import logging
 import os
+import pathlib
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
@@ -41,7 +42,15 @@ def create_app(session_class):
     :rtype: flask.Flask
     """
     logger.info("Creating the Flask app")
-    app = flask.Flask(__name__, instance_path=os.getcwd())
+    # custom template folder for system wide shared templates
+    # blueprints can overwrite this themselves
+    template_path = (
+        pathlib.Path(__file__).parent.parent / "frontend/public/templates")
+    app = flask.Flask(
+        __name__,
+        template_folder=template_path,
+        instance_path=os.getcwd(),
+    )
     app.url_map.strict_slashes = False
 
     # Register API documentation

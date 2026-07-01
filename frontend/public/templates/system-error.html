@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% if title %}{{ title }}{% else %}Signal Lost{% endif %}</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg-top: #080b17;
+      --bg-bottom: #03050a;
+      --panel: rgba(12, 16, 30, 0.72);
+      --panel-border: rgba(172, 195, 255, 0.14);
+      --title: #f8fbff;
+      --body: #c7d2e7;
+      --muted: #8b98b7;
+      --accent: #9eb7ff;
+      --accent-soft: rgba(158, 183, 255, 0.18);
+      --glow-a: rgba(91, 117, 210, 0.3);
+      --glow-b: rgba(147, 91, 210, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      color: var(--body);
+      background:
+        radial-gradient(circle at 20% 20%, var(--glow-a), transparent 32%),
+        radial-gradient(circle at 78% 28%, var(--glow-b), transparent 28%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: auto;
+      border-radius: 999px;
+      filter: blur(22px);
+      pointer-events: none;
+      opacity: 0.9;
+    }
+
+    body::before {
+      width: 18rem;
+      height: 18rem;
+      top: 8%;
+      right: 10%;
+      background: rgba(84, 114, 232, 0.18);
+    }
+
+    body::after {
+      width: 12rem;
+      height: 12rem;
+      bottom: 10%;
+      left: 8%;
+      background: rgba(165, 101, 224, 0.16);
+    }
+
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.4;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.9) 0 1px, transparent 1px),
+        radial-gradient(circle at 75% 35%, rgba(255, 255, 255, 0.75) 0 1px, transparent 1px),
+        radial-gradient(circle at 42% 68%, rgba(255, 255, 255, 0.8) 0 1px, transparent 1px),
+        radial-gradient(circle at 88% 82%, rgba(255, 255, 255, 0.65) 0 1px, transparent 1px),
+        radial-gradient(circle at 22% 84%, rgba(255, 255, 255, 0.7) 0 1px, transparent 1px),
+        radial-gradient(circle at 56% 14%, rgba(255, 255, 255, 0.6) 0 1px, transparent 1px);
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      width: min(92vw, 44rem);
+      padding: 2rem;
+    }
+
+    .panel {
+      border: 1px solid var(--panel-border);
+      border-radius: 1.75rem;
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35);
+      padding: 2rem;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 1rem 0 0;
+      color: var(--title);
+      font-size: clamp(2.5rem, 7vw, 4.5rem);
+      line-height: 0.94;
+      letter-spacing: -0.05em;
+      font-weight: 700;
+    }
+
+    .message {
+      margin: 1.5rem 0 0;
+      font-size: 1rem;
+      line-height: 1.8;
+      color: var(--body);
+      max-width: 36rem;
+    }
+
+    .supporting {
+      margin: 1rem 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.7;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1.75rem;
+    }
+
+    .button,
+    .link {
+      appearance: none;
+      border-radius: 999px;
+      padding: 0.9rem 1.2rem;
+      font: inherit;
+      font-size: 0.95rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease;
+    }
+
+    .button:hover,
+    .link:hover {
+      transform: translateY(-1px);
+    }
+
+    .button {
+      border: 1px solid transparent;
+      background: linear-gradient(180deg, #dbe5ff, #a8bbff);
+      color: #11172b;
+      font-weight: 600;
+    }
+
+    .link {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--body);
+    }
+
+    .horizon {
+      margin-top: 2rem;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-soft), transparent);
+    }
+
+    @media (max-width: 640px) {
+      .wrap {
+        padding: 1rem;
+      }
+
+      .panel {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+  <main class="wrap">
+    <section class="panel" aria-live="polite">
+      <p class="eyebrow">System Notice</p>
+      <h1>{% if title %}{{ title }}{% else %}Signal Lost{% endif %}</h1>
+      <p class="message">
+        {% if message %}
+          {{ message }}
+        {% else %}
+          We drifted off course for a moment and lost the clean path back to the page.
+        {% endif %}
+      </p>
+      <p class="supporting">
+        Corna is still out there. We just missed the landing.
+      </p>
+      <div class="actions">
+        <button class="button" type="button" onclick="window.location.reload()">Try Again</button>
+        <a class="link" href="https://mycorna.com">Back Home</a>
+      </div>
+      <div class="horizon" aria-hidden="true"></div>
+    </section>
+  </main>
+</body>
+</html>

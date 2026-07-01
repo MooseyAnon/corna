@@ -21,10 +21,74 @@ import flask
 from corna import enums
 from corna.controls import subdomain_control as control
 from corna.oss.flask_sqlalchemy_session import current_session as session
-from corna.utils import secure, utils
+from corna.utils import errors, secure, utils
 
 THEME_DIR: pathlib.Path = utils.CORNA_ROOT / "themes"
 subdomain = flask.Blueprint("subdomain", __name__, template_folder=THEME_DIR)
+
+
+def get_theme(domain_name):
+    """Get theme for a corna.
+
+    There are many errors which abort before we know which theme's error page
+    we should be returning. This is just a quick way to grab the theme before
+    erroring.
+
+    :param str domain_name: the corna domain
+    :returns: path to theme
+    :rtype: pathlib.Path
+    """
+    from corna.db import models  # pylint: disable=import-outside-toplevel
+    path = (
+        session
+        .query(models.Themes.path)
+        .join(
+            models.CornaTable,
+            models.CornaTable.theme == models.Themes.uuid
+        )
+        .filter(models.CornaTable.domain_name == domain_name)
+        .scalar()
+    )
+
+    # return the parent, not the basic hompage path and let caller handle
+    # which page they care about
+    return pathlib.Path(path).parent
+
+
+def get_cookie() -> Optional[str]:
+    """Get signed user cookie, if available.
+
+    :returns: signed cookie if user is logged in.
+    :rtype: Optional[str]
+    """
+    cookie: Optional[str] = (
+        flask
+        .request
+        .cookies
+        .get(enums.SessionNames.SESSION.value)
+    )
+
+    return cookie
+
+
+def render_system_error(message):
+    """Fallback system error for when we can't display theme errors.
+
+    :param str message: the error message.
+    """
+    return flask.render_template("system-error.html", message=message)
+
+
+def render_theme_error(domain_name, message, suffix="index.html"):
+    """Render a theme error.
+
+    :param str domain_name: the corna we care about
+    :param str message: the error message to display
+    :param str suffix: the file suffix to render i.e. which template in the
+        theme
+    """
+    theme_path = str(get_theme(domain_name) / suffix)
+    return flask.render_template(theme_path, success=False, message=message)
 
 
 @subdomain.after_request
@@ -43,48 +107,114 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
 @subdomain.route("/subdomain/<domain>", methods=["GET"])
 def user_homepage(domain):
     """Serve user homepage."""
-    signed_cookie: Optional[str] = (
-        flask
-        .request
-        .cookies
-        .get(enums.SessionNames.SESSION.value)
-    )
-    post_list, title, theme_path = control.build_page(
-        session,
-        domain,
-        cookie=signed_cookie,
-    )
+    signed_cookie: Optional[str] = get_cookie()
+
+    try:
+        page = control.build_page(
+            session,
+            domain,
+            cookie=signed_cookie,
+        )
+
+    except errors.UnauthorizedActionError:
+        msg = "You do not have permission to see this page, sorry."
+        return render_theme_error(domain, msg, suffix="index.html")
+    # this means this is not a valid domain name. Thus there is no chance
+    # of finding a valid theme error, so we need to fall back onto the system
+    # error page
+    except control.CornaNotFoundError:
+        msg = "Oops, seems like there is nothing here :("
+        return render_system_error(msg)
+    # value error is raised if there is no theme for the corna. This means
+    # we need to fallback onto the system error.
+    except ValueError:
+        msg = "Excuse us, something went horribly wrong!"
+        return render_system_error(msg)
+
     return flask.render_template(
-        theme_path,
-        PostList=post_list,
-        title=title
+        page.theme_path,
+        # I dont like this design might change it
+        success=True,
+        Listing=page.listing,
+        title=page.title
     )
 
 
-@subdomain.route("/subdomain/<domain_name>/p/<url_ext>", methods=["GET"])
-def single_post_page(domain_name, url_ext):
+@subdomain.route("/subdomain/<domain>/p/<url_ext>", methods=["GET"])
+def single_post_page(domain, url_ext):
     """Serve a single post page."""
-    signed_cookie: Optional[str] = (
-        flask
-        .request
-        .cookies
-        .get(enums.SessionNames.SESSION.value)
-    )
-    post = control.single_post(
-        session,
-        url_ext,
-        domain_name,
-        cookie=signed_cookie,
-    )
-    corna_title = control.corna_title(session, domain_name)
+    signed_cookie: Optional[str] = get_cookie()
 
-    root_theme_path = pathlib.Path(control.theme(session, domain_name))
-    template_path = f"{root_theme_path.parent}/post.html"
+    try:
+        post, theme = control.single_post(
+            session,
+            url_ext,
+            domain,
+            cookie=signed_cookie,
+        )
+
+    except errors.UnauthorizedActionError:
+        msg = "You do not have permission to see this page, sorry."
+        return render_theme_error(domain, msg, suffix="post.html")
+
+    except control.PostNotFoundError:
+        msg = "Oops, seems like there is nothing here :("
+        return render_theme_error(domain, msg, suffix="post.html")
+    # this means this is not a valid domain name. Thus there is no chance
+    # of finding a valid theme error, so we need to fall back onto the system
+    # error page
+    except control.CornaNotFoundError:
+        msg = "Oops, seems like there is nothing here :("
+        return render_system_error(msg)
+    # value error is raised if there is no theme for the corna. This means
+    # we need to fallback onto the system error.
+    except ValueError:
+        msg = "Excuse us, something went horribly wrong!"
+        return render_system_error(msg)
 
     return flask.render_template(
-        template_path,
-        cornaTitle=corna_title,
+        theme,
+        # I dont like this design might change it
+        success=True,
         post=post,
+    )
+
+
+@subdomain.route("/subdomain/<domain>/about", methods=["GET"])
+def about_page(domain):
+    """Get about page for a corna."""
+    signed_cookie: Optional[str] = get_cookie()
+
+    try:
+        about_data = control.about(
+            session,
+            domain,
+            cookie=signed_cookie
+        )
+
+    except errors.UnauthorizedActionError:
+        msg = "You do not have permission to see this page, sorry."
+        return render_theme_error(domain, msg, suffix="about.html")
+    # this means this is not a valid domain name. Thus there is no chance
+    # of finding a valid theme error, so we need to fall back onto the system
+    # error page
+    except control.CornaNotFoundError:
+        msg = "Oops, seems like there is nothing here :("
+        return render_system_error(msg)
+    # value error is raised if there is no theme for the corna. This means
+    # we need to fallback onto the system error.
+    except ValueError:
+        msg = "Excuse us, something went horribly wrong!"
+        return render_system_error(msg)
+
+    return flask.render_template(
+        about_data.theme_path,
+        # I dont like this design might change it
+        success=True,
+        cornaTitle=about_data.title,
+        owner=about_data.owner,
+        about=about_data.about,
+        avatar_url=about_data.avatar_url,
     )
 
 
