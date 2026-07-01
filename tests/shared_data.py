@@ -25,7 +25,8 @@ def mock_post(
     type_="text",
     with_content=False,
     with_title=False,
-    with_image=False
+    with_image=False,
+    with_html=False,
 ):
     post = {"type": type_}
 
@@ -41,6 +42,12 @@ def mock_post(
             "reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla "
             "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "
             "culpa qui officia deserunt mollit anim id est laborum."
+        )
+
+    if with_html:
+        post["inner_html"] = (
+            "<section><h1>Welcome to My Website</h1>"
+            "<p>This is a basic paragraph explaining the purpose of the site.</p></section>"
         )
 
     if with_image:
