@@ -638,7 +638,7 @@ def single_post(
     if not can_read(session, subdomain, cookie):
         raise errors.UnauthorizedActionError("User not allowed to read")
 
-    corna: Optional[models.CornaTable] = _current_corna(session, subdomain)
+    corna: models.CornaTable = _current_corna(session, subdomain)
     post: Optional[models.PostTable] = (
         session
         .query(models.PostTable)
