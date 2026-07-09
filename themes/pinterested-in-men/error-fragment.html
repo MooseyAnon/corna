@@ -1,0 +1,26 @@
+<section class="rounded-[2rem] border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-amber-50 p-6 shadow-sm">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div class="max-w-xl">
+      <p class="text-xs font-semibold uppercase tracking-[0.25em] text-rose-500">
+        Pinboard Incident
+      </p>
+      <h2 class="mt-3 text-2xl font-semibold tracking-tight text-neutral-950">
+        This post slipped off the corkboard.
+      </h2>
+      <p class="mt-3 text-sm leading-7 text-neutral-700">
+        {{ message if message else "Something dramatic happened off-camera, and the board refused to play along." }}
+      </p>
+      <p class="mt-3 text-xs uppercase tracking-[0.2em] text-neutral-500">
+        Catastrophe level: unexpectedly stylish
+      </p>
+    </div>
+
+    <div class="rounded-[1.5rem] border border-rose-200 bg-white/80 px-4 py-3 text-right shadow-sm backdrop-blur">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-rose-400">
+        Status
+      </p>
+      <p class="mt-2 text-sm font-medium text-neutral-800">Pinned incorrectly</p>
+      <p class="mt-1 text-xs text-neutral-500">Try another route, retry later, or pretend this was intentional.</p>
+    </div>
+  </div>
+</section>

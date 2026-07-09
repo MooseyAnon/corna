@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  {% if success %}
+    <title>{% if post.title %}{{ post.title }} — PinterestedInMen{% else %}PinterestedInMen{% endif %}</title>
+  {% else %}
+    <title> Oh wow, board failure :( - PinterestedInMen</title>
+  {% endif %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .brand {
+      letter-spacing: -0.03em;
+    }
+
+    .media-shell {
+      background: #0a0a0a;
+    }
+
+    .media-shell img,
+    .media-shell video {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .scroll-row {
+      scroll-snap-type: x mandatory;
+    }
+
+    .scroll-item {
+      scroll-snap-align: start;
+    }
+  </style>
+</head>
+<body class="bg-neutral-50 text-neutral-950">
+  <header class="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4">
+      <a href="{% if post is defined and post %}https://{{ post.domain_name }}.mycorna.com{% else %}#{% endif %}" class="brand text-lg font-semibold">
+        PinterestedInMen
+      </a>
+      <div class="ml-auto flex items-center gap-2">
+        <button
+          class="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium hover:bg-neutral-50"
+          type="button"
+          id="copyLink"
+        >
+          Copy link
+        </button>
+        <a
+          class="rounded-full bg-neutral-950 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+        >
+          Open post
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-6 lg:py-10">
+    {% if success %}
+      {% set image_media = post.media | selectattr('type', 'equalto', 'image') | list %}
+      {% set gif_media = post.media | selectattr('type', 'equalto', 'gif') | list %}
+      {% set video_media = post.media | selectattr('type', 'equalto', 'video') | list %}
+      {% set primary_media = image_media[0] if image_media else (gif_media[0] if gif_media else (video_media[0] if video_media else none)) %}
+      <div>
+        <section class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
+          <article class="overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm">
+            {% if primary_media and primary_media.type in ['image', 'gif'] %}
+              <div class="media-shell">
+                <img
+                  src="{{ primary_media.href }}"
+                  alt="{% if post.title %}{{ post.title }}{% else %}Post image{% endif %}"
+                  class="w-full h-auto"
+                  {% if primary_media.width %}width="{{ primary_media.width }}"{% endif %}
+                  {% if primary_media.height %}height="{{ primary_media.height }}"{% endif %}
+                  loading="lazy"
+                />
+              </div>
+            {% elif primary_media and primary_media.type == 'video' %}
+              <div class="media-shell">
+                <video
+                  controls
+                  preload="metadata"
+                  playsinline
+                  class="w-full h-auto"
+                  {% if primary_media.width %}width="{{ primary_media.width }}"{% endif %}
+                  {% if primary_media.height %}height="{{ primary_media.height }}"{% endif %}
+                >
+                  <source src="{{ primary_media.href }}" type="video/mp4" />
+                </video>
+              </div>
+            {% else %}
+              <div class="flex min-h-[32rem] items-center justify-center bg-neutral-100 px-6 py-10 text-center text-sm text-neutral-500">
+                This post has no supported media for the theme.
+              </div>
+            {% endif %}
+          </article>
+
+          <aside class="space-y-4">
+            <div class="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+              <div class="flex items-start justify-between gap-4">
+                <div class="min-w-0">
+                  <p class="text-xs uppercase tracking-[0.2em] text-neutral-500">Pinned from</p>
+                  <a
+                    href="https://{{ post.domain_name }}.mycorna.com"
+                    class="mt-1 block truncate text-lg font-semibold"
+                  >
+                    {{ post.domain_name }}
+                  </a>
+                </div>
+                <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700">
+                  {{ post.type }}
+                </span>
+              </div>
+
+              {% if post.title %}
+                <h1 class="mt-5 text-2xl font-semibold tracking-tight">{{ post.title }}</h1>
+              {% endif %}
+
+              <div class="mt-6 flex flex-wrap gap-2">
+                <button class="rounded-full border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50" type="button">Save</button>
+                <button class="rounded-full border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50" type="button">Share</button>
+                <button class="rounded-full border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50" type="button">More</button>
+              </div>
+            </div>
+
+            <section class="rounded-3xl border border-neutral-200 bg-white shadow-sm">
+              <header class="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
+                <h2 class="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">Comments</h2>
+                <button class="text-xs underline" id="toggleComments">Collapse all</button>
+              </header>
+              <ol id="comments" class="space-y-5 p-6">
+                <li class="space-y-2 rounded-2xl border border-neutral-200 p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <div class="text-sm font-medium">user_one</div>
+                      <p class="mt-2 text-sm text-neutral-700">Great look, saving this.</p>
+                    </div>
+                    <span class="text-xs text-neutral-500">2h</span>
+                  </div>
+                  <div class="flex items-center gap-3 text-xs text-neutral-600">
+                    <button class="underline">Reply</button>
+                    <button class="underline">Save</button>
+                    <button class="underline">Share</button>
+                  </div>
+                </li>
+                <li class="space-y-2 rounded-2xl border border-neutral-200 p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <div class="text-sm font-medium">user_two</div>
+                      <p class="mt-2 text-sm text-neutral-700">Where can I get that jacket?</p>
+                    </div>
+                    <span class="text-xs text-neutral-500">30m</span>
+                  </div>
+                  <div class="flex items-center gap-3 text-xs text-neutral-600">
+                    <button class="underline">Reply</button>
+                    <button class="underline">Save</button>
+                    <button class="underline">Share</button>
+                  </div>
+                </li>
+              </ol>
+            </section>
+          </aside>
+        </section>
+      </div>
+    {% else %}
+      <section class="relative overflow-hidden rounded-[2.5rem] border border-neutral-200 bg-neutral-100/70 px-4 py-8 sm:px-6 lg:px-8">
+        <div class="pointer-events-none absolute inset-0 overflow-hidden blur-md opacity-70 [filter:saturate(0.85)]">
+          <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
+            <div class="overflow-hidden rounded-3xl border border-white/70 bg-white p-4 shadow-sm">
+              <div class="aspect-[4/5] rounded-[1.75rem] bg-gradient-to-b from-neutral-300 via-neutral-200 to-neutral-300"></div>
+            </div>
+            <div class="space-y-4">
+              <div class="rounded-3xl border border-white/70 bg-white p-6 shadow-sm">
+                <div class="h-4 w-24 rounded-full bg-neutral-200"></div>
+                <div class="mt-4 h-10 w-3/4 rounded-2xl bg-neutral-300"></div>
+                <div class="mt-6 flex gap-2">
+                  <div class="h-10 w-20 rounded-full bg-neutral-200"></div>
+                  <div class="h-10 w-20 rounded-full bg-neutral-200"></div>
+                  <div class="h-10 w-20 rounded-full bg-neutral-200"></div>
+                </div>
+              </div>
+              <div class="rounded-3xl border border-white/70 bg-white p-6 shadow-sm">
+                <div class="h-4 w-28 rounded-full bg-neutral-200"></div>
+                <div class="mt-5 space-y-4">
+                  <div class="rounded-2xl border border-neutral-200 p-4">
+                    <div class="h-4 w-24 rounded-full bg-neutral-300"></div>
+                    <div class="mt-3 h-3 w-full rounded-full bg-neutral-200"></div>
+                    <div class="mt-2 h-3 w-5/6 rounded-full bg-neutral-200"></div>
+                  </div>
+                  <div class="rounded-2xl border border-neutral-200 p-4">
+                    <div class="h-4 w-20 rounded-full bg-neutral-300"></div>
+                    <div class="mt-3 h-3 w-full rounded-full bg-neutral-200"></div>
+                    <div class="mt-2 h-3 w-4/6 rounded-full bg-neutral-200"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative mx-auto max-w-3xl py-10 sm:py-16">
+          {% include "pinterested-in-men/error-fragment.html" %}
+        </div>
+      </section>
+    {% endif %}
+  </main>
+
+  <script>
+    document.getElementById('copyLink')?.addEventListener('click', () => {
+      navigator.clipboard?.writeText(location.href);
+    });
+  </script>
+</body>
+</html>
