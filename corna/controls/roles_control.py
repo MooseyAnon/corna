@@ -464,7 +464,7 @@ def corna_role_list(
 
     # all() returns a nameedtuple when returning a particular column so we do
     # this to turn it into a regular list.
-    return [role[0] for role in role_list]
+    return [role[0] for role in role_list.all()]
 
 
 def user_perm_list(
@@ -506,4 +506,4 @@ def user_perm_list(
 
     # all() returns a nameedtuple when returning a particular column so we do
     # this to turn it into a regular list.
-    return [user[0] for user in users_list]
+    return [user[0] for user in users_list.all()]
