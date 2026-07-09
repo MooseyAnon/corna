@@ -38,20 +38,28 @@ def neighbourhoods():
 @frontend.route("/frontend/nav", methods=["GET"])
 def nav():
     """Serve create post button."""
+    # We dont want to render this page unless its made from the iframe
+    # so we've added a little flag which checks. There is no security
+    # threat if this gets directly loaded in the browser, its just ugly.
+    mode = flask.request.args.get("mode")
+    if mode != "fragment":
+        error_msg = "Oops, nothing to see here!"
+        return flask.render_template(
+            "system-error.html", message=error_msg), 404
+
     return flask.send_from_directory(
         (utils.CORNA_ROOT / "frontend/public/html"), "nav-test.html")
-
-
-@frontend.route("/frontend/cornaCore", methods=["GET"])
-def corna_core():
-    """Serve create post button."""
-    return flask.send_from_directory(
-        (utils.CORNA_ROOT / "frontend/public/html"), "cornaCore.html")
 
 
 @frontend.route("/frontend/cornaCore/<path:path>", methods=["GET"])
 def text_modal(path):
     """Serve create post button."""
+    # we only want to return requests from HTMX
+    if flask.request.headers.get("HX-Request") != "true":
+        error_msg = "Oops, nothing to see here!"
+        return flask.render_template(
+            "system-error.html", message=error_msg), 404
+
     full_path = f"{path}.html"
     return flask.send_from_directory(
         (utils.CORNA_ROOT / "frontend/public/html"), full_path)
@@ -67,3 +75,10 @@ def get_static(path):
     """
     return flask.send_from_directory(
         (utils.CORNA_ROOT / "frontend/public"), path)
+
+
+@frontend.route("/frontend/<path:path>", methods=["GET"])
+def catch_all_error(path):  # pylint: disable=unused-argument
+    """Catch unknown frontend routes and return a themed error page.."""
+    error_msg = "Oops, seems like there is nothing here :("
+    return flask.render_template("system-error.html", message=error_msg), 404
