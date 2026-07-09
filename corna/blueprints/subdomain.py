@@ -13,6 +13,7 @@ used on the frontend with AJAX.
 Fragments are distinct from anything the API endpoints will return. The API's
 will only ever return the JSON representation of the post.
 """
+import logging
 import pathlib
 from typing import Optional
 
@@ -22,6 +23,8 @@ from corna import enums
 from corna.controls import subdomain_control as control
 from corna.oss.flask_sqlalchemy_session import current_session as session
 from corna.utils import errors, secure, utils
+
+logger = logging.getLogger(__name__)
 
 THEME_DIR: pathlib.Path = utils.CORNA_ROOT / "themes"
 subdomain = flask.Blueprint("subdomain", __name__, template_folder=THEME_DIR)
@@ -49,6 +52,10 @@ def get_theme(domain_name):
         .filter(models.CornaTable.domain_name == domain_name)
         .scalar()
     )
+
+    # scalar can return None if no rows match
+    if not path:
+        return None
 
     # return the parent, not the basic hompage path and let caller handle
     # which page they care about
@@ -82,13 +89,20 @@ def render_system_error(message):
 def render_theme_error(domain_name, message, suffix="index.html"):
     """Render a theme error.
 
+    Note: in the weird scenario that a theme does not exist, we fallback
+    to the system error.
+
     :param str domain_name: the corna we care about
     :param str message: the error message to display
     :param str suffix: the file suffix to render i.e. which template in the
         theme
     """
-    theme_path = str(get_theme(domain_name) / suffix)
-    return flask.render_template(theme_path, success=False, message=message)
+    theme_path = get_theme(domain_name)
+    if not theme_path:
+        return render_system_error(message)
+
+    error_path = str(theme_path / suffix)
+    return flask.render_template(error_path, success=False, message=message)
 
 
 @subdomain.after_request
@@ -118,18 +132,24 @@ def user_homepage(domain):
 
     except errors.UnauthorizedActionError:
         msg = "You do not have permission to see this page, sorry."
-        return render_theme_error(domain, msg, suffix="index.html")
+        return render_theme_error(domain, msg, suffix="index.html"), 403
     # this means this is not a valid domain name. Thus there is no chance
     # of finding a valid theme error, so we need to fall back onto the system
     # error page
     except control.CornaNotFoundError:
         msg = "Oops, seems like there is nothing here :("
-        return render_system_error(msg)
+        return render_system_error(msg), 400
     # value error is raised if there is no theme for the corna. This means
     # we need to fallback onto the system error.
     except ValueError:
         msg = "Excuse us, something went horribly wrong!"
-        return render_system_error(msg)
+        return render_system_error(msg), 500
+    # catchall fallback as we never want users to see the basic flask error
+    # page
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.execption("Caught unexpected error: %s", e)
+        msg = "Excuse us, something went horribly wrong!"
+        return render_system_error(msg), 500
 
     return flask.render_template(
         page.theme_path,
@@ -155,22 +175,28 @@ def single_post_page(domain, url_ext):
 
     except errors.UnauthorizedActionError:
         msg = "You do not have permission to see this page, sorry."
-        return render_theme_error(domain, msg, suffix="post.html")
+        return render_theme_error(domain, msg, suffix="post.html"), 403
 
     except control.PostNotFoundError:
         msg = "Oops, seems like there is nothing here :("
-        return render_theme_error(domain, msg, suffix="post.html")
+        return render_theme_error(domain, msg, suffix="post.html"), 404
     # this means this is not a valid domain name. Thus there is no chance
     # of finding a valid theme error, so we need to fall back onto the system
     # error page
     except control.CornaNotFoundError:
         msg = "Oops, seems like there is nothing here :("
-        return render_system_error(msg)
+        return render_system_error(msg), 400
     # value error is raised if there is no theme for the corna. This means
     # we need to fallback onto the system error.
     except ValueError:
         msg = "Excuse us, something went horribly wrong!"
-        return render_system_error(msg)
+        return render_system_error(msg), 500
+    # catchall fallback as we never want users to see the basic flask error
+    # page
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.execption("Caught unexpected error: %s", e)
+        msg = "Excuse us, something went horribly wrong!"
+        return render_system_error(msg), 500
 
     return flask.render_template(
         theme,
@@ -194,18 +220,24 @@ def about_page(domain):
 
     except errors.UnauthorizedActionError:
         msg = "You do not have permission to see this page, sorry."
-        return render_theme_error(domain, msg, suffix="about.html")
+        return render_theme_error(domain, msg, suffix="about.html"), 403
     # this means this is not a valid domain name. Thus there is no chance
     # of finding a valid theme error, so we need to fall back onto the system
     # error page
     except control.CornaNotFoundError:
         msg = "Oops, seems like there is nothing here :("
-        return render_system_error(msg)
+        return render_system_error(msg), 400
     # value error is raised if there is no theme for the corna. This means
     # we need to fallback onto the system error.
     except ValueError:
         msg = "Excuse us, something went horribly wrong!"
-        return render_system_error(msg)
+        return render_system_error(msg), 500
+    # catchall fallback as we never want users to see the basic flask error
+    # page
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.execption("Caught unexpected error: %s", e)
+        msg = "Excuse us, something went horribly wrong!"
+        return render_system_error(msg), 500
 
     return flask.render_template(
         about_data.theme_path,
@@ -245,3 +277,10 @@ def get_static(path):
     :param str path: the path to the static file.
     """
     return flask.send_from_directory(THEME_DIR, path)
+
+
+@subdomain.route("/subdomain/<domain>/<path:path>", methods=["GET"])
+def catch_all_error(domain, path):  # pylint: disable=unused-argument
+    """Catch all error on subdomain."""
+    msg = "Oops, seems like there is nothing here :("
+    return render_theme_error(domain, msg), 404

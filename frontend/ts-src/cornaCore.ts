@@ -8,7 +8,7 @@ const allowedOrigin: string = "https://mycorna.com"; // adjust if needed
 document.addEventListener("DOMContentLoaded", function() {
     /* Create iframe on page load. */
     const frameContainer = createDivElement(["frameContainer"]) as HTMLDivElement;
-    const frameSrc: string = "https://mycorna.com/nav";
+    const frameSrc: string = "https://mycorna.com/nav?mode=fragment";
     const frame = createIframeElement(frameSrc) as HTMLIFrameElement;
     frameContainer.appendChild(frame);
     document.body.appendChild(frameContainer);
