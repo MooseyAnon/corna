@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% if cornaTitle %}{{ cornaTitle }} — About{% else %}About{% endif %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .brand {
+      letter-spacing: -0.03em;
+    }
+
+    .about-copy h1,
+    .about-copy h2,
+    .about-copy h3,
+    .about-copy h4,
+    .about-copy h5,
+    .about-copy h6 {
+      color: #111827;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .about-copy h1 { font-size: 2rem; }
+    .about-copy h2 { font-size: 1.5rem; }
+    .about-copy h3 { font-size: 1.25rem; }
+
+    .about-copy p,
+    .about-copy li,
+    .about-copy blockquote {
+      color: #374151;
+      font-size: 1rem;
+      line-height: 1.85;
+    }
+
+    .about-copy p,
+    .about-copy ul,
+    .about-copy ol,
+    .about-copy blockquote {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .about-copy ul,
+    .about-copy ol {
+      padding-left: 1.5rem;
+    }
+
+    .about-copy ul {
+      list-style: disc;
+    }
+
+    .about-copy ol {
+      list-style: decimal;
+    }
+
+    .about-copy a {
+      color: #111827;
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+    }
+
+    .about-copy blockquote {
+      border-left: 3px solid #e5e7eb;
+      padding-left: 1rem;
+      color: #4b5563;
+    }
+  </style>
+</head>
+<body class="bg-neutral-50 text-neutral-950">
+  <header class="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4">
+      <a href="#" class="brand text-lg font-semibold">PinterestedInMen</a>
+      <div class="ml-auto rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-600">
+        curated by {% if owner is defined and owner %}{{ owner }}{% else %}unknown{% endif %}
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-8 lg:py-12">
+    {% if success %}
+      <div>
+        <section class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(320px,1.2fr)]">
+          <aside class="space-y-4">
+            <div class="overflow-hidden rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
+              {% if avatar_url %}
+                <img
+                  src="{{ avatar_url }}"
+                  alt="{% if cornaTitle %}{{ cornaTitle }}{% else %}Community{% endif %} avatar"
+                  class="h-20 w-20 rounded-full border border-neutral-200 object-cover"
+                  loading="lazy"
+                />
+              {% endif %}
+
+              <p class="text-xs uppercase tracking-[0.25em] text-neutral-500">About this board</p>
+              <h1 class="mt-4 text-4xl font-semibold tracking-tight text-neutral-950">
+                {% if cornaTitle %}{{ cornaTitle }}{% else %}Untitled Corna{% endif %}
+              </h1>
+              <p class="mt-4 text-sm leading-7 text-neutral-600">
+                A curated collection, surrounded by stars and atmosphere.
+              </p>
+            </div>
+
+            <div class="overflow-hidden rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
+              <p class="text-xs uppercase tracking-[0.25em] text-neutral-500">Profile notes</p>
+              <div class="mt-4 space-y-3 text-sm text-neutral-700">
+                <div class="rounded-2xl bg-neutral-100 px-4 py-3">
+                  <span class="font-medium text-neutral-950">Owner</span>
+                  <span class="ml-2">{% if owner %}{{ owner }}{% else %}unknown{% endif %}</span>
+                </div>
+                <div class="rounded-2xl bg-neutral-100 px-4 py-3">
+                  <span class="font-medium text-neutral-950">Theme</span>
+                  <span class="ml-2">PinterestedInMen</span>
+                </div>
+                <div class="rounded-2xl bg-neutral-100 px-4 py-3">
+                  <span class="font-medium text-neutral-950">Mood</span>
+                  <span class="ml-2">image-first, pinboard energy</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <article class="overflow-hidden rounded-[2rem] border border-neutral-200 bg-white shadow-sm">
+            <div class="border-b border-neutral-200 px-6 py-5">
+              <p class="text-xs uppercase tracking-[0.25em] text-neutral-500">Manifesto</p>
+            </div>
+
+            <div class="px-6 py-8 lg:px-10 lg:py-10">
+              {% if about_html %}
+                <div class="about-copy">{{ about_html|safe }}</div>
+              {% elif about %}
+                <div class="about-copy">
+                  <p>{{ about }}</p>
+                </div>
+              {% else %}
+                <div class="about-copy">
+                  <p>This board has not published an about section yet.</p>
+                </div>
+              {% endif %}
+            </div>
+          </article>
+        </section>
+      </div>
+    {% else %}
+      <section class="relative overflow-hidden rounded-[2.5rem] border border-neutral-200 bg-neutral-100/70 px-4 py-8 sm:px-6 lg:px-8">
+        <div class="pointer-events-none absolute inset-0 overflow-hidden blur-md opacity-70 [filter:saturate(0.85)]">
+          <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(320px,1.2fr)]">
+            <div class="space-y-4">
+              <div class="rounded-[2rem] border border-white/70 bg-white p-6 shadow-sm">
+                <div class="h-20 w-20 rounded-full bg-neutral-300"></div>
+                <div class="mt-5 h-4 w-28 rounded-full bg-neutral-200"></div>
+                <div class="mt-4 h-12 w-3/4 rounded-[1.5rem] bg-neutral-300"></div>
+                <div class="mt-4 h-3 w-full rounded-full bg-neutral-200"></div>
+                <div class="mt-2 h-3 w-4/5 rounded-full bg-neutral-200"></div>
+              </div>
+              <div class="rounded-[2rem] border border-white/70 bg-white p-6 shadow-sm">
+                <div class="h-4 w-28 rounded-full bg-neutral-200"></div>
+                <div class="mt-4 space-y-3">
+                  <div class="h-12 rounded-2xl bg-neutral-100"></div>
+                  <div class="h-12 rounded-2xl bg-neutral-100"></div>
+                  <div class="h-12 rounded-2xl bg-neutral-100"></div>
+                </div>
+              </div>
+            </div>
+            <div class="rounded-[2rem] border border-white/70 bg-white shadow-sm">
+              <div class="border-b border-neutral-200 px-6 py-5">
+                <div class="h-4 w-24 rounded-full bg-neutral-200"></div>
+              </div>
+              <div class="space-y-4 px-6 py-8 lg:px-10 lg:py-10">
+                <div class="h-4 w-full rounded-full bg-neutral-200"></div>
+                <div class="h-4 w-11/12 rounded-full bg-neutral-200"></div>
+                <div class="h-4 w-10/12 rounded-full bg-neutral-200"></div>
+                <div class="h-4 w-full rounded-full bg-neutral-200"></div>
+                <div class="h-4 w-9/12 rounded-full bg-neutral-200"></div>
+                <div class="h-24 rounded-[1.5rem] bg-gradient-to-br from-rose-100 to-amber-50"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative mx-auto max-w-3xl py-10 sm:py-16">
+          {% include "pinterested-in-men/error-fragment.html" %}
+        </div>
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>
