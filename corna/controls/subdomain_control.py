@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 import logging
 import pathlib
 from typing import Any, Dict, List, Literal, Optional, TypeVar
@@ -44,6 +45,7 @@ class Post:
     :ivar str type: post type.
     :ivar str domain_name: the subdomain extension.
     :ivar Optional[str] title: post title
+    :ivar Optional[str] created_display: formatted timestamp for templates.
     :ivar str full_href: the post url.
     :ivar Optional[Markup] text_html: the markup to be rendered on the client
         this is only applicable to text posts.
@@ -60,6 +62,7 @@ class Post:
     domain_name: str
     title: Optional[str]
     full_href: str
+    created_display: Optional[str] = None
     text_html: Optional[Markup] = None
     caption_html: Optional[Markup] = None
     media: List[Media] = field(default_factory=list)
@@ -117,6 +120,37 @@ class Post:
         return html_content
 
     @classmethod
+    def _ordinal(cls, day: int) -> str:
+        """Return the ordinal representation of a day number.
+
+        :param int day: day of the month.
+        :returns: ordinal suffixed day, e.g. ``10th``.
+        :rtype: str
+        """
+        # 11th, 12th, and 13th are super weird and don't follow the rules of
+        # the rest of the numbers in the date system. Yay English.
+        #
+        # This check essentially is a special check for those three numbers.
+        if 11 <= day <= 13:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+
+        return f"{day}{suffix}"
+
+    @classmethod
+    def _created_display(cls, created: datetime) -> str:
+        """Return a human-readable timestamp for templates.
+
+        :param datetime created: timestamp from the database.
+        :returns: formatted date string.
+        :rtype: str
+        """
+        weekday = created.strftime("%A")
+        month = created.strftime("%B")
+        return f"{weekday}, {cls._ordinal(created.day)} {month}"
+
+    @classmethod
     def from_model(cls, post: models.PostTable, subdomain: str) -> Post:
         """Create a ``Post`` from a row in the database.
 
@@ -146,6 +180,7 @@ class Post:
             type=post_type,
             domain_name=subdomain,
             title=title,
+            created_display=cls._created_display(post.created),
             full_href=full_href,
             text_html=text_html,
             caption_html=caption_html,
@@ -165,6 +200,7 @@ class Post:
             "type": self.type,
             "domain_name": self.domain_name,
             "title": self.title,
+            "created_display": self.created_display,
             "full_href": self.full_href,
             # convert Markup to str for JSON compatibility
             "content": (
