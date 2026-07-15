@@ -369,6 +369,14 @@ document.addEventListener("DOMContentLoaded", async function() {
     // ensure we update state when modal is closed
     document.addEventListener("corna:modalClosed", function() {
         state.flags.modalOpen = false;
+
+        // send message to parent to close the modal window
+        const message = createMessage(
+            "toolbar:close",
+            {},
+        );
+
+        window.parent.postMessage(message, "*");
     });
 
 });
