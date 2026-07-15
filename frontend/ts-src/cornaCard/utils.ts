@@ -36,12 +36,6 @@ interface Views {
 
 let overlayClickBound: boolean = false;
 
-function onOverlayClick(): void {
-    closeOverlay();
-    // Parent page deals with iframe resizing.
-    window.parent.postMessage("close", "*");
-}
-
 
 /**
  * Displays error messages on each View.
@@ -100,7 +94,7 @@ export function showOverlay(): void {
 
     // Bind once; otherwise we stack handlers every time the modal opens.
     if (!overlayClickBound) {
-        stateManager.overlay.addEventListener("click", onOverlayClick);
+        stateManager.overlay.addEventListener("click", closeOverlay);
         overlayClickBound = true;
     }
 }
