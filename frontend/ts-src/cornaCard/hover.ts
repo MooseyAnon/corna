@@ -99,12 +99,12 @@ export function clickOut(event: MouseEvent): void {
         && !state.createOptions.contains(event.target as Node)
     )
 
-    if (clickedOut) {
-        state.createOptions.classList.remove("active");
-        state.createOptions.classList.add("notActive");
+    if (!clickedOut) { return; }
 
-        hoverEventListeners();
-    }
+    state.createOptions.classList.remove("active");
+    state.createOptions.classList.add("notActive");
+
+    hoverEventListeners();
     // let global state know we've closed the overlay, this will allow the
     // state to be updated.
     document.dispatchEvent(new Event("corna:modalClosed"))
