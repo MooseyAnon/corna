@@ -16,6 +16,7 @@ This file gets linked into `cornaCard.html` which is where all the swaps take
 place - grep for `content`, thats the div that holds swapped components.
 */
 
+import { createMessage } from "./lib/messages.js";
 import {
     RequestReturnType as RRT,
     handleNetworkError,
@@ -65,7 +66,12 @@ function openModal(): void {
     if (state.flags.modalOpen) { return; }
     state.flags.modalOpen = true;
 
-    window.parent.postMessage("open", "*");
+    const message = createMessage(
+        "toolbar:open",
+        {},
+    );
+
+    window.parent.postMessage(message, "*");
     showOverlay();
 }
 
@@ -150,7 +156,14 @@ function setYourCorna(domainName: string | null): void {
          * the button has been clicked. This allows the parent page - which
          * is the page we actually want to change - to handle the redirect.
          */
-        window.parent.postMessage(`domainName=${dn}`, "*");
+        const message = createMessage(
+            "toolbar:navigate",
+            {
+                domainName: dn,
+            },
+        );
+
+        window.parent.postMessage(message, "*");
     });
 }
 
