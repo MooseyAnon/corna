@@ -11,6 +11,7 @@ navBar.js is as follows:
     nav bar's behaviour and actions. It also has an accompanying navBar.css
 */
 
+import { MESSAGE_VERSION, ToolbarMessage } from "./lib/messages.js";
 import { createDivElement, createIframeElement } from "./lib/utils.js";
 
 const NAV_ORIGIN = "https://mycorna.com";
@@ -63,24 +64,72 @@ function handleNavigationMessage(
     frame: HTMLIFrameElement,
 ): void {
     if (!isMessageFromNavigationFrame(event, frame)) { return; }
-    if (typeof event.data !== "string") { return; }
+    if (!isToolbarMessage(event.data)) { return; }
 
-    if (event.data === "open") {
+    if (event.data.type === "toolbar:open") {
         setFrameEnlarged(frame, true);
         return;
     }
 
-    if (event.data === "close") {
+    if (event.data.type === "toolbar:close") {
         setFrameEnlarged(frame, false);
         return;
     }
 
-    // parsing includes simple domain validation
-    const domainName = parseDomainNameMessage(event.data);
-
-    if (domainName !== null) {
-        navigateToCorna(domainName);
+    if (event.data.type === "toolbar:navigate") {
+        navigateToCorna(event.data.payload.domainName);
     }
+}
+
+
+/**
+ * Validate message is from our iFrame.
+ * 
+ * @param { unknown } data: the message
+ * @returns { ToolbarMessage }: if message is valid
+ */
+function isToolbarMessage(data: unknown): data is ToolbarMessage {
+    if (!isMessage(data)) {
+        return false;
+    }
+
+    return data.type.startsWith("toolbar:");
+}
+
+
+/**
+ * Check message.
+ * 
+ * This function is here to essentially validate then convert the data to
+ * a known type for the compiler to catch errors.
+ * 
+ * @param { unknown } data: incoming message
+ * @returns the message cast to the correct type
+ */
+function isMessage(
+    data: unknown,
+): data is {
+    version: number;
+    type: string;
+    payload: unknown;
+} {
+    if (typeof data !== "object" || data === null) {
+        return false;
+    }
+
+    if (!("version" in data) || data.version !== MESSAGE_VERSION) {
+        return false;
+    }
+
+    if (!("type" in data) || typeof data.type !== "string") {
+        return false;
+    }
+
+    if (!("payload" in data)) {
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -121,29 +170,6 @@ function setFrameEnlarged(
 
 
 /**
- * Parse domain name from message.
- *
- * @param { string } message: The incoming message
- * @returns { string | null }: the domain name if it's valid.
- */
-function parseDomainNameMessage(message: string): string | null {
-    const prefix = "domainName=";
-
-    if (!message.startsWith(prefix)) {
-        return null;
-    }
-
-    const domainName = message.slice(prefix.length).trim();
-
-    if (!isValidDomainName(domainName)) {
-        return null;
-    }
-
-    return domainName;
-}
-
-
-/**
  * Validate domain name.
  * 
  * @param { string } domainName: the string to validate
@@ -177,6 +203,8 @@ function isValidDomainName(domainName: string): boolean {
  * @returns { void }
  */
 function navigateToCorna(domainName: string): void {
+    if (!isValidDomainName(domainName)) { return; }
+
     const targetHostname = `${domainName}.mycorna.com`;
 
     if (window.location.hostname === targetHostname) { return; }
