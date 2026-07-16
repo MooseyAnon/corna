@@ -79,6 +79,11 @@ function handleNavigationMessage(
     if (event.data.type === "toolbar:navigate") {
         navigateToCorna(event.data.payload.domainName);
     }
+
+    if (event.data.type === "toolbar:ready") {
+        handleToolbarReady(frame);
+        return
+    }
 }
 
 
@@ -211,6 +216,19 @@ function navigateToCorna(domainName: string): void {
 
     const targetUrl = new URL(`https://${targetHostname}`);
     window.location.assign(targetUrl);
+}
+
+
+/**
+ * Handle incoming toolbar handshake message.
+ * 
+ * @param { HTMLIFrameElement } frame: the iframe
+ */
+function handleToolbarReady(frame: HTMLIFrameElement): void {
+    // for now just do a simple boolean switch. We want to keep this
+    // separate from the navigation function as this will likely get more
+    // complicated.
+    frame.dataset.ready = "true";
 }
 
 document.addEventListener("DOMContentLoaded", initialiseNavigationFrame);

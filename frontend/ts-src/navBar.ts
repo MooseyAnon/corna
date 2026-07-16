@@ -379,6 +379,14 @@ document.addEventListener("DOMContentLoaded", async function() {
         window.parent.postMessage(message, "*");
     });
 
+    // let the parent know the toolbar is ready
+    const message = createMessage(
+        "toolbar:ready",
+        {},
+    );
+
+    window.parent.postMessage(message, "*");
+
 });
 
 
