@@ -25,7 +25,8 @@ export const MESSAGE_VERSION = 1 as const;
 export type ToolbarMessageType =
     | "toolbar:open"
     | "toolbar:close"
-    | "toolbar:navigate";
+    | "toolbar:navigate"
+    | "toolbar:ready";
 
 
 /**
@@ -73,11 +74,16 @@ export type ToolbarNavigateMessage = Message<
     }
 >;
 
+export type ToolbarReadyMessage = Message<
+    "toolbar:ready",
+    Record<string, never>
+>;
 
 export type ToolbarMessage =
     | ToolbarOpenMessage
     | ToolbarCloseMessage
-    | ToolbarNavigateMessage;
+    | ToolbarNavigateMessage
+    | ToolbarReadyMessage;
 
 
 /**
