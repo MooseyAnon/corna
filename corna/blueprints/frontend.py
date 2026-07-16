@@ -31,8 +31,7 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
 @frontend.route("/frontend", methods=["GET"])
 def neighbourhoods():
     """Corna homepage."""
-    return flask.send_from_directory(
-        (utils.CORNA_ROOT / "frontend/public/html"), "neighbourhoods.html")
+    return flask.render_template("neighbourhoods.html")
 
 
 @frontend.route("/frontend/nav", methods=["GET"])

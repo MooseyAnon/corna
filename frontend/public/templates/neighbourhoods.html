@@ -13,6 +13,11 @@
       <h2>Your Corna, My Corna, Our Corna.</h2>
       <p>Coming soon...</p>
     </div>
+    {% if bootstrap is defined and bootstrap %}
+    <script type="application/json" id="corna-bootstrap">
+        {{ bootstrap | tojson }}
+    </script>
+    {% endif %}
     <script type="module" src="static/scripts/cornaCore-es6.js"></script>
   </body>
 </html>

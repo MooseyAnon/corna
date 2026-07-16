@@ -17,6 +17,15 @@ import { createDivElement, createIframeElement } from "./lib/utils.js";
 const NAV_ORIGIN = "https://mycorna.com";
 const NAV_FRAME_SRC = `${NAV_ORIGIN}/nav?mode=fragment`;
 const ENLARGED_CLASS = "enlargeIframe";
+/**
+ * Bootstrap any serverside intent on page load.
+ */
+const bootstrap = getHostBootstrap();
+
+
+interface HostBootstrap {
+    intent: string | null;
+}
 
 
 /**
@@ -81,7 +90,7 @@ function handleNavigationMessage(
     }
 
     if (event.data.type === "toolbar:ready") {
-        handleToolbarReady(frame);
+        handleToolbarReady(frame, bootstrap);
         return
     }
 }
@@ -220,15 +229,75 @@ function navigateToCorna(domainName: string): void {
 
 
 /**
+ * Init bootstrap state.
+ * 
+ * This runs on page load and grabs the intent, if any, from the main
+ * homepage.
+ * 
+ * @returns { HostBooststrap | null }: the parsed intent from the homepage
+ */
+function getHostBootstrap(): HostBootstrap | null {
+    const element = document.getElementById("corna-bootstrap");
+    if (!element) { return null; }
+
+    try {
+        const data: unknown = JSON.parse(element.textContent ?? "");
+
+        if (!isHostBootstrap(data)) {
+            return null;
+        }
+
+        return data;
+    } catch {
+        return null;
+    }
+}
+
+
+/**
+ * Validate intent from homepage.
+ * 
+ * If the data is valid we typecast to HostBootstrap.
+ * 
+ * @param { unknown } data: incoming intent data
+ * @returns { HostBootstrap }: validated intent
+ */
+function isHostBootstrap(data: unknown): data is HostBootstrap {
+    if (typeof data !== "object" || data === null) {
+        return false;
+    }
+
+    if (!("intent" in data)) {
+        return false;
+    }
+
+    return (
+        typeof data.intent === "string"
+        || data.intent === null
+    );
+}
+
+
+/**
  * Handle incoming toolbar handshake message.
  * 
  * @param { HTMLIFrameElement } frame: the iframe
  */
-function handleToolbarReady(frame: HTMLIFrameElement): void {
+function handleToolbarReady(
+    frame: HTMLIFrameElement,
+    bootstrap: HostBootstrap | null,
+): void {
     // for now just do a simple boolean switch. We want to keep this
     // separate from the navigation function as this will likely get more
     // complicated.
     frame.dataset.ready = "true";
+
+    if (!bootstrap?.intent) {
+        return;
+    }
+
+    sendHostIntent(frame, bootstrap.intent);
+}
 
 
 /**
