@@ -11,7 +11,7 @@ navBar.js is as follows:
     nav bar's behaviour and actions. It also has an accompanying navBar.css
 */
 
-import { MESSAGE_VERSION, ToolbarMessage } from "./lib/messages.js";
+import { createMessage, MESSAGE_VERSION, ToolbarMessage } from "./lib/messages.js";
 import { createDivElement, createIframeElement } from "./lib/utils.js";
 
 const NAV_ORIGIN = "https://mycorna.com";
@@ -229,6 +229,28 @@ function handleToolbarReady(frame: HTMLIFrameElement): void {
     // separate from the navigation function as this will likely get more
     // complicated.
     frame.dataset.ready = "true";
+
+
+/**
+ * Send host intent to the toolbar.
+ * 
+ * @param { HTMLIFrameElement } frame: the frame object
+ * @param { string } intent: the data to be passed down
+ */
+function sendHostIntent(
+    frame: HTMLIFrameElement,
+    intent: string,
+): void {
+    if (!frame.contentWindow) { return; }
+
+    const message = createMessage(
+        "host:intent",
+        {
+            intent,
+        },
+    );
+
+    frame.contentWindow.postMessage(message, "*");
 }
 
 document.addEventListener("DOMContentLoaded", initialiseNavigationFrame);

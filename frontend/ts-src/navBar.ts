@@ -16,7 +16,7 @@ This file gets linked into `cornaCard.html` which is where all the swaps take
 place - grep for `content`, thats the div that holds swapped components.
 */
 
-import { createMessage } from "./lib/messages.js";
+import { createMessage, HostMessage, MESSAGE_VERSION } from "./lib/messages.js";
 import {
     RequestReturnType as RRT,
     handleNetworkError,
@@ -339,6 +339,111 @@ function init(): State {
     }
 }
 
+/* ----- message handling stuff. -------- */
+
+/**
+ * Handle incoming messages from the host.
+ * 
+ * @param { MessageEvent<unknown> } event: the incoming message
+ */
+function handleHostMessage(event: MessageEvent<unknown>): void {
+    if (!isMessageFromHost(event)) { return; }
+
+    if (!isHostMessage(event.data)) { return; }
+
+    if (event.data.type === "host:intent") {
+        handleHostIntent(event.data.payload.intent);
+    }
+}
+
+
+/**
+ * Ensure incoming message is actually from the host.
+ * 
+ * @param { MessageEvent<unknown> } event: the incoming message
+ * @returns { boolean }: true if message is from the host, else false
+ */
+function isMessageFromHost(
+    event: MessageEvent<unknown>,
+): boolean {
+    return (
+        isValidCornaOrigin(event.origin)
+        && event.source === window.parent
+    );
+}
+
+
+/**
+ * Ensure incoming message is a valid host message.
+ * 
+ * We also do some type casting once we've confirmed message is valid.
+ * 
+ * @param { unknown } data: contents of the message
+ * @returns { HostMessage | boolean }:
+ */
+function isHostMessage(data: unknown): data is HostMessage {
+    if (!isMessage(data)) {
+        return false;
+    }
+
+    return data.type.startsWith("host:");
+}
+
+
+/**
+ * Ensure message origin is actually from a valid Corna URL.
+ * 
+ * @param { string } origin: the URL in question
+ * @returns { boolean }:
+ */
+function isValidCornaOrigin(origin: string): boolean {
+    try {
+        const url = new URL(origin);
+
+        return (
+            url.protocol === "https:"
+            && (
+                url.hostname === "mycorna.com"
+                || url.hostname.endsWith(".mycorna.com")
+            )
+        );
+    } catch {
+        return false;
+    }
+}
+
+
+/**
+ * Validate message contents.
+ * 
+ * @param { unknown } data: message contents
+ * @returns validated message or false
+ */
+function isMessage(
+    data: unknown,
+): data is {
+    version: number;
+    type: string;
+    payload: unknown;
+} {
+    if (typeof data !== "object" || data === null) {
+        return false;
+    }
+
+    if (!("version" in data) || data.version !== MESSAGE_VERSION) {
+        return false;
+    }
+
+    if (!("type" in data) || typeof data.type !== "string") {
+        return false;
+    }
+
+    if (!("payload" in data)) {
+        return false;
+    }
+
+    return true;
+}
 
 document.addEventListener("DOMContentLoaded", async function() {
     await refreshNav();
