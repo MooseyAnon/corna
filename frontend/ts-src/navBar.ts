@@ -62,6 +62,100 @@ interface State {
 }
 
 
+/**
+ * Toolbar view lifecycle.
+ */
+interface ToolbarRoute {
+    selector: string;
+    handler: () => void | Promise<void>;
+}
+
+
+// Helper: enforce domain existence for flows that require it
+const requireDomain = (): string | null => {
+    if (!state.domainName) {
+        displayErrorMessage(
+            "No Corna domain found. Please create one or re-login.");
+        return null;
+    }
+    return state.domainName;
+};
+
+
+/**
+ * Map swapped-in toolbar views to their initialisation handlers.
+ */
+const toolbarRoutes: ToolbarRoute[] = [
+    // swaps in html/signin.html
+    {
+        selector: "#signInContainer",
+        handler: () => login(refreshNav),
+    },
+
+    // swaps in html/register.html
+    {
+        selector: "#registerContainer",
+        handler: () => processNewUser(),
+    },
+
+    // swaps in html/cornaCard.html
+    {
+        selector: "#cornaCardContainer",
+        handler: () => cornaCardInit(),
+    },
+
+    // swaps in html/permissions.html
+    {
+        selector: "#permissionsContainer",
+        handler: () => characters(),
+    },
+
+    // swaps in html/characterCreator.html
+    {
+        selector: "#characterCreator",
+        handler: () => {
+            const domainName = requireDomain();
+            if (!domainName) { return; }
+
+            createCharacter(domainName);
+        },
+    },
+
+    // swaps in textModal.html
+    {
+        selector: "#textModal",
+        handler: () => {
+            const domainName = requireDomain();
+            if (!domainName) { return; }
+
+            createPostTest("text", domainName);
+        },
+    },
+
+    // swaps in imageModal.html
+    {
+        selector: "#imageModal",
+        handler: () => {
+            const domainName = requireDomain();
+            if (!domainName) { return; }
+
+            createPostTest("picture", domainName);
+        },
+    },
+
+    // swaps in videoModal.html
+    {
+        selector: "#videoModal",
+        handler: () => {
+            const domainName = requireDomain();
+            if (!domainName) { return; }
+
+            createPostTest("video", domainName);
+        },
+    },
+];
+
+
 function openModal(): void {
     if (state.flags.modalOpen) { return; }
     state.flags.modalOpen = true;
@@ -250,62 +344,9 @@ async function processSwaps(): Promise<void> {
     const content = document.getElementById("content") as HTMLDivElement | null;
     if (!content) { return; }
 
-    // Helper: enforce domain existence for flows that require it
-    const requireDomain = (): string | null => {
-        if (!state.domainName) {
-            displayErrorMessage("No Corna domain found. Please create one or re-login.");
-            return null;
-        }
-        return state.domainName;
-    };
-
-    // Map swapped-in container -> handler
-    const routes: Array<[string, () => void | Promise<void>]> = [
-        // swaps in html/signin.html
-        ["#signInContainer", () => login(refreshNav)],
-
-        // swaps in html/register.html
-        ["#registerContainer", () => processNewUser()],
-
-        // swaps in html/cornaCard.html
-        ["#cornaCardContainer", () => cornaCardInit()],
-
-        // swaps in html/permissions.html
-        ["#permissionsContainer", () => characters()],
-
-        // swaps in html/characterCreator.html
-        ["#characterCreator", () => {
-            const dn = requireDomain();
-            if (!dn) { return; }
-            createCharacter(dn);
-        }],
-
-        // swaps in textModal.html
-        ["#textModal", () => {
-            const dn = requireDomain();
-            if (!dn) { return; }
-            createPostTest("text", dn);
-        }],
-
-        // swaps in imageModal.html
-        ["#imageModal", () => {
-            const dn = requireDomain();
-            if (!dn) { return; }
-            createPostTest("picture", dn);
-        }],
-
-        // swaps in videoModal.html
-        ["#videoModal", () => {
-            const dn = requireDomain();
-            if (!dn) { return; }
-            createPostTest("video", dn);
-        }],
-    ];
-
-    for (const [selector, handler] of routes) {
-        // Look inside #content for the swapped-in view root
-        if (content.querySelector(selector)) {
-            await handler();
+    for (const route of toolbarRoutes) {
+        if (content.querySelector(route.selector)) {
+            await route.handler();
             return;
         }
     }
