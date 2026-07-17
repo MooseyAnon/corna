@@ -499,6 +499,60 @@ def test_vido_post(session, client, mocker, corna):
     assert not vid.orphaned
 
 
+def test_vido_post__novideo(session, client, corna):
+    out_post = {
+        "type": "video",
+        "title": "this is a title of a post",
+        "uploaded_images": [],
+        "content": (
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed "
+            "do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut "
+            "enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi "
+            "ut aliquip ex ea commodo consequat. Duis aute irure dolor in "
+            "reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla "
+            "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "
+            "culpa qui officia deserunt mollit anim id est laborum."
+        )
+    }
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
+        json=out_post
+    )
+
+    assert resp.status_code == 400
+    assert resp.json["message"] == "Video post requires videos"
+
+    # make sure the session was not committed
+    assert len(session.query(models.PostTable).all()) == 0
+
+
+def test_vido_post__linking_non_existing_video(session, client, corna):
+    out_post = {
+        "type": "video",
+        "title": "this is a title of a post",
+        "uploaded_images": ["jdhfakhsf"],
+        "content": (
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed "
+            "do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut "
+            "enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi "
+            "ut aliquip ex ea commodo consequat. Duis aute irure dolor in "
+            "reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla "
+            "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "
+            "culpa qui officia deserunt mollit anim id est laborum."
+        )
+    }
+    resp = client.post(
+        f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
+        json=out_post
+    )
+
+    assert resp.status_code == 400
+    assert resp.json["message"] == "Unable to find file"
+
+    # make sure the session was not committed
+    assert len(session.query(models.PostTable).all()) == 0
+
+
 @freeze_time(FROZEN_TIME)
 def test_post__null_in_payload(session, client, corna):
     """Check when there are 'null' values in the payload - from js."""

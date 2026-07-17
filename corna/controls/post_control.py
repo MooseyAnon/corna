@@ -188,6 +188,9 @@ def _create_artefacts(
     if post_type == ContentType.PHOTO and not uploaded_images:
         raise InvalidContentType("Photo post needs images")
 
+    if post_type == ContentType.VIDEO and not uploaded_images:
+        raise InvalidContentType("Video post requires videos")
+
     # save text content, if any
     text(
         session,
