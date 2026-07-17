@@ -67,6 +67,7 @@ interface State {
  */
 interface ToolbarRoute {
     selector: string;
+    triggerElementId?: string;
     handler: () => void | Promise<void>;
 }
 
@@ -90,18 +91,21 @@ const toolbarRoutes: ToolbarRoute[] = [
     {
         selector: "#signInContainer",
         handler: () => login(refreshNav),
+        triggerElementId: "corna-trigger--signin",
     },
 
     // swaps in html/register.html
     {
         selector: "#registerContainer",
         handler: () => processNewUser(),
+        triggerElementId: "corna-trigger--register",
     },
 
     // swaps in html/cornaCard.html
     {
         selector: "#cornaCardContainer",
         handler: () => cornaCardInit(),
+        triggerElementId: "corna-trigger--card",
     },
 
     // swaps in html/permissions.html
@@ -124,6 +128,7 @@ const toolbarRoutes: ToolbarRoute[] = [
     // swaps in textModal.html
     {
         selector: "#textModal",
+        triggerElementId: "corna-trigger--text",
         handler: () => {
             const domainName = requireDomain();
             if (!domainName) { return; }
@@ -135,6 +140,7 @@ const toolbarRoutes: ToolbarRoute[] = [
     // swaps in imageModal.html
     {
         selector: "#imageModal",
+        triggerElementId: "corna-trigger--img",
         handler: () => {
             const domainName = requireDomain();
             if (!domainName) { return; }
@@ -146,6 +152,7 @@ const toolbarRoutes: ToolbarRoute[] = [
     // swaps in videoModal.html
     {
         selector: "#videoModal",
+        triggerElementId: "corna-trigger--vid",
         handler: () => {
             const domainName = requireDomain();
             if (!domainName) { return; }
@@ -354,6 +361,36 @@ async function processSwaps(): Promise<void> {
 
 
 /**
+ * Open tool bar route.
+ * 
+ * This function emulates a click on one of the options in the toolbar. The
+ * main reason we choose to emulate a click is to preserve the HTMX lifestyle
+ * that the rest of the code uses. This allows use to automatically use:
+ *  - openModal + associated message passing
+ *  - before/after swap semantics
+ *  - closeModal + associated message passing cleanup
+ * 
+ * Fundamentally, this prevents us from needing a custom branch of code just to
+ * handle directly opening the toolbar.
+ * 
+ * @param { string } selector: the HTML selector to look for, in this case an
+ *  ID
+ */
+function openToolbarRoute(selector: string): void {
+    const route = toolbarRoutes.find(function(route) {
+        return route.selector === selector;
+    });
+
+    if (!route?.triggerElementId) { return; }
+
+    const trigger = document.getElementById(route.triggerElementId);
+    if (!trigger) { return; }
+
+    trigger.click();
+}
+
+
+/**
  * initialse the state manager.
  * 
  * @returns { State }: object holding the state.
@@ -486,7 +523,37 @@ function isMessage(
     return true;
 }
 
+
+/**
+ * Handle intents from the server.
+ * 
+ * We purposefully dont have a default because we treat no matches as `NOOP`.
+ * 
+ * @param { string } intent: intent from the server (via host).
+ */
+function handleHostIntent(intent: string): void {
+    switch(intent) {
+        case "signin":
+            openToolbarRoute("#signInContainer");
+            break;
+        case "post:text":
+            openToolbarRoute("#textModal");
+            break;
+        case "post:image":
+            openToolbarRoute("#imageModal");
+            break;
+        case "post:video":
+            openToolbarRoute("#videoModal");
+            break;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async function() {
+    // we want to register this before we send the ready message to the host
+    // incase the host tries to instantly send a message before we're already
+    // listening.
+    window.addEventListener("message", handleHostMessage);
+
     await refreshNav();
 
     document.addEventListener("htmx:beforeSwap", function(event: Event) {
