@@ -8,11 +8,39 @@ import logging
 
 import flask
 
+from corna import enums
 from corna.utils import secure, utils
 
 logger = logging.getLogger(__name__)
 
 frontend = flask.Blueprint("frontend", __name__)
+
+
+def handle_intent(intent: str) -> dict[str, str]:
+    """Format request intent.
+
+    :param str intent: the user intent
+    :return: formatted intent for the client
+    """
+    intent_bootstrap = {"intent": intent}
+    return intent_bootstrap
+
+
+def is_loggedin() -> bool:
+    """Check if incoming request is authenticated.
+
+    :returns: true if request is a valid session i.e. user logged in,
+        else false
+    :rtype: bool
+    """
+    signed_cookie: str | None = (
+        flask
+        .request
+        .cookies
+        .get(enums.SessionNames.SESSION.value)
+    )
+
+    return signed_cookie and secure.is_valid(signed_cookie)
 
 
 @frontend.after_request
@@ -26,6 +54,53 @@ def sec_headers(response: flask.wrappers.Response) -> flask.wrappers.Response:
     headers = secure.secure_headers(flask.request)
     response.headers.update(headers)
     return response
+
+
+@frontend.route("/frontend/post/video", methods=["GET"])
+def video_post_page():
+    """Create video post page."""
+    # we only want people going to this page is they're logged in
+    # if not, we'll just send them to sign in page
+    if not is_loggedin():
+        return flask.render_template(
+            "neighbourhoods.html", bootstrap=handle_intent("signin"))
+
+    return flask.render_template(
+        "neighbourhoods.html", bootstrap=handle_intent("post:video"))
+
+
+@frontend.route("/frontend/post/image", methods=["GET"])
+def image_post_page():
+    """Create image post page."""
+    # we only want people going to this page is they're logged in
+    # if not, we'll just send them to sign in page
+    if not is_loggedin():
+        return flask.render_template(
+            "neighbourhoods.html", bootstrap=handle_intent("signin"))
+
+    return flask.render_template(
+        "neighbourhoods.html", bootstrap=handle_intent("post:image"))
+
+
+@frontend.route("/frontend/post/text", methods=["GET"])
+def text_post_page():
+    """Create text post page."""
+    # we only want people going to this page is they're logged in
+    # if not, we'll just send them to sign in page
+    if not is_loggedin():
+        return flask.render_template(
+            "neighbourhoods.html", bootstrap=handle_intent("signin"))
+
+    return flask.render_template(
+        "neighbourhoods.html", bootstrap=handle_intent("post:text"))
+
+
+@frontend.route("/frontend/signin", methods=["GET"])
+def sign_in_page():
+    """Sign-in page."""
+    # if the user is already logged in, there is nothing to do
+    bootstrap = handle_intent("signin") if not is_loggedin() else None
+    return flask.render_template("neighbourhoods.html", bootstrap=bootstrap)
 
 
 @frontend.route("/frontend", methods=["GET"])
