@@ -243,11 +243,8 @@ def register_user(**data: Dict) -> flask.wrappers.Response:
     tags=["Auth"],
     description="Login a user",
     responses={
-        HTTPStatus.NOT_FOUND: {
-            "description": "The email address is not found"
-        },
         HTTPStatus.BAD_REQUEST: {
-            "description": "The entered password is not correct"
+            "description": "The entered email or password is incorrect"
         },
     }
 )
@@ -262,10 +259,10 @@ def login_user(**data: Dict) -> flask.wrappers.Response:
 
     try:
         cookie: str = auth_control.login_user(session, **data)
-    except NoneExistingUserError as error:
-        return utils.respond_json_error(str(error), HTTPStatus.NOT_FOUND)
-    except IncorrectPasswordError as error:
-        return utils.respond_json_error(str(error), HTTPStatus.BAD_REQUEST)
+    except (NoneExistingUserError, IncorrectPasswordError):
+        # give generic message
+        msg = "Email or password is incorrect"
+        return utils.respond_json_error(str(msg), HTTPStatus.BAD_REQUEST)
 
     session.commit()
 
