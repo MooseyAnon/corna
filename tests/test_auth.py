@@ -208,8 +208,8 @@ def test_user_already_logged_in(session, client, login):
     [
         ("azor_ahi@starkentaprise.wstro", "badpassword", 400),
         ("azor_ahi@starkentaprise.wstro", "dany", 400),
-        ("fake-email@email.com", "Dany", 404),
-        ("fake-email@email.com", "badpassword", 404),
+        ("fake-email@email.com", "Dany", 400),
+        ("fake-email@email.com", "badpassword", 400),
         ("azor_ahi@starkentaprise.wstro", "Dany", 200),
     ]
 )
