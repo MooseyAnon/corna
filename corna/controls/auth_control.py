@@ -78,13 +78,9 @@ def register_user(
     :param Optional[str] avatar: the UUID of the avatar
     :raises UserExistsError: if user details are already in use
     """
-    user_email: Optional[models.EmailTable] = (
-        session
-        .query(models.EmailTable)
-        .get(email)
-    )
-    if user_email is not None:
-        raise UserExistsError("Email address already has an account")
+    # check if either username or email are taken
+    if email_exists(session, email) or username_exists(session, username):
+        raise UserExistsError("Username or email are already in use.")
 
     avatar_uuid: Optional[models.Media] = (
         assign_avatar(session, avatar)

@@ -69,7 +69,7 @@ def test_email_in_use_register_attempt(client, user):
     user_deets = single_user()
     resp = client.post("/api/v1/auth/register", json=user_deets)
     assert resp.status_code == 400
-    assert resp.json["message"] == "Email address already has an account"
+    assert resp.json["message"] == "Username or email are already in use."
 
 
 def test_register_with_avatar(session, client):
