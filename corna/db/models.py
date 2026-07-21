@@ -1,8 +1,22 @@
 """Models for the Corna app."""
 
-from sqlalchemy import (
-    BigInteger, Boolean, Column, DateTime, ForeignKey, ForeignKeyConstraint,
-    Integer, Sequence, String, Table, Text)
+# we skip isort here because it doesn't like lists for imports but as its
+# grown, its way easier to read diffs - and see whats actually changed - when
+# in list format
+from sqlalchemy import (  # isort: skip
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Integer,
+    Sequence,
+    String,
+    Table,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.inspection import inspect
@@ -576,4 +590,84 @@ class Role(Base):
             "also making each role more 'unique' as there is the possibility "
             "of many roles having the same name. Corna UUID means we know "
             "which instance of 'roll name == foo' we are dealing with."
+    )
+
+
+class InviteTable(Base):
+    """Single-use account invitation."""
+
+    __tablename__ = "invites"
+
+    uuid = Column(
+        UUID,
+        primary_key=True,
+    )
+    token_hash = Column(
+        Text,
+        nullable=False,
+        unique=True,
+        doc="SHA-256 hash of the opaque invitation token",
+    )
+    email_address = Column(
+        Text,
+        nullable=True,
+        doc="Email address, used if invited scoped to particular addy.",
+    )
+    created_by_user_id = Column(
+        UUID,
+        ForeignKey(
+            "users.uuid",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        index=True,
+        doc="User that created the invitation",
+    )
+    date_created = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        doc="Date the invitation was created",
+    )
+    expires_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+        doc="Date after which the invitation cannot be redeemed",
+    )
+    redeemed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        doc="Date the invitation was successfully redeemed",
+    )
+    redeemed_by_user_id = Column(
+        UUID,
+        ForeignKey(
+            "users.uuid",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+        unique=True,
+        index=True,
+        doc="User account created by redeeming this invitation",
+    )
+    revoked_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        doc="Date the invitation was revoked",
+    )
+    revoked_by_user_id = Column(
+        UUID,
+        ForeignKey(
+            "users.uuid",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+        doc="User or administrator that revoked the invitation",
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "redeemed_at IS NULL OR revoked_at IS NULL",
+            name="ck_invites_not_redeemed_and_revoked",
+        ),
     )

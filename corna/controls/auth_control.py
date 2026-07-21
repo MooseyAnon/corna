@@ -2,15 +2,20 @@
 import logging
 from typing import Optional
 
+from sqlalchemy.exc import IntegrityError
 from werkzeug.local import LocalProxy
 
 from corna.db import models
 from corna.middleware import alchemy
-from corna.utils import encodings, get_utc_now, secure, utils
+from corna.utils import encodings, future, get_utc_now, secure, utils
 from corna.utils.errors import (
     IncorrectPasswordError, NoneExistingUserError, UserExistsError)
 
 logger = logging.getLogger(__name__)
+
+
+class InviteCreationError(Exception):
+    """Raised when an invite could not be created."""
 
 
 def username_exists(session: LocalProxy, username: str) -> bool:
@@ -194,3 +199,73 @@ def delete_prexisting_session(session: LocalProxy, user_uuid: str) -> None:
     )
 
     logger.info("successfully deleted pre-existing session")
+
+
+def create_invite(
+    session: LocalProxy,
+    cookie: str,
+) -> str:
+    """Create a user requested invite token.
+
+    :param sqlalchemy.Session session: session object
+    :param str cookie: session cookie of the user creating the invite
+    :returns: plaintext invite token
+    :rtype: str
+    """
+    creator: models.UserTable = utils.current_user(session, cookie)
+    return create_invite_for_user(session, creator.uuid)
+
+
+def create_invite_for_user(
+    session: LocalProxy,
+    creator_uuid: str,
+) -> str:
+    """Create and persist a single-use invite.
+
+    The plaintext token is returned to the caller but is never stored in the
+    database. Only a deterministic hash of the token is persisted.
+
+    The caller owns the surrounding transaction and is responsible for
+    committing or rolling it back.
+
+    Note: this exists as a separate function to allow system accounts to bypass
+    needing to login with a password when creating tokens. System accounts will
+    create tokens when `"Request invite"` is used on the client.
+
+    :param sqlalchemy.Session session: session object
+    :param str creator_uuid: UUID of user creating the invite
+    :returns: plaintext invite token
+    :rtype: str
+    :raises InviteCreationError: if the invite cannot be persisted
+    """
+    token: str = secure.generate_invite_token()
+    token_hash: str = secure.hash_invite_token(token)
+
+    invite = models.InviteTable(
+        uuid=utils.get_uuid(),
+        token_hash=token_hash,
+        created_by_user_id=creator_uuid,
+        date_created=get_utc_now(),
+        expires_at=future(days=3),
+    )
+
+    session.add(invite)
+
+    try:
+        # Flush rather than commit so that the caller retains ownership of
+        # the transaction while database constraint errors surface here.
+        session.flush()
+    except IntegrityError as error:
+        raise InviteCreationError(
+            "Failed to create invite"
+        ) from error
+
+    logger.info(
+        "successfully created invite",
+        extra={
+            "invite_id": str(invite.uuid),
+            "created_by_user_id": str(creator_uuid),
+        },
+    )
+
+    return token

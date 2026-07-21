@@ -354,3 +354,42 @@ def loging_status():
         pass
 
     return login_status
+
+
+@auth.route("/auth/invite", methods=["POST"])
+@utils.login_required
+@doc(
+    tags=["Auth"],
+    description="Create a single-use invite",
+    responses={
+        HTTPStatus.CREATED: {
+            "description": "Invite created successfully"
+        },
+        HTTPStatus.INTERNAL_SERVER_ERROR: {
+            "description": "The invite could not be created"
+        },
+    },
+)
+def create_invite() -> flask.wrappers.Response:
+    """Create a single-use invite and return its join URL."""
+    user_cookie: str = flask.request.cookies[
+        enums.SessionNames.SESSION.value
+    ]
+
+    try:
+        token: str = auth_control.create_invite(
+            session,
+            user_cookie,
+        )
+    except auth_control.InviteCreationError as error:
+        session.rollback()
+        return utils.respond_json_error(
+            str(error),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+
+    session.commit()
+
+    join_url: str = f"join/{token}"
+
+    return {"join_url": join_url}, HTTPStatus.CREATED

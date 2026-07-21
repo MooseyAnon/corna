@@ -16,6 +16,10 @@ from corna.utils.encodings import EncodingError
 
 logger = logging.getLogger(__name__)
 
+# Note from secrets documentation:
+# "As of 2015, it is believed that 32 bytes (256 bits) of randomness is"
+# "sufficient for the typical use-case expected for the secrets module."
+SECRET_TOKEN_BYTES = 32
 SPLITTR: bytes = b"||"
 # hashing function used in HMAC signature
 DIGESTMOD: Callable = hashlib.sha256
@@ -99,6 +103,32 @@ def generate_unique_token(
         i += 1
 
     raise UnableToGenerateUnqiqueToken("Unable to generate unique token")
+
+
+def generate_invite_token() -> str:
+    """Generate a cryptographically secure invite token.
+
+    :returns: URL-safe plaintext invite token
+    :rtype: str
+    """
+    return secrets.token_urlsafe(SECRET_TOKEN_BYTES)
+
+
+def hash_invite_token(token: str) -> str:
+    """Generate the deterministic hash used to store and locate an invite.
+
+    Invite tokens need deterministic hashing because the plaintext token
+    supplied during registration must be converted into the same value used
+    for the database lookup.
+
+    :param str token: plaintext invite token
+    :returns: hexadecimal SHA-256 digest
+    :rtype: str
+    """
+    if not token:
+        raise ValueError("Invite token cannot be empty")
+
+    return DIGESTMOD(token.encode("utf-8")).hexdigest()
 
 
 def secure_headers(request) -> Dict[str, str]:
