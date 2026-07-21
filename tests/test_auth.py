@@ -1,9 +1,22 @@
+from datetime import timedelta
+
 import pytest
 
 from corna import enums
 from corna.db import models
 from corna.utils import secure, utils
 from tests.shared_data import ASSET_DIR, single_user
+
+
+def _invite_from_join_url(session, join_url):
+    token = join_url.removeprefix("join/")
+    invite = (
+        session
+        .query(models.InviteTable)
+        .filter(models.InviteTable.token_hash == secure.hash_invite_token(token))
+        .one()
+    )
+    return token, invite
 
 
 def _upload_avatar(session):
@@ -483,3 +496,117 @@ def test_username_is_valid(client, username, expected_status):
         })
 
     assert resp.status_code == expected_status
+
+
+def test_create_invite_returns_201(client, login):
+    resp = client.post("/api/v1/auth/invite")
+
+    assert resp.status_code == 201
+
+
+def test_create_invite_requires_login(client):
+    resp = client.post("/api/v1/auth/invite")
+
+    assert resp.status_code == 401
+    assert resp.json["message"] == "Login required for this action"
+
+
+def test_create_invite_returns_relative_join_path(client, login):
+    resp = client.post("/api/v1/auth/invite")
+
+    assert resp.status_code == 201
+    assert resp.json["join_url"].startswith("join/")
+    assert not resp.json["join_url"].startswith("http")
+
+
+def test_create_invite_persists_invite(session, client, login):
+    resp = client.post("/api/v1/auth/invite")
+    assert resp.status_code == 201
+
+    _, invite = _invite_from_join_url(session, resp.json["join_url"])
+    assert invite is not None
+
+
+def test_create_invite_stores_hashed_token(session, client, login):
+    resp = client.post("/api/v1/auth/invite")
+    assert resp.status_code == 201
+
+    token, invite = _invite_from_join_url(session, resp.json["join_url"])
+    assert invite.token_hash == secure.hash_invite_token(token)
+
+
+def test_create_invite_sets_creator(session, client, login):
+    resp = client.post("/api/v1/auth/invite")
+    assert resp.status_code == 201
+
+    _, invite = _invite_from_join_url(session, resp.json["join_url"])
+    user_deets = single_user()
+    creator = (
+        session
+        .query(models.UserTable)
+        .filter(models.UserTable.username == user_deets["username"])
+        .one()
+    )
+    assert invite.created_by_user_id == creator.uuid
+
+
+def test_create_invite_sets_default_expiry(session, client, login):
+    resp = client.post("/api/v1/auth/invite")
+    assert resp.status_code == 201
+
+    _, invite = _invite_from_join_url(session, resp.json["join_url"])
+    delta = invite.expires_at - invite.date_created
+    assert timedelta(days=3) - timedelta(seconds=5) <= delta
+    assert delta <= timedelta(days=3) + timedelta(seconds=5)
+
+
+def test_create_invite_does_not_store_plaintext_token(session, client, login):
+    resp = client.post("/api/v1/auth/invite")
+    assert resp.status_code == 201
+
+    token, invite = _invite_from_join_url(session, resp.json["join_url"])
+    assert invite.token_hash != token
+    assert token not in invite.token_hash
+
+
+def test_create_invite_can_create_multiple_invites_for_same_user(
+    session,
+    client,
+    login,
+):
+    first_resp = client.post("/api/v1/auth/invite")
+    assert first_resp.status_code == 201
+
+    second_resp = client.post("/api/v1/auth/invite")
+    assert second_resp.status_code == 201
+
+    assert first_resp.json["join_url"] != second_resp.json["join_url"]
+
+    first_token, first_invite = _invite_from_join_url(
+        session,
+        first_resp.json["join_url"],
+    )
+    second_token, second_invite = _invite_from_join_url(
+        session,
+        second_resp.json["join_url"],
+    )
+
+    assert first_token != second_token
+    assert first_invite.uuid != second_invite.uuid
+    assert first_invite.created_by_user_id == second_invite.created_by_user_id
+
+
+def test_create_invite_returns_500_when_invite_creation_fails(
+    mocker,
+    client,
+    login,
+):
+    mocker.patch(
+        "corna.controls.auth_control.create_invite",
+        side_effect=auth_control.InviteCreationError("Failed to create invite"),
+    )
+
+    resp = client.post("/api/v1/auth/invite")
+
+    assert resp.status_code == 500
+    assert resp.json["message"] == "Failed to create invite"
