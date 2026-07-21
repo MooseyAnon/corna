@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from corna.db import models
 
 
-FROZEN_TIME = "2023-04-29T03:21:34"
+FROZEN_TIME = "2023-04-29T03:21:34+00:00"
 
 
 def test_corna_simple_db_test(session):

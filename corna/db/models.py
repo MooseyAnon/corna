@@ -79,7 +79,7 @@ class UserTable(Base):
         unique=True,
     )
     date_created = Column(
-        DateTime,
+        DateTime(timezone=True),
         doc="date of account creation",
     )
     number = Column(
@@ -211,7 +211,7 @@ class CornaTable(Base):
         doc="title of the Corna",
     )
     date_created = Column(
-        DateTime,
+        DateTime(timezone=True),
         doc="creation date of Corna",
     )
     permissions = Column(
@@ -275,7 +275,7 @@ class PostTable(Base):
         doc="The url extension of the post",
     )
     created = Column(
-        DateTime,
+        DateTime(timezone=True),
         doc="post creation timestamp",
     )
     type = Column(
@@ -334,7 +334,7 @@ class TextContent(Base):
             "so not all posts will have this."
     )
     created = Column(
-        DateTime,
+        DateTime(timezone=True),
         doc="Text creation timestamp",
     )
     post_uuid = Column(
@@ -388,7 +388,7 @@ class Media(Base):
         doc="Size of file in bytes. This is essentially output of `stat`",
     )
     created = Column(
-        DateTime,
+        DateTime(timezone=True),
         doc="file creation timestamp",
     )
     type = Column(
@@ -511,7 +511,7 @@ class Themes(Base):
         doc="Short, optional, description of the theme",
     )
     created = Column(
-        DateTime,
+        DateTime(timezone=True),
         doc="Date theme was created",
     )
     path = Column(
@@ -555,7 +555,7 @@ class Role(Base):
         doc="The name of the role",
     )
     created = Column(
-        DateTime,
+        DateTime(timezone=True),
         doc="Date theme was created",
     )
     permissions = Column(
