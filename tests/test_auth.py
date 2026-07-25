@@ -3,9 +3,14 @@ from datetime import timedelta
 import pytest
 
 from corna import enums
+from corna.controls import auth_control
 from corna.db import models
 from corna.utils import secure, utils
 from tests.shared_data import ASSET_DIR, single_user
+
+
+def _non_system_users(session):
+    return session.query(models.UserTable).filter_by(is_system_account=False)
 
 
 def _invite_from_join_url(session, join_url):
@@ -49,7 +54,7 @@ def test_regester(session, client):
     resp = client.post("/api/v1/auth/register", json=user_deets)
     assert resp.status_code == 201
     assert len(session.query(models.EmailTable).all()) == 1
-    assert len(session.query(models.UserTable).all()) == 1
+    assert _non_system_users(session).count() == 1
 
     # check correct things are saved
     em = session.query(models.EmailTable).get(user_deets["email"])
@@ -75,6 +80,13 @@ def test_regester(session, client):
     assert usr.email_address == user_deets["email"]
     assert usr.email == em
 
+    # ensure invite was used and is associated properly
+    assert not usr.is_system_account
+    assert usr.invited_by_user_id != None
+
+    invite = session.query(models.InviteTable).first()
+    assert invite.redeemed_by_user_id == usr.uuid
+
 
 def test_email_in_use_register_attempt(client, user):
 
@@ -93,7 +105,7 @@ def test_register_with_avatar(session, client):
     assert resp.status_code == 201
 
     assert len(session.query(models.EmailTable).all()) == 1
-    assert len(session.query(models.UserTable).all()) == 1
+    assert _non_system_users(session).count() == 1
     assert session.query(models.Media).count() == 1
     assert session.query(models.Images).count() == 1
 
@@ -142,13 +154,13 @@ def test_register__multiple_users_with_same_avatar(session, client):
     assert resp.status_code == 201
 
     assert session.query(models.EmailTable).count() == 2
-    assert session.query(models.UserTable).count() == 2
+    assert _non_system_users(session).count() == 2
     assert session.query(models.Media).count() == 1
     assert session.query(models.Images).count() == 1
 
     # ensure all users have same avatar
     avatar = session.query(models.Media).first()
-    for user in session.query(models.UserTable).all():
+    for user in _non_system_users(session).all():
         assert user.avatar == avatar.uuid
 
 
@@ -297,7 +309,7 @@ def test_logout(session, client, login):
     assert len(session.query(models.SessionTable).all()) == 0
     # make sure nothing got deleted from user table
     assert len(session.query(models.EmailTable).all()) == 1
-    assert len(session.query(models.UserTable).all()) == 1
+    assert _non_system_users(session).count() == 1
     # ensure cookie is removed
     cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is None
@@ -610,3 +622,140 @@ def test_create_invite_returns_500_when_invite_creation_fails(
 
     assert resp.status_code == 500
     assert resp.json["message"] == "Failed to create invite"
+
+
+"""
+Regression test.
+
+Uses two independent database sessions and concurrent requests to ensure
+that a single-use invite cannot be redeemed more than once. The exact
+thread scheduling is nondeterministic, but the observable behaviour must
+always be:
+    - one successful registration
+    - one InvalidInviteError
+    - one user created
+"""
+def test_invite_cannot_be_redeemed_twice(session_class):
+    """Only one concurrent request can redeem a single-use invite."""
+    from concurrent.futures import ThreadPoolExecutor
+    from http import HTTPStatus
+    from threading import Barrier
+    
+    from greenlet import getcurrent
+    from sqlalchemy.orm import scoped_session
+
+    from corna.app import create_app
+    from corna.controls import auth_control
+    from corna.utils import get_utc_now, utils
+
+    setup_session = session_class()
+
+    system_user = setup_session.query(models.UserTable).filter_by(
+        is_system_account=True).first()
+    invite_token = auth_control.create_invite_for_user(
+        setup_session,
+        system_user.uuid,
+    )
+    setup_session.commit()
+
+
+    first_user = single_user()
+    second_user = single_user()
+    second_user["email"] = "second@example.com"
+    second_user["username"] = "second_user"
+
+    first_user["token"] = invite_token
+    second_user["token"] = invite_token
+
+    # Both workers reach the request at approximately the same time.
+    barrier = Barrier(2)
+
+    def register(user_deets):
+        request_session = scoped_session(
+            session_class,
+            scopefunc=getcurrent,
+        )
+
+        app = create_app(request_session)
+        app.config["TESTING"] = True
+        client = app.test_client()
+
+        try:
+            barrier.wait()
+
+            response = client.post(
+                "/api/v1/auth/register",
+                json=user_deets,
+            )
+
+            if response.status_code == 400:
+                assert response.json["message"] == \
+                    "Invite token is invalid or expired."
+
+            return response.status_code
+        finally:
+            request_session.remove()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [
+            executor.submit(register, first_user),
+            executor.submit(register, second_user),
+        ]
+
+        status_codes = [
+            future.result()
+            for future in futures
+        ]
+
+    assert sorted(status_codes) == sorted([
+        HTTPStatus.CREATED,
+        HTTPStatus.BAD_REQUEST,
+    ])
+
+    verification_session = session_class()
+
+    try:
+        assert (
+            verification_session
+            .query(models.EmailTable)
+            .count()
+        ) == 1
+
+        assert (
+            verification_session
+            .query(models.UserTable)
+            .filter(models.UserTable.is_system_account.is_(False))
+            .count()
+        ) == 1
+
+        invite = (
+            verification_session
+            .query(models.InviteTable)
+            .filter(
+                models.InviteTable.token_hash
+                == secure.hash_invite_token(invite_token)
+            )
+            .one()
+        )
+
+        assert invite.redeemed_at is not None
+        assert invite.redeemed_by_user_id is not None
+
+        registered_usernames = {
+            username
+            for username, in (
+                verification_session
+                .query(models.UserTable.username)
+                .filter(
+                    models.UserTable.username.in_([
+                        first_user["username"],
+                        second_user["username"],
+                    ])
+                )
+                .all()
+            )
+        }
+
+        assert len(registered_usernames) == 1
+    finally:
+        verification_session.close()

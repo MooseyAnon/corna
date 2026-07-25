@@ -95,7 +95,12 @@ def test_add_theme(session, client, login):
     assert resp.status_code == 201
 
     # grab db data
-    user = session.query(models.UserTable).first()
+    user = (
+        session
+        .query(models.UserTable)
+        .filter_by(is_system_account=False)
+        .first()
+    )
     theme = session.query(models.Themes).first()
     assert theme.uuid != None
     assert theme.name == "new fancy theme"
@@ -114,7 +119,12 @@ def test_add_theme_with_path(session, client, login):
     assert resp.status_code == 201
 
     # grab db data
-    user = session.query(models.UserTable).first()
+    user = (
+        session
+        .query(models.UserTable)
+        .filter_by(is_system_account=False)
+        .first()
+    )
     theme = session.query(models.Themes).first()
     assert theme.uuid != None
     assert theme.name == "new fancy theme"
@@ -225,7 +235,12 @@ def test_create_theme_with_thumbnail(session, client, login):
     assert resp.status_code == 201
 
     # grab db data
-    user = session.query(models.UserTable).first()
+    user = (
+        session
+        .query(models.UserTable)
+        .filter_by(is_system_account=False)
+        .first()
+    )
     theme = session.query(models.Themes).first()
     assert theme.uuid != None
     assert theme.name == "new fancy theme"

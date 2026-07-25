@@ -43,6 +43,15 @@ def _create_user_helper(session, email, username):
         "password": "Dany",
         "user_name": username,
     }
+    system_user = (
+        session
+        .query(models.UserTable)
+        .filter_by(username="system")
+        .one()
+    )
+    user_uuid = utils.get_uuid()
+    invite_uuid = utils.get_uuid()
+    now = get_utc_now()
     
     session.add(
         models.EmailTable(
@@ -52,16 +61,33 @@ def _create_user_helper(session, email, username):
     )
 
     session.add(
+        models.InviteTable(
+            uuid=invite_uuid,
+            token_hash=f"test-token-{user_uuid}",
+            created_by_user_id=system_user.uuid,
+            date_created=now,
+            redeemed_at=now,
+        )
+    )
+    session.flush()
+
+    session.add(
         models.UserTable(
-            uuid=utils.get_uuid(),
+            uuid=user_uuid,
             email_address=user["email_address"],
             username=user["user_name"],
-            date_created=get_utc_now(),
+            date_created=now,
+            invited_by_user_id=system_user.uuid,
         )
     )
 
     session.commit()
-    assert session.query(models.UserTable).count() > 1
+    assert (
+        session
+        .query(models.UserTable)
+        .filter_by(is_system_account=False)
+        .count()
+    ) > 1
 
 
 def _give_user_role_helper(client, role, user):

@@ -14,6 +14,15 @@ def many_users_helper(session, number=50):
             "password": "Dany",
             "user_name": f"john_snow_{i}",
         }
+        system_user = (
+            session
+            .query(models.UserTable)
+            .filter_by(username="system")
+            .one()
+        )
+        user_uuid = utils.get_uuid()
+        invite_uuid = utils.get_uuid()
+        now = get_utc_now()
         
         session.add(
             models.EmailTable(
@@ -23,16 +32,33 @@ def many_users_helper(session, number=50):
         )
 
         session.add(
+            models.InviteTable(
+                uuid=invite_uuid,
+                token_hash=f"test-token-{user_uuid}",
+                created_by_user_id=system_user.uuid,
+                date_created=now,
+                redeemed_at=now,
+            )
+        )
+        session.flush()
+
+        session.add(
             models.UserTable(
-                uuid=utils.get_uuid(),
+                uuid=user_uuid,
                 email_address=user["email_address"],
                 username=user["user_name"],
-                date_created=get_utc_now(),
+                date_created=now,
+                invited_by_user_id=system_user.uuid,
             )
         )
 
     session.commit()
-    assert session.query(models.UserTable).count() == number + 1
+    assert (
+        session
+        .query(models.UserTable)
+        .filter_by(is_system_account=False)
+        .count()
+    ) == number + 1
 
 
 def create_role_helper(client, name="fake role", permissions=[]):
@@ -64,7 +90,12 @@ def test_create_role__default_perms(client, session, corna):
 
     role = session.query(models.Role).first()
     # get user to enusre correct account created role
-    user = session.query(models.UserTable).first()
+    user = (
+        session
+        .query(models.UserTable)
+        .filter_by(is_system_account=False)
+        .first()
+    )
 
     assert role.name == "new role"
     assert role.creator_uuid == user.uuid
@@ -102,7 +133,12 @@ def test_create_role__perm_does_not_exist(client, session, corna):
 
     role = session.query(models.Role).first()
     # get user to enusre correct account created role
-    user = session.query(models.UserTable).first()
+    user = (
+        session
+        .query(models.UserTable)
+        .filter_by(is_system_account=False)
+        .first()
+    )
 
     assert role.name == "new role"
     assert role.creator_uuid == user.uuid
@@ -186,7 +222,12 @@ def test_create_role__banned_role(client, session, corna):
 
     role = session.query(models.Role).first()
     # get user to enusre correct account created role
-    user = session.query(models.UserTable).first()
+    user = (
+        session
+        .query(models.UserTable)
+        .filter_by(is_system_account=False)
+        .first()
+    )
 
     assert role.name == "banned"
     assert role.creator_uuid == user.uuid
@@ -726,7 +767,12 @@ def test_give_role__give_user_role(client, session, corna):
 
 def test_give_role__role_to_none_owner(client, session, corna):
     many_users_helper(session, number=1)
-    assert session.query(models.UserTable).count() == 2
+    assert (
+        session
+        .query(models.UserTable)
+        .filter_by(is_system_account=False)
+        .count()
+    ) == 2
     # create default role
     create_role_helper(
         client,
@@ -930,7 +976,12 @@ def test_take_role__take_user_role(client, session, corna):
 
 def test_take_role__none_owner_user(client, session, corna):
     many_users_helper(session, number=1)
-    assert session.query(models.UserTable).count() == 2
+    assert (
+        session
+        .query(models.UserTable)
+        .filter_by(is_system_account=False)
+        .count()
+    ) == 2
     assert session.query(models.role_user_map).count() == 0
     # create default role
     create_role_helper(
