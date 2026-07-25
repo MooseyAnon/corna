@@ -56,6 +56,12 @@ class UserCreateSchema(_BaseSchema):
             "description": "slug for chosen user avatar.",
         })
 
+    token = fields.String(
+        required=True,
+        metadata={
+            "description": "single-use invite token for account creation",
+        })
+
     @validates("username")
     def validate_username(self, username):
         """Validate username is correctly formatted.
@@ -232,8 +238,9 @@ def register_user(**data: Dict) -> flask.wrappers.Response:
         auth_control.register_user(session, **data)
     except (NoMediaError, UserExistsError) as error:
         return utils.respond_json_error(str(error), HTTPStatus.BAD_REQUEST)
+    except auth_control.InvalidInviteError as error:
+        return utils.respond_json_error(str(error), HTTPStatus.BAD_REQUEST)
 
-    session.commit()
     return create_response(status=HTTPStatus.CREATED)
 
 

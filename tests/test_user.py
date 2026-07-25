@@ -42,7 +42,12 @@ def give_user_avatar(session, uuid):
     # this function exists so we dont mess around with conftests as they are
     # shared across all tests, any future changes to avatars or how we do them
     # may cause many unrelated tests to fail
-    curr_user = session.query(models.UserTable).first()
+    curr_user = (
+        session
+        .query(models.UserTable)
+        .filter_by(is_system_account=False)
+        .first()
+    )
     curr_user.avatar = uuid
     session.commit()
 
@@ -56,6 +61,15 @@ def many_users_helper(session, number=50):
             "password": "Dany",
             "user_name": f"john_snow_{i}",
         }
+        system_user = (
+            session
+            .query(models.UserTable)
+            .filter_by(username="system")
+            .one()
+        )
+        user_uuid = utils.get_uuid()
+        invite_uuid = utils.get_uuid()
+        now = get_utc_now()
         
         session.add(
             models.EmailTable(
@@ -65,17 +79,34 @@ def many_users_helper(session, number=50):
         )
 
         session.add(
+            models.InviteTable(
+                uuid=invite_uuid,
+                token_hash=f"test-token-{user_uuid}",
+                created_by_user_id=system_user.uuid,
+                date_created=now,
+                redeemed_at=now,
+            )
+        )
+        session.flush()
+
+        session.add(
             models.UserTable(
-                uuid=utils.get_uuid(),
+                uuid=user_uuid,
                 email_address=user["email_address"],
                 username=user["user_name"],
-                date_created=get_utc_now(),
+                date_created=now,
+                invited_by_user_id=system_user.uuid,
                 avatar=avatar_uuid,
             )
         )
 
     session.commit()
-    assert session.query(models.UserTable).count() == number + 1
+    assert (
+        session
+        .query(models.UserTable)
+        .filter_by(is_system_account=False)
+        .count()
+    ) == number + 1
 
 
 def create_role_helper(client, name="fake role", permissions=[]):

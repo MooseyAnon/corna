@@ -101,6 +101,25 @@ class UserTable(Base):
         Sequence("user_number_seq"),
         doc="Autoincrementing user ID number - this is different to PK",
     )
+    invited_by_user_id = Column(
+        UUID,
+        ForeignKey(
+            "users.uuid",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+        index=True,
+        doc="User that directly invited this account",
+    )
+    # Marks bootstrap/root accounts created outside the invite system.
+    # These accounts have no inviter and no redeemed invite.
+    is_system_account = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        doc="Whether this is a platform bootstrap or system account",
+    )
     email = relationship(
         "EmailTable",
         back_populates="user",
@@ -123,6 +142,32 @@ class UserTable(Base):
         ["media.uuid"],
         use_alter=True,
         ondelete="SET NULL",
+    )
+
+    # These are table level constraints
+    __table_args__ = (
+        # Ensure a user cannot invite themselves i.e. invited by != curr uuid
+        CheckConstraint(
+            "invited_by_user_id IS NULL OR invited_by_user_id <> uuid",
+            name="ck_users_not_self_invited",
+        ),
+        # System/bootstrap accounts are the root of the invitation tree and
+        # therefore have no inviter or invite. All normal users must have both
+        # an inviter and the invite used to create the account.
+        CheckConstraint(
+            """
+            (
+                is_system_account = true
+                AND invited_by_user_id IS NULL
+            )
+            OR
+            (
+                is_system_account = false
+                AND invited_by_user_id IS NOT NULL
+            )
+            """,
+            name="ck_users_invitation_origin",
+        ),
     )
 
 

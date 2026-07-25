@@ -18,6 +18,10 @@ class InviteCreationError(Exception):
     """Raised when an invite could not be created."""
 
 
+class InvalidInviteError(Exception):
+    """Raised when an invite token cannot be redeemed."""
+
+
 def username_exists(session: LocalProxy, username: str) -> bool:
     """Check if username is taken.
 
@@ -67,11 +71,59 @@ def assign_avatar(session: LocalProxy, avatar_slug: str) -> str:
     return avatar_uuid
 
 
+def validate_invite(session: LocalProxy, token: str) -> models.InviteTable:
+    """Validate user registration token.
+
+    Note: this should run inside a transaction as we lock the relevant rows
+    to prevent race conditions.
+
+    :param LocalProxy session: db connection
+    :param str token: the invite token
+    :returns: the invite entry in the db
+    :rtype: InviteTable
+    :raises InvalidInviteError: if token is invalid
+    """
+
+    try:
+        token_hash: str = secure.hash_invite_token(token)
+    except ValueError as error:
+        raise InvalidInviteError(
+            "Invite token is invalid or expired.") from error
+
+    # we dont actually save the raw token string (it only gets shown once on
+    # the out path) so we need to search using the token hash - which we do
+    # have
+    invite: Optional[models.InviteTable] = (
+        session
+        .query(models.InviteTable)
+        .filter(models.InviteTable.token_hash == token_hash)
+        .with_for_update()
+        .one_or_none()
+    )
+
+    now = get_utc_now()
+    if (
+        invite is None
+        or invite.redeemed_at is not None
+        or invite.revoked_at is not None
+        or invite.expires_at <= now
+    ):
+        raise InvalidInviteError("Invite token is invalid or expired.")
+
+    return invite
+
+
+@utils.transactional
 def register_user(
     session: LocalProxy,
+    # the transactional decorator expects the first arg to be a named session
+    # arg. This is a safety measure to make sure that session is always passed
+    # in first for this function.
+    *,
     email: str,
     password: str,
     username: str,
+    token: str,
     avatar: Optional[str] = None
 ) -> None:
     """Register a new user.
@@ -80,13 +132,19 @@ def register_user(
     :param str email: user email address
     :param str password: user password
     :param str username: username
+    :param str token: single-use invite token
     :param Optional[str] avatar: the UUID of the avatar
     :raises UserExistsError: if user details are already in use
+    :raises InvalidInviteError: if the invite token cannot be redeemed
+    :raises InviteCreationError: if the user cannot be created
     """
     # check if either username or email are taken
     if email_exists(session, email) or username_exists(session, username):
         raise UserExistsError("Username or email are already in use.")
 
+    invite = validate_invite(session, token)
+
+    user_uuid = utils.get_uuid()
     avatar_uuid: Optional[models.Media] = (
         assign_avatar(session, avatar)
         if avatar else None
@@ -101,13 +159,34 @@ def register_user(
 
     session.add(
         models.UserTable(
-            uuid=utils.get_uuid(),
+            uuid=user_uuid,
             email_address=email,
             username=username,
             date_created=get_utc_now(),
+            invited_by_user_id=invite.created_by_user_id,
+            is_system_account=False,
             avatar=avatar_uuid,
         )
     )
+
+    # There is no orm relationships defined between users and invites, this is
+    # a raw FK relationship. This means sqlalchemy has no way of knowing the
+    # ordering of how to create these entries. It may decided to do the update
+    # to the invite column below before creating the user, which leads to an
+    # integrity error. Flushing does not end/complete the transaction, rather
+    # it simply send the pending SQL (up till the flush) to the DB without
+    # committing. We also can catch any errors before committing. Once we flush,
+    # the ORM knows about the user uuid and can successfully attach the FK to
+    # the invite table.
+    try:
+        session.flush()
+    except IntegrityError as error:
+        raise InviteCreationError(
+            "Failed to create user"
+        ) from error
+
+    invite.redeemed_by_user_id = user_uuid
+    invite.redeemed_at = get_utc_now()
     logger.info("successfully registered a new user.")
 
 

@@ -159,6 +159,29 @@ def login_required(func: Callable):
     return inner
 
 
+def transactional(func: Callable):
+    """Explicitly run a DB change as a transaction.
+
+    This is useful when row-locking is required.
+    The inner function expects a session to be passed in as the first
+    named variable.
+
+    The supplied session must not already have an active transaction.
+    Successful completion commits; exceptions roll back and propagate.
+
+    :param Callable func: the function being wrapped.
+    :returns: the wrapped function after a transaction has started
+    :rtype: Callable
+    """
+    @wraps(func)
+    def inner(session, *args, **kwargs):
+        """Run the session as a transaction."""
+        with session.begin():
+            return func(session, *args, **kwargs)
+
+    return inner
+
+
 # pylint: disable=raise-missing-from
 def check_response(response, error_msg, exc_cls):
     """Call `raise_for_status` on `response`; log `error_msg` if necessary.
