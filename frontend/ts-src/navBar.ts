@@ -72,6 +72,8 @@ interface State {
     domainName: string | null;
     // this stores any join tokens so they can be used after swaps have happened
     pendingJoinToken: string | null;
+    // holds error messages while we wait for the appropriate view to be swapped in
+    pendingErrorMessage: string | null;
 
     flags: {
         modalOpen: boolean;
@@ -192,6 +194,11 @@ const toolbarRoutes: ToolbarRoute[] = [
             createPostTest("video", domainName);
         },
     },
+    {
+        selector: "#errorModal",
+        triggerElementId: "corna-trigger--error",
+        handler: () => processErrorModal(),
+    },
 ];
 
 
@@ -213,6 +220,48 @@ function isModalSwap(event: Event): boolean {
     const target = event.target as HTMLElement | null;
     // We only consider swaps into #content as “modal swaps”.
     return !!target && target.id === "content";
+}
+
+
+/**
+ * Process errors inside the modal overlay.
+ * 
+ * This specifically handles and displays error pages inside the modal overaly
+ * e.g. if a page can not be rendered due to bad input etc.
+ * We already have system wide error pages from when we need a full page error.
+ * 
+ * Any page that needs to render the error already has it and it simply a matter
+ * of displaying it.
+ */
+function processErrorModal(): void {
+    const modal = document.getElementById(
+        "errorModal",
+    ) as HTMLElement | null;
+
+    if (!modal) {
+        throw new Error(
+            "errorModal.ts: modal root not found (#errorModal)",
+        );
+    }
+
+    const message = modal.querySelector(
+        "#errorMessage",
+    ) as HTMLElement | null;
+
+    if (!message) {
+        throw new Error(
+            "errorModal.ts: message element not found (#errorMessage)",
+        );
+    }
+
+    const errMsg = 
+        state.pendingErrorMessage
+        ?? "Something went wrong.";
+    
+    message.textContent = errMsg;
+    // display the error incase it can't be seen on the actual error page
+    displayErrorMessage(errMsg)
+    state.pendingErrorMessage = null;
 }
 
 
@@ -434,6 +483,7 @@ function init(): State {
     const isLoggedIn: boolean = false;
     const domainName: string | null = null;
     const pendingJoinToken: string | null = null;
+    const pendingErrorMessage: string | null = null;
 
     return {
         isLoggedIn,
@@ -442,6 +492,7 @@ function init(): State {
         overlay,
         domainName,
         pendingJoinToken,
+        pendingErrorMessage,
         flags: {
             modalOpen: false,
             hoverBound: false,
