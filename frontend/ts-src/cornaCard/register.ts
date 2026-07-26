@@ -31,6 +31,7 @@ interface RegisterConfig {
     domainName: HTMLInputElement;
     email: HTMLInputElement;
     hasScrolled: boolean;
+    inviteToken: string;
     password: HTMLInputElement;
     selectedAvatar: string | null;
     selectedThemeUUID: string | undefined;
@@ -49,6 +50,7 @@ interface UserDetails {
     username: string;
     email: string;
     password: string;
+    token: string
 }
 
 
@@ -450,6 +452,7 @@ async function userRegister(): Promise<void> {
         username: regConf.username.value,
         email: regConf.email.value,
         password: regConf.password.value,
+        token: regConf.inviteToken,
     } as UserDetails, "v1/auth/register", displayErrorMessage);
 
 }
@@ -461,7 +464,7 @@ async function userRegister(): Promise<void> {
  * @param { HTMLElement } root: fragment root container
  * @returns { RegisterConfig }
  */
-function initState(root: HTMLElement): RegisterConfig {
+function initState(root: HTMLElement, token: string): RegisterConfig {
     // we'll keep these optional so we can present a helpful message to users
     const username = queryOptional<HTMLInputElement>(root, "#usernameInput");
     const email = queryOptional<HTMLInputElement>(root, "#emailInput");
@@ -483,12 +486,14 @@ function initState(root: HTMLElement): RegisterConfig {
     const blocked: boolean = false;
     const selectedThemeUUID: string | undefined = undefined;
     const selectedAvatar: string | null = null;
+    const inviteToken: string = token;
 
     return {
         blocked,
         domainName,
         email,
         hasScrolled,
+        inviteToken,
         password,
         selectedAvatar,
         selectedThemeUUID,
@@ -505,11 +510,20 @@ function initState(root: HTMLElement): RegisterConfig {
  * 
  * This is the entry point used by external consumers when registering a new
  * user.
+ * 
+ * @param { string } inviteToken: new users are required to have an invite
+ *     token. This comes from the caller.
  */
-export async function processNewUser(): Promise<void> {
+export async function processNewUser(
+    inviteToken: string,
+): Promise<void> {
     // pass in the root element to enable correct scoping of queries
     const regCont = document.getElementById("registerContainer") as HTMLElement | null;
-    if (!regCont) throw new Error(`register.ts: modal root not found (#${regCont})`);
+    if (!regCont) {
+        throw new Error(
+            "register.ts: modal root not found (#registerContainer)",
+        );
+    }
 
     // Prevent stacking listeners if this view is swapped in multiple times.
     if (regCont && regCont.dataset.bound === "1") { return; }
@@ -517,7 +531,7 @@ export async function processNewUser(): Promise<void> {
 
     // init the conf here because we need to do it at HTMX swap time not
     // at import time, which will cause it to be empty
-    regConf = initState(regCont);
+    regConf = initState(regCont, inviteToken);
 
     // we want to show an avatar when the user starts the registration process
     const avatar: { url: string, slug: string } = await getAvatar();

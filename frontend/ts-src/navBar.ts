@@ -16,7 +16,12 @@ This file gets linked into `cornaCard.html` which is where all the swaps take
 place - grep for `content`, thats the div that holds swapped components.
 */
 
-import { createMessage, HostMessage, MESSAGE_VERSION } from "./lib/messages.js";
+import {
+    createMessage,
+    HostIntentMessage,
+    HostMessage,
+    MESSAGE_VERSION
+} from "./lib/messages.js";
 import {
     RequestReturnType as RRT,
     handleNetworkError,
@@ -44,6 +49,19 @@ interface LoginCheck {
 
 
 /**
+ * Joining data from the server.
+ * 
+ * This allows us to temporarily save the joining information before it
+ * can be used when the registration page swaps in.
+ */
+interface JoinIntentData {
+    token: string;
+    is_valid: boolean;
+    message: string;
+}
+
+
+/**
  * Holds global state.
  */
 interface State {
@@ -52,6 +70,8 @@ interface State {
     loggedOutNavigation: HTMLUListElement;
     overlay: HTMLDivElement;
     domainName: string | null;
+    // this stores any join tokens so they can be used after swaps have happened
+    pendingJoinToken: string | null;
 
     flags: {
         modalOpen: boolean;
@@ -97,8 +117,20 @@ const toolbarRoutes: ToolbarRoute[] = [
     // swaps in html/register.html
     {
         selector: "#registerContainer",
-        handler: () => processNewUser(),
         triggerElementId: "corna-trigger--register",
+        handler: () => {
+            const token = state.pendingJoinToken;
+            state.pendingJoinToken = null;
+
+            if (!token) {
+                displayErrorMessage("Registration token required for this action.");
+                throw new Error(
+                    "navBar.ts: registration opened without an invite token",
+                );
+            }
+
+            return processNewUser(token);
+        },
     },
 
     // swaps in html/cornaCard.html
@@ -401,6 +433,7 @@ function init(): State {
     const overlay = document.getElementById("overlay") as HTMLDivElement;
     const isLoggedIn: boolean = false;
     const domainName: string | null = null;
+    const pendingJoinToken: string | null = null;
 
     return {
         isLoggedIn,
@@ -408,6 +441,7 @@ function init(): State {
         loggedOutNavigation,
         overlay,
         domainName,
+        pendingJoinToken,
         flags: {
             modalOpen: false,
             hoverBound: false,
@@ -420,9 +454,60 @@ function init(): State {
 /* ----- message handling stuff. -------- */
 
 /**
- * Handle incoming messages from the host.
+ * Handle messages received from the host page.
+ *
+ * While browser routing and modal routing are split across several layers,
+ * at it's core this is designed to emulate SPA style client routing without
+ * installing/relying on an actual frontend framework.
  * 
- * @param { MessageEvent<unknown> } event: the incoming message
+ * The general order of operations is as follows:
+ *
+ *   1. The server receives a supported URL, such as:
+ *        - /signin
+ *        - /join/<token>
+ *        - /post/text
+ *
+ *   2. The server renders the host page with a bootstrap object containing:
+ *        - the requested intent
+ *        - any intent-specific data
+ *
+ *   3. The host reads the bootstrap object and waits for the toolbar iframe to
+ *      announce that it is ready.
+ *
+ *   4. The host sends a versioned `host:intent` message to the toolbar.
+ *
+ *   5. The toolbar validates and dispatches the message here.
+ *
+ *   6. `handleHostIntent()` translates the intent into a toolbar route. Any
+ *      data required after the HTMX swap, such as an invite token or error
+ *      message, is stored temporarily in toolbar state.
+ *
+ *   7. `openToolbarRoute()` emulates a click on the corresponding toolbar
+ *      control. This preserves the existing HTMX lifecycle rather than
+ *      introducing a separate path for direct navigation.
+ *
+ *   8. HTMX loads the requested fragment into `#content`.
+ *
+ *   9. `processSwaps()` detects the swapped fragment and runs the route's
+ *      initialisation handler. That handler consumes any pending state and
+ *      passes it to the destination module.
+ *
+ * The overall flow is:
+ *
+ *   URL
+ *     -> server bootstrap
+ *     -> host:intent message
+ *     -> toolbar route
+ *     -> emulated click
+ *     -> HTMX swap
+ *     -> fragment initialisation
+ *
+ * This separation allows the host to own browser navigation while the toolbar
+ * continues to own modal rendering and view initialisation.
+ *
+ * @param { MessageEvent<unknown> } event: A message received from the host
+ *  page.
+ * @returns { void }
  */
 function handleHostMessage(event: MessageEvent<unknown>): void {
     if (!isMessageFromHost(event)) { return; }
@@ -430,7 +515,7 @@ function handleHostMessage(event: MessageEvent<unknown>): void {
     if (!isHostMessage(event.data)) { return; }
 
     if (event.data.type === "host:intent") {
-        handleHostIntent(event.data.payload.intent);
+        handleHostIntent(event.data.payload);
     }
 }
 
@@ -529,9 +614,15 @@ function isMessage(
  * 
  * We purposefully dont have a default because we treat no matches as `NOOP`.
  * 
- * @param { string } intent: intent from the server (via host).
+ * @param { HostIntentMessage["payload"] } message: message from the server (via host).
  */
-function handleHostIntent(intent: string): void {
+function handleHostIntent(message: HostIntentMessage["payload"]): void {
+    // this is just the payload from the host. Fields like the version and
+    // type have already been stripped away. So we can unpack the message
+    // as needed
+    // Note: data is not guaranteed to exist, this means we need to check to
+    // ensure it's there when we want to use it.
+    const { intent, data } = message;
     switch(intent) {
         case "signin":
             openToolbarRoute("#signInContainer");
@@ -545,6 +636,24 @@ function handleHostIntent(intent: string): void {
         case "post:video":
             openToolbarRoute("#videoModal");
             break;
+        case "join": {
+            if (!data) {
+                throw new Error(
+                    "navBar.ts: join intent received without data",
+                );
+            }
+            const joinData = data as unknown as JoinIntentData;
+
+            if (!joinData.is_valid) {
+                state.pendingErrorMessage = joinData.message;
+                openToolbarRoute("#errorModal");
+                return;
+            }
+
+            state.pendingJoinToken = joinData.token;
+            openToolbarRoute("#registerContainer");
+            break;
+        }
     }
 }
 
