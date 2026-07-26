@@ -89,16 +89,19 @@ export type ToolbarMessage =
 /**
  * Host message payloads.
  */
-export type HostIntentMessage = Message<
+export type HostIntentMessage<
+    P extends object = Record<string, unknown>
+> = Message<
     "host:intent",
     {
         intent: string;
+        data?: P;
     }
 >;
 
 
 export type HostMessage =
-    | HostIntentMessage;
+    | HostIntentMessage<Record<string, unknown>>;
 
 
 /**

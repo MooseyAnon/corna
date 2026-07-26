@@ -9,7 +9,9 @@ import logging
 import flask
 
 from corna import enums
-from corna.utils import secure, utils
+from corna.db import models
+from corna.oss.flask_sqlalchemy_session import current_session as session
+from corna.utils import get_utc_now, secure, utils
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,47 @@ def is_loggedin() -> bool:
     )
 
     return signed_cookie and secure.is_valid(signed_cookie)
+
+
+def is_valid_token(session_, token: str) -> bool:
+    """Validate user registration token.
+
+    The reason we dont use the validation function in `auth_control.py` is
+    because that function locks the invite table row. We really dont need to
+    do that for a light validation step. The main registration path will
+    correctly validate it anyways.
+
+    :param LocalProxy session_: db connection
+    :param str token: the invite token
+    :returns: true if token is valid, else false
+    :rtype: bool
+    """
+
+    try:
+        token_hash: str = secure.hash_invite_token(token)
+    except ValueError:
+        return False
+
+    # we dont actually save the raw token string (it only gets shown once on
+    # the out path) so we need to search using the token hash - which we do
+    # have
+    invite: models.InviteTable | None = (
+        session_
+        .query(models.InviteTable)
+        .filter(models.InviteTable.token_hash == token_hash)
+        .one_or_none()
+    )
+
+    now = get_utc_now()
+    if (
+        invite is None
+        or invite.redeemed_at is not None
+        or invite.revoked_at is not None
+        or invite.expires_at <= now
+    ):
+        return False
+
+    return True
 
 
 @frontend.after_request
@@ -93,6 +136,28 @@ def text_post_page():
 
     return flask.render_template(
         "neighbourhoods.html", bootstrap=handle_intent("post:text"))
+
+
+@frontend.route("/frontend/join/<token>", methods=["GET"])
+def join_request(token: str):
+    """Handle an incoming join request."""
+    # nothing to do if the user is already logged in
+    if is_loggedin():
+        return flask.render_template("neighbourhoods.html", bootstrap=None)
+
+    payload = {
+        "token": token,
+        "is_valid": True,
+        "message": "Thanks for choosing to signup to Corna!",
+    }
+
+    if not is_valid_token(session, token):
+        payload["is_valid"] = False
+        payload["message"] = "Invite token is invalid or expired."
+
+    bootstrap = handle_intent("join")
+    bootstrap.update({"payload": payload})
+    return flask.render_template("neighbourhoods.html", bootstrap=bootstrap)
 
 
 @frontend.route("/frontend/signin", methods=["GET"])

@@ -23,8 +23,9 @@ const ENLARGED_CLASS = "enlargeIframe";
 const bootstrap = getHostBootstrap();
 
 
-interface HostBootstrap {
+interface HostBootstrap<P extends object = Record<string, unknown>> {
     intent: string | null;
+    payload?: P;
 }
 
 
@@ -271,6 +272,17 @@ function isHostBootstrap(data: unknown): data is HostBootstrap {
         return false;
     }
 
+    if (
+        "payload" in data
+        && (
+            data.payload === null
+            || typeof data.payload !== "object"
+            || Array.isArray(data.payload)
+        )
+    ) {
+        return false;
+}
+
     return (
         typeof data.intent === "string"
         || data.intent === null
@@ -296,27 +308,44 @@ function handleToolbarReady(
         return;
     }
 
-    sendHostIntent(frame, bootstrap.intent);
+    sendHostIntent(frame, bootstrap.intent, bootstrap.payload);
 }
 
 
 /**
  * Send host intent to the toolbar.
  * 
+ * The structure resulting from this looks like:
+ *   {
+ *       version: 1,
+ *       type: "host:intent",
+ *       payload: {
+ *           intent: "join",
+ *           data: {
+ *               token: "...",
+ *               is_valid: true,
+ *               message: "...",
+ *           },
+ *       },
+ *   }
+ * 
  * @param { HTMLIFrameElement } frame: the frame object
  * @param { string } intent: the data to be passed down
  */
-function sendHostIntent(
+function sendHostIntent<P extends object>(
     frame: HTMLIFrameElement,
     intent: string,
+    data?: P,
 ): void {
     if (!frame.contentWindow) { return; }
 
+    const intentData = data === undefined
+        ? { intent }
+        : { intent, data };
+
     const message = createMessage(
         "host:intent",
-        {
-            intent,
-        },
+        intentData,
     );
 
     frame.contentWindow.postMessage(message, "*");

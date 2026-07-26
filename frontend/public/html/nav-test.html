@@ -14,6 +14,14 @@
   </head>
   <body>
     <ul class="navigation" id="loggedOutNavigation">
+      <button
+        id="corna-trigger--register"
+        type="button"
+        hx-get="cornaCore/register"
+        hx-target="#content"
+        hx-swap="innerHTML"
+        hidden>
+      </button>
       <li
         class="signIn navItem"
         hx-get="cornaCore/signIn"
