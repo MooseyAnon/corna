@@ -137,15 +137,16 @@ class UserTable(Base):
         nullable=True,
         doc="user avatar",
     )
-    ForeignKeyConstraint(
-        ["avatar"],
-        ["media.uuid"],
-        use_alter=True,
-        ondelete="SET NULL",
-    )
 
     # These are table level constraints
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["avatar"],
+            ["media.uuid"],
+            name="fk_users_avatar_media",
+            use_alter=True,
+            ondelete="SET NULL",
+        ),
         # Ensure a user cannot invite themselves i.e. invited by != curr uuid
         CheckConstraint(
             "invited_by_user_id IS NULL OR invited_by_user_id <> uuid",
@@ -310,11 +311,14 @@ class CornaTable(Base):
         ondelete="SET NULL",
     )
 
-    ForeignKeyConstraint(
-        ["theme"],
-        ["theme.uuid"],
-        use_alter=True,
-        ondelete="SET NULL",
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["theme"],
+            ["themes.uuid"],
+            name="fk_corna_theme_themes",
+            use_alter=True,
+            ondelete="SET NULL",
+        ),
     )
 
 
