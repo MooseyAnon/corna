@@ -112,22 +112,6 @@ def _session(session_class):
     app_scoped_session.rollback()  # pylint: disable=no-member
 
 
-@pytest.fixture(name="system_user", autouse=True)
-def _system_user(session):
-    """Create the bootstrap user used to issue test invite tokens."""
-    user_uuid = utils.get_uuid()
-    user = models.UserTable(
-        uuid=utils.get_uuid(),
-        username="system",
-        date_created=get_utc_now(),
-        number=0,
-        is_system_account=True,
-    )
-    session.add(user)
-    session.commit()
-    return user_uuid
-
-
 @pytest.fixture(name='client')
 def _client(session, request):
     """Provide access to the Flask app."""
@@ -148,11 +132,15 @@ def _client(session, request):
             payload = dict(kwargs.get("json") or {})
             if "token" not in payload:
                 # get system user and inject them as the "inviter"
-                sys = session.query(models.UserTable).filter_by(
-                    is_system_account=True).first()
+                system_user = (
+                    session
+                    .query(models.UserTable)
+                    .filter_by(username="joinbot")
+                    .one()
+                )
                 payload["token"] = auth_control.create_invite_for_user(
                     session,
-                    sys.uuid
+                    system_user.uuid
                 )
                 session.commit()
                 kwargs["json"] = payload

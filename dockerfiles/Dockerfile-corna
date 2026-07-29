@@ -92,6 +92,9 @@ COPY --chown=corna-user:corna-user \
     corna /home/corna-user/workspace/corna
 
 COPY --chown=corna-user:corna-user \
+    bin /home/corna-user/workspace/bin
+
+COPY --chown=corna-user:corna-user \
     tests /home/corna-user/workspace/tests
 
 COPY --chown=corna-user:corna-user \

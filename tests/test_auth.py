@@ -453,6 +453,9 @@ def test_preexisting_session_creates_restart(client, session, login):
 
 def test_user_number_auto_increment(session, client):
 
+    # count how many system users there are
+    sys_user_count = session.query(
+        models.UserTable).filter_by(is_system_account=True).count()
     for i in range(1, 16):
         user_deets = {
             "email": f"azor_ahi{i}@starkentaprise.wstro",
@@ -469,7 +472,7 @@ def test_user_number_auto_increment(session, client):
             .one()
         )
 
-        assert user.number == i
+        assert user.number == i + sys_user_count
 
 
 @pytest.mark.parametrize("username,expected_status",
@@ -650,12 +653,27 @@ def test_invite_cannot_be_redeemed_twice(session_class):
 
     setup_session = session_class()
 
-    system_user = setup_session.query(models.UserTable).filter_by(
-        is_system_account=True).first()
+    user_uuid = utils.get_uuid()
+    # the boostrap context does not get created until the `register` function
+    # below gets called so there are no system users at the time that we try
+    # to create the invite. This is a simple workaround as the main thing we're
+    # trying to test is how we handle race conditions
+    system_user = models.UserTable(
+        uuid=user_uuid,
+        username="system",
+        number=0,
+        date_created=get_utc_now(),
+        is_system_account=True,
+    )
+
+    setup_session.add(system_user)
+    setup_session.flush()
+
     invite_token = auth_control.create_invite_for_user(
         setup_session,
-        system_user.uuid,
+        user_uuid,
     )
+
     setup_session.commit()
 
 
