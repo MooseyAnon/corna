@@ -46,7 +46,7 @@ def _create_user_helper(session, email, username):
     system_user = (
         session
         .query(models.UserTable)
-        .filter_by(username="system")
+        .filter_by(username="joinbot")
         .one()
     )
     user_uuid = utils.get_uuid()

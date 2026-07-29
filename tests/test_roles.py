@@ -17,7 +17,7 @@ def many_users_helper(session, number=50):
         system_user = (
             session
             .query(models.UserTable)
-            .filter_by(username="system")
+            .filter_by(username="joinbot")
             .one()
         )
         user_uuid = utils.get_uuid()

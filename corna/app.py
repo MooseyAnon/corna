@@ -10,6 +10,8 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 import flask
 from flask_apispec import FlaskApiSpec
 
+from bin.bootstrap import bootstrap
+
 from .blueprints import frontend, subdomain
 from .blueprints.v1 import (
     auth, corna, dummy, media, posts, roles, themes, user)
@@ -83,6 +85,13 @@ def create_app(session_class):
         api_spec, themes, "themes", url_prefix="/api/v1")
     register_blueprint_with_docs(
         api_spec, user, "user", url_prefix="/api/v1")
+
+    # run bootstrap functions
+    with app.app_context():
+        # pylint raises an error here - correctly - but at runtime
+        # `flask_scoped_session` binds the scoped_session to the app
+        # context.
+        bootstrap(app.scoped_session)  # pylint: disable=no-member
 
     # Handle argument errors
     # app.register_error_handler(
