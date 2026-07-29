@@ -88,8 +88,5 @@ def session_maker(application_name="corna", statement_timeout_secs=None):
         def set_timeout(connection, _):
             connection.execute(set_statement)
 
-    logger.info("Creating tables")
-    # create tables
-    models.Base.metadata.create_all(engine)
-    logger.info("Tables have been created")
+    logger.info("Successfully created session")
     return sessionmaker(bind=engine, expire_on_commit=False)
