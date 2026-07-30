@@ -38,6 +38,7 @@ import { cornaCardInit } from "./cornaCard/card.js";
 import { characters } from "./cornaCard/characters.js";
 import { createCharacter } from "./cornaCard/createCharacter.js";
 import { login } from "./cornaCard/login.js";
+import { requestInvite } from "./cornaCard/requestInvite.js";
 
 
 /**
@@ -114,6 +115,12 @@ const toolbarRoutes: ToolbarRoute[] = [
         selector: "#signInContainer",
         handler: () => login(refreshNav),
         triggerElementId: "corna-trigger--signin",
+    },
+
+    // swaps in html/requestInvite.html
+    {
+        selector: "#requestInviteContainer",
+        handler: () => requestInvite(),
     },
 
     // swaps in html/register.html
@@ -397,6 +404,7 @@ function updateNavigation(): void {
  * file path):
  *   - CornaCore -> children:
  *      - signin
+ *      - request invite
  *      - register
  *      - post -> children:
  *          - text post

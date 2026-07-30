@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.local import LocalProxy
 
 from corna.db import models
+from corna.enums import InviteRequestStatus
 from corna.middleware import alchemy
 from corna.utils import encodings, future, get_utc_now, secure, utils
 from corna.utils.errors import (
@@ -20,6 +21,10 @@ class InviteCreationError(Exception):
 
 class InvalidInviteError(Exception):
     """Raised when an invite token cannot be redeemed."""
+
+
+class InviteRequestExistsError(Exception):
+    """Raised when an email already has a pending invite request."""
 
 
 def username_exists(session: LocalProxy, username: str) -> bool:
@@ -348,3 +353,55 @@ def create_invite_for_user(
     )
 
     return token
+
+
+@utils.transactional
+def create_invite_request(
+    session: LocalProxy,
+    *,
+    email_address: str,
+    referral_source: str | None = None,
+) -> models.InviteRequestTable:
+    """Create a pending request for a Corna invite."""
+    email_address = email_address.strip().lower()
+    referral_source = (
+        referral_source.strip()
+        if referral_source and referral_source.strip()
+        else None
+    )
+
+    if email_exists(session, email_address):
+        raise InviteRequestExistsError("Email already in use.")
+
+    existing_request = (
+        session
+        .query(models.InviteRequestTable)
+        .filter(
+            models.InviteRequestTable.email_address == email_address,
+            # if the email has already been sent an invite or is pending
+            # we can ignore it as it will be processed at some point
+            models.InviteRequestTable.status.in_({
+                InviteRequestStatus.PENDING,
+                InviteRequestStatus.INVITED,
+            }),
+        )
+        .one_or_none()
+    )
+
+    if existing_request is not None:
+        raise InviteRequestExistsError(
+            "A pending invite request already exists for this email address."
+        )
+
+    invite_request = models.InviteRequestTable(
+        uuid=utils.get_uuid(),
+        email_address=email_address,
+        referral_source=referral_source,
+        date_created=get_utc_now(),
+        status=models.InviteRequestStatus.PENDING,
+    )
+
+    session.add(invite_request)
+    session.flush()
+
+    return invite_request

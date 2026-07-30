@@ -57,3 +57,11 @@ class MediaTypes(enum.Enum):
     IMAGE = "image"
     VIDEO = "video"
     THUMBNAIL = "thumbnail"
+
+
+class InviteRequestStatus(enum.Enum):
+    """Lifecycle states for an invite request."""
+
+    PENDING = "pending"
+    INVITED = "invited"
+    REJECTED = "rejected"
