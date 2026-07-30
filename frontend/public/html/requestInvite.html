@@ -1,0 +1,47 @@
+<div class="modalView modalRequestInvite bodySmallContainer" id="requestInviteContainer">
+  <h1>Request an invite</h1>
+
+  <div class="inputs requestInviteInputs">
+    <div class="inputContainer">
+      <label for="requestInviteEmailInput">Email address</label>
+      <input
+        type="email"
+        id="requestInviteEmailInput"
+        name="email"
+        class="inputField"
+        placeholder="Email address"
+      />
+    </div>
+
+    <div class="inputContainer">
+      <label for="requestInviteReferralSourceInput">
+        Where did you hear about us?
+      </label>
+      <textarea
+        id="requestInviteReferralSourceInput"
+        name="referral_source"
+        class="inputField requestInviteReferralSource"
+        placeholder="Tell us where you found Corna"
+      ></textarea>
+    </div>
+  </div>
+
+  <p class="requestInviteStatus" id="requestInviteStatus" aria-live="polite"></p>
+
+  <div class="buttons">
+    <button class="filledButton" id="requestInviteSubmit" type="button">
+      REQUEST INVITE
+    </button>
+    <button
+      class="textButton"
+      id="requestInviteToSignIn"
+      type="button"
+      hx-get="cornaCore/signIn"
+      hx-swap="outerHTML"
+      hx-target="#requestInviteContainer"
+      hx-trigger="click"
+    >
+      SIGN IN
+    </button>
+  </div>
+</div>

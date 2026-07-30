@@ -1022,6 +1022,31 @@ h1 {
   outline-offset: -1px;
 }
 
+/*--------------------------REQUEST INVITE----------------------------*/
+.modalRequestInvite .requestInviteReferralSource {
+  min-height: 90px;
+  resize: vertical;
+  white-space: normal;
+}
+
+.modalRequestInvite .requestInviteStatus {
+  color: white;
+  font-family: spaceInvaders;
+  font-size: 9pt;
+  line-height: 1.5;
+  margin: -12px 0 0;
+  min-height: 28px;
+  text-align: center;
+}
+
+.modalRequestInvite .requestInviteStatus.error {
+  color: #ff2323;
+}
+
+.modalRequestInvite .requestInviteStatus.success {
+  color: white;
+}
+
 /*--------------------------REGISTRATION----------------------------*/
 
 .avatarImageContainer {

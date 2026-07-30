@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional, Union
 
 import flask
 from flask_apispec import doc, marshal_with, use_kwargs
-from marshmallow import Schema, fields, validates
+from marshmallow import Schema, fields, validate, validates
 
 from corna import enums
 from corna.controls import auth_control
@@ -156,6 +156,23 @@ class LoggedInResultSchema(Schema):
         metadata={
             "description": "Thee result of login status check",
         })
+
+
+class CreateInviteRequestSchema(Schema):
+    """Invite request payload schema."""
+
+    email = fields.Email(
+        required=True,
+    )
+
+    referral_source = fields.String(
+        allow_none=True,
+        load_default=None,
+        validate=validate.Length(max=1000),
+    )
+
+    class Meta:  # pylint: disable=missing-class-docstring
+        strict = True
 
 
 @auth.after_request
@@ -400,3 +417,41 @@ def create_invite() -> flask.wrappers.Response:
     join_url: str = f"join/{token}"
 
     return {"join_url": join_url}, HTTPStatus.CREATED
+
+
+@auth.route("/auth/invite-request", methods=["POST"])
+@use_kwargs(CreateInviteRequestSchema())
+@doc(
+    tags=["Auth"],
+    description="Create a new invite request.",
+    responses={
+        HTTPStatus.CREATED: {
+            "description": "Invite request created.",
+        },
+    }
+)
+def create_invite_request(email: str, referral_source: str):
+    """Submit a request for a Corna invite."""
+    try:
+
+        invite_request = auth_control.create_invite_request(
+            session,
+            email_address=email,
+            referral_source=referral_source,
+        )
+
+    except auth_control.InviteRequestExistsError:
+        # A generic success response avoids exposing whether an email address
+        # has already submitted a request.
+        return utils.respond_json_error(
+            "Your invite request has been received.", HTTPStatus.ACCEPTED)
+
+    logger.info(
+        "New invite request: uuid=%s email=%s referral_source=%r",
+        invite_request.uuid,
+        invite_request.email_address,
+        invite_request.referral_source,
+    )
+
+    return utils.respond_json_error(
+        "Your invite request has been received.", HTTPStatus.CREATED)

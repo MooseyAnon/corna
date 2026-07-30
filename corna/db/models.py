@@ -9,6 +9,7 @@ from sqlalchemy import (  # isort: skip
     CheckConstraint,
     Column,
     DateTime,
+    Enum,
     ForeignKey,
     ForeignKeyConstraint,
     Integer,
@@ -16,6 +17,7 @@ from sqlalchemy import (  # isort: skip
     String,
     Table,
     Text,
+    func,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
@@ -23,6 +25,8 @@ from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 from werkzeug.security import check_password_hash, generate_password_hash
+
+from corna.enums import InviteRequestStatus
 
 
 class Base:
@@ -718,5 +722,103 @@ class InviteTable(Base):
         CheckConstraint(
             "redeemed_at IS NULL OR revoked_at IS NULL",
             name="ck_invites_not_redeemed_and_revoked",
+        ),
+    )
+
+
+class InviteRequestTable(Base):
+    """Store requests from prospective users for a Corna invite."""
+
+    __tablename__ = "invite_requests"
+
+    uuid = Column(
+        UUID,
+        primary_key=True,
+    )
+
+    email_address = Column(
+        Text,
+        nullable=False,
+        index=True,
+        doc="Email address submitted by the prospective user.",
+    )
+
+    referral_source = Column(
+        Text,
+        nullable=True,
+        doc="Free-text answer describing where the requester heard about "
+            "Corna.",
+    )
+
+    status = Column(
+        Enum(
+            InviteRequestStatus,
+            name="invite_request_status",
+            values_callable=lambda statuses: [
+                status.value for status in statuses
+            ],
+        ),
+        nullable=False,
+        default=InviteRequestStatus.PENDING,
+        server_default=InviteRequestStatus.PENDING.value,
+        index=True,
+        doc="Current lifecycle state of the invite request.",
+    )
+
+    date_created = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        doc="Time at which the invite request was submitted.",
+    )
+
+    reviewed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        doc="Time at which the request was approved or rejected.",
+    )
+
+    invited_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        doc="Time at which the invite email was successfully sent.",
+    )
+
+    invite_id = Column(
+        UUID,
+        ForeignKey(
+            "invites.uuid",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        unique=True,
+        doc="Invite issued after this request was approved.",
+    )
+
+    invite = relationship(
+        "InviteTable",
+        foreign_keys=[invite_id],
+        uselist=False,
+    )
+
+    __table_args__ = (
+        # A request may only reference an invite once it has reached the
+        # invited state. Pending and rejected requests must not have one.
+        CheckConstraint(
+            """
+            (
+                status = 'invited'
+                AND invite_id IS NOT NULL
+                AND reviewed_at IS NOT NULL
+                AND invited_at IS NOT NULL
+            )
+            OR
+            (
+                status IN ('pending', 'rejected')
+                AND invite_id IS NULL
+                AND invited_at IS NULL
+            )
+            """,
+            name="ck_invite_requests_lifecycle",
         ),
     )

@@ -5,7 +5,7 @@ import pytest
 from corna import enums
 from corna.controls import auth_control
 from corna.db import models
-from corna.utils import secure, utils
+from corna.utils import get_utc_now, secure, utils
 from tests.shared_data import ASSET_DIR, single_user
 
 
@@ -625,6 +625,174 @@ def test_create_invite_returns_500_when_invite_creation_fails(
 
     assert resp.status_code == 500
     assert resp.json["message"] == "Failed to create invite"
+
+
+def test_invite_request__create(client, session):
+    response = client.post(
+        "/api/v1/auth/invite-request",
+        json={
+            "email": "GoJo6eyes@aurafarm.com",
+            "referral_source": " Limitless ",
+        },
+    )
+
+    assert response.status_code == 201
+
+    invite_request = (
+        session
+        .query(models.InviteRequestTable)
+        .filter_by(email_address="gojo6eyes@aurafarm.com")
+        .one()
+    )
+
+    assert invite_request.referral_source == "Limitless"
+    assert invite_request.status == models.InviteRequestStatus.PENDING
+
+
+def test_invite_request__duplicate_pending_request_is_ignored(client, session):
+    first_response = client.post(
+        "/api/v1/auth/invite-request",
+        json={
+            "email": "gojo6eyes@aurafarm.com",
+        },
+    )
+
+    second_response = client.post(
+        "/api/v1/auth/invite-request",
+        json={
+            "email": "GoJo6eyes@aurafarm.com",
+        },
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code in {201, 202}
+
+    requests = (
+        session
+        .query(models.InviteRequestTable)
+        .filter_by(email_address="gojo6eyes@aurafarm.com")
+        .all()
+    )
+
+    assert len(requests) == 1
+    assert requests[0].status == models.InviteRequestStatus.PENDING
+
+
+def test_invite_request__already_invited_request_is_ignored(
+    client,
+    session,
+):
+    # this is the user who will "invite" in this test but also joinbot is
+    # the root of system invite requests
+    system_user = (
+        session
+        .query(models.UserTable)
+        .filter_by(username="joinbot")
+        .one()
+    )
+
+    previous = models.InviteRequestTable(
+        uuid=utils.get_uuid(),
+        email_address="frieren@aurafarm.com",
+        status=models.InviteRequestStatus.INVITED,
+        reviewed_at=get_utc_now(),
+        invited_at=get_utc_now(),
+    )
+
+    invite = models.InviteTable(
+        uuid=utils.get_uuid(),
+        token_hash="test-token-hash",
+        created_by_user_id=system_user.uuid,
+        date_created=get_utc_now(),
+        expires_at=get_utc_now() + timedelta(days=3),
+    )
+
+    session.add(invite)
+    session.flush()
+
+    previous.invite_id = invite.uuid
+
+    session.add(previous)
+    session.commit()
+
+    response = client.post(
+        "/api/v1/auth/invite-request",
+        json={
+            "email": "frieren@aurafarm.com",
+        },
+    )
+
+    assert response.status_code in {201, 202}
+
+    requests = (
+        session
+        .query(models.InviteRequestTable)
+        .filter_by(email_address="frieren@aurafarm.com")
+        .all()
+    )
+
+    assert len(requests) == 1
+    assert requests[0].status == models.InviteRequestStatus.INVITED
+
+
+def test_invite_request__email_already_in_use_is_ignored(
+    client,
+    session,
+    user,
+):
+    response = client.post(
+        "/api/v1/auth/invite-request",
+        json={
+            "email": "azor_ahi@starkentaprise.wstro",
+        },
+    )
+
+    assert response.status_code in {201, 202}
+
+    invite_request = (
+        session
+        .query(models.InviteRequestTable)
+        .filter_by(
+            email_address="azor_ahi@starkentaprise.wstro",
+        )
+        .one_or_none()
+    )
+
+    assert invite_request is None
+
+
+def test_invite_request__new_request_allowed_after_rejection(client, session):
+    previous = models.InviteRequestTable(
+        uuid=utils.get_uuid(),
+        email_address="frieren@aurafarm.com",
+        status=models.InviteRequestStatus.REJECTED,
+        reviewed_at=get_utc_now(),
+    )
+
+    session.add(previous)
+    session.commit()
+
+    response = client.post(
+        "/api/v1/auth/invite-request",
+        json={
+            "email": "frieren@aurafarm.com",
+        },
+    )
+
+    assert response.status_code == 201
+
+    requests = (
+        session
+        .query(models.InviteRequestTable)
+        .filter_by(email_address="frieren@aurafarm.com")
+        .order_by(models.InviteRequestTable.date_created)
+        .all()
+    )
+
+    assert len(requests) == 2
+    assert requests[0].status == models.InviteRequestStatus.REJECTED
+    assert requests[1].status == models.InviteRequestStatus.PENDING
+    assert requests[1].uuid != requests[0].uuid
 
 
 """
