@@ -1,0 +1,36 @@
+<div class="modalView modalGenerateInvite bodySmallContainer" id="generateInviteContainer">
+  <h1>Generate invite</h1>
+
+  <div class="generateInviteDetails">
+    <p class="generateInviteHelper">
+      This invite will last for 3 days.
+    </p>
+
+    <div class="generateInviteRow">
+      <input
+        type="text"
+        id="generatedInviteInput"
+        class="inputField generateInviteInput"
+        readonly
+        value="Generating invite..."
+      />
+      <button
+        class="outlineButton generateInviteRegenerate"
+        id="regenerateInvite"
+        type="button"
+        aria-label="Regenerate invite"
+        title="Regenerate invite"
+      >
+        <span aria-hidden="true">&#8635;</span>
+      </button>
+    </div>
+  </div>
+
+  <p class="generateInviteStatus" id="generateInviteStatus" aria-live="polite"></p>
+
+  <div class="buttons">
+    <button class="filledButton" id="copyInvite" type="button">
+      COPY TO CLIPBOARD
+    </button>
+  </div>
+</div>

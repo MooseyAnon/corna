@@ -37,6 +37,7 @@ import { createPostTest } from "./cornaCard/post.js";
 import { cornaCardInit } from "./cornaCard/card.js";
 import { characters } from "./cornaCard/characters.js";
 import { createCharacter } from "./cornaCard/createCharacter.js";
+import { generateInvite } from "./cornaCard/generateInvite.js";
 import { login } from "./cornaCard/login.js";
 import { requestInvite } from "./cornaCard/requestInvite.js";
 
@@ -147,6 +148,13 @@ const toolbarRoutes: ToolbarRoute[] = [
         selector: "#cornaCardContainer",
         handler: () => cornaCardInit(),
         triggerElementId: "corna-trigger--card",
+    },
+
+    // swaps in html/generateInvite.html
+    {
+        selector: "#generateInviteContainer",
+        handler: () => generateInvite(),
+        triggerElementId: "corna-trigger--invite",
     },
 
     // swaps in html/permissions.html
@@ -410,6 +418,7 @@ function updateNavigation(): void {
  *          - text post
  *          - video post
  *          - image post
+ *      - generate invite
  *      - cornaCard -> children:
  *          - (character) permissions
  *          - (character) creator
@@ -685,6 +694,9 @@ function handleHostIntent(message: HostIntentMessage["payload"]): void {
     switch(intent) {
         case "signin":
             openToolbarRoute("#signInContainer");
+            break;
+        case "invite":
+            openToolbarRoute("#generateInviteContainer");
             break;
         case "post:text":
             openToolbarRoute("#textModal");
