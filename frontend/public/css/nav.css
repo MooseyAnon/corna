@@ -1047,6 +1047,64 @@ h1 {
   color: white;
 }
 
+/*--------------------------GENERATE INVITE----------------------------*/
+.modalGenerateInvite .generateInviteDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modalGenerateInvite .generateInviteHelper {
+  color: white;
+  font-family: spaceInvaders;
+  font-size: 9pt;
+  line-height: 1.5;
+  margin: 0;
+  text-align: center;
+}
+
+.modalGenerateInvite .generateInviteRow {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.modalGenerateInvite .generateInviteInput {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modalGenerateInvite .generateInviteRegenerate {
+  align-items: center;
+  border-radius: 50%;
+  display: flex;
+  flex: 0 0 36px;
+  font-size: 15pt;
+  height: 36px;
+  justify-content: center;
+  padding: 0;
+  width: 36px;
+}
+
+.modalGenerateInvite .generateInviteStatus {
+  color: white;
+  font-family: spaceInvaders;
+  font-size: 9pt;
+  line-height: 1.5;
+  margin: -12px 0 0;
+  min-height: 28px;
+  text-align: center;
+}
+
+.modalGenerateInvite .generateInviteStatus.error {
+  color: #ff2323;
+}
+
+.modalGenerateInvite .generateInviteStatus.success {
+  color: white;
+}
+
 /*--------------------------REGISTRATION----------------------------*/
 
 .avatarImageContainer {

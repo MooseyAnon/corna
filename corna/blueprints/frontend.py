@@ -160,6 +160,15 @@ def join_request(token: str):
     return flask.render_template("neighbourhoods.html", bootstrap=bootstrap)
 
 
+@frontend.route("/frontend/invite", methods=["GET"])
+def invite_user_in_page():
+    """Page for users generating invite URLS."""
+    # direct user to sign in page if not logged in
+    intent = "signin" if not is_loggedin() else "invite"
+    bootstrap = handle_intent(intent)
+    return flask.render_template("neighbourhoods.html", bootstrap=bootstrap)
+
+
 @frontend.route("/frontend/signin", methods=["GET"])
 def sign_in_page():
     """Sign-in page."""

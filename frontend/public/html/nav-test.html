@@ -142,6 +142,24 @@
           <div class="dot"></div>
         </a>
       </li>
+      <li
+        class="navItem"
+        id="generateInvite"
+        hx-get="cornaCore/generateInvite"
+        hx-target="#content"
+        hx-swap="innerHTML"
+        hx-trigger="click"
+      >
+        <a href="#">
+          <img
+            src="static/assets/settings.png"
+            alt="Generate invite"
+            class="navIcon"
+          />
+          <div id="corna-trigger--invite" class="navLabel">INVITE</div>
+          <div class="dot"></div>
+        </a>
+      </li>
     </ul>
     <div class="overlay" id="overlay">
       <background>
