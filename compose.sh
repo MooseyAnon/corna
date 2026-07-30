@@ -182,6 +182,7 @@ DB_NAME=corna
 CORNA_PORT=5001
 PICTURE_DIR=$(pwd)/tmp-assets
 SSL_MODE=prefer
+CORNA_INVITE_APPROVAL_DIR=$(pwd)/tmp-assets
 EOT
 
 
