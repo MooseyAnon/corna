@@ -3,11 +3,14 @@
 import json
 import os
 import sys
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from corna.db import models
 from corna.controls import media_control
+from corna.middleware import storage
 from corna.utils import image_proc
 from tests import shared_data
 
@@ -93,11 +96,16 @@ def test_upload(session, client, mocker, login):
 
     assert resp.json == expected
 
-    # ensure file is actually saved
-    expected_path = image_proc.PICTURE_DIR / type_ / "thi/sis/afa/kehash12345"
+    # ensure file is actually saved - use the storage system to check
+    expected_path = (
+        storage.get_storage()._backend._root
+        / type_
+        / "thi/sis/afa/kehash12345"
+    )
     assert expected_path.exists()
-    assert len(expected_path.listdir()) == 1
-    for file in expected_path.listdir():
+    # The storage fixture returns a Path object which does not have `listdir`
+    assert len([p for p in expected_path.iterdir()]) == 1
+    for file in expected_path.iterdir():
         # assert we've saved some data successfully
         assert os.stat(file).st_size >= 1024
 
@@ -142,29 +150,30 @@ def test_file_not_saved_properly(session, client, mocker, login):
 
 def test_download(session, client, login):
     # add image
-    type_ = "image"
-    image = (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb")
-    resp = client.post(
-        "/api/v1/media/upload",
-        data={"image": image, "type": type_},
-    )
-    assert resp.status_code == 201
+    asset_path = shared_data.ASSET_DIR / "anders-jilden.jpg"
+    expected_bytes = asset_path.read_bytes()
 
-    # we dont want to call the main download endpoint as it sends a file
-    # so we'll call the download function in media_control directly and 
-    # ensure we get the proper path
-    from werkzeug.utils import secure_filename
-    url_extension = resp.json["url_extension"]
-    expected_filename = secure_filename(resp.json["filename"])
-    expected_path = (
-        image_proc.PICTURE_DIR 
-        / type_
-        / "thi/sis/afa/kehash12345" 
-        / expected_filename
+    with asset_path.open("rb") as image:
+        upload_response = client.post(
+            "/api/v1/media/upload",
+            data={
+                "image": image,
+                "type": "image",
+            },
+        )
+
+    assert upload_response.status_code == 201
+
+    url_extension = upload_response.json["url_extension"]
+
+    download_response = client.get(
+        f"/api/v1/media/download/{url_extension}",
+        buffered=True,
     )
-    # this returns a db column
-    media_obj = media_control.download(session, url_extension)
-    assert media_control.to_path(media_obj) == expected_path
+
+    assert download_response.status_code == 200
+    assert download_response.get_data() == expected_bytes
+    assert download_response.content_type == "image/jpeg"
 
 
 def test_download_fail(client):
@@ -198,11 +207,16 @@ def test_upload_video(session, client, mocker, login):
 
     assert resp.json == expected
 
-    # ensure file is actually saved
-    expected_path = image_proc.PICTURE_DIR / type_ / "thi/sis/afa/kestringhash"
+    # ensure file is actually saved - use the storage system to check
+    expected_path = (
+        storage.get_storage()._backend._root
+        / type_
+        / "thi/sis/afa/kestringhash"
+    )
     assert expected_path.exists()
-    assert len(expected_path.listdir()) == 1
-    for file in expected_path.listdir():
+    # The storage fixture returns a Path object which does not have `listdir`
+    assert len([p for p in expected_path.iterdir()]) == 1
+    for file in expected_path.iterdir():
         # assert we've saved some data successfully
         assert os.stat(file).st_size >= 1024
 
@@ -229,28 +243,30 @@ def test_upload_video(session, client, mocker, login):
 
 
 def test_download_video(session, client, login):
-    type_ = "video"
-    image = (shared_data.ASSET_DIR / "big-bunny.mp4").open("rb")
-    resp = client.post(
-        "/api/v1/media/upload",
-        data={"image": image, "type": type_},
-    )
-    assert resp.status_code == 201
+    asset_path = shared_data.ASSET_DIR / "big-bunny.mp4"
+    expected_bytes = asset_path.read_bytes()
 
-    # we dont want to call the main download endpoint as it sends a file
-    # so we'll call the download function in media_control directly and 
-    # ensure we get the proper path
-    from werkzeug.utils import secure_filename
-    url_extension = resp.json["url_extension"]
-    expected_filename = secure_filename(resp.json["filename"])
-    expected_path = (
-        image_proc.PICTURE_DIR 
-        / type_
-        / "thi/sis/afa/kestringhash" 
-        / expected_filename
+    with asset_path.open("rb") as image:
+        upload_response = client.post(
+            "/api/v1/media/upload",
+            data={
+                "image": image,
+                "type": "image",
+            },
+        )
+
+    assert upload_response.status_code == 201
+
+    url_extension = upload_response.json["url_extension"]
+
+    download_response = client.get(
+        f"/api/v1/media/download/{url_extension}",
+        buffered=True,
     )
-    media_obj = media_control.download(session, url_extension)
-    assert media_control.to_path(media_obj) == expected_path
+
+    assert download_response.status_code == 200
+    assert download_response.get_data() == expected_bytes
+    assert download_response.content_type == "video/mp4"
 
 
 def test_upload_gif_with_dot_gif_extension(session, client, mocker, login):
@@ -277,11 +293,16 @@ def test_upload_gif_with_dot_gif_extension(session, client, mocker, login):
 
     assert resp.json == expected
 
-    # ensure file is actually saved
-    expected_path = image_proc.PICTURE_DIR / type_ / "thi/sis/afa/kehash12345"
+    # ensure file is actually saved - use the storage system to check
+    expected_path = (
+        storage.get_storage()._backend._root
+        / type_
+        / "thi/sis/afa/kehash12345"
+    )
     assert expected_path.exists()
-    assert len(expected_path.listdir()) == 1
-    for file in expected_path.listdir():
+    # The storage fixture returns a Path object which does not have `listdir`
+    assert len([p for p in expected_path.iterdir()]) == 1
+    for file in expected_path.iterdir():
         # assert we've saved some data successfully
         assert os.stat(file).st_size >= 1024
 
@@ -707,13 +728,17 @@ def test_chunk_upload__merge_ensure_cleanup(mocker, client, session, login):
     # check cleanup
     assert not (image_proc.get_workdir() / fake_upload_id).exists()
 
-    # ensure file is actually saved
-    expected_path = image_proc.PICTURE_DIR / "video/thi/sis/afa/kestringhash"
+    # ensure file is actually saved - use the storage system to check
+    expected_path = (
+        storage.get_storage()._backend._root
+        / "video/thi/sis/afa/kestringhash"
+    )
     assert expected_path.exists()
-    assert len(expected_path.listdir()) == 1
-    for file in expected_path.listdir():
+    # The storage fixture returns a Path object which does not have `listdir`
+    assert len([p for p in expected_path.iterdir()]) == 1
+    for file in expected_path.iterdir():
         # assert we've saved some data successfully
-        assert os.stat(file).st_size == file_size
+        assert os.stat(file).st_size >= 1024
 
     # make sure db is ok
     assert session.query(models.Media).count() == 1

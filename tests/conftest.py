@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from pathlib import Path
 import platform
 import logging
+from types import SimpleNamespace
 
 from flask import request as flask_request
 from greenlet import getcurrent
@@ -15,6 +16,7 @@ import testing.postgresql
 from corna.app import create_app
 from corna.controls import auth_control
 from corna.db import models
+from corna.middleware import storage
 from corna.utils import get_utc_now
 from corna.utils import utils
 from tests.shared_data import corna_info, single_user
@@ -195,6 +197,34 @@ def system_patches(mocker, monkeypatch):
     monkeypatch.delenv("ANSIBLE_VAULT_PATH", raising=False)
     # mocker vault interactions
     mocker.patch("corna.utils.secure.vault_item", return_value="random-string")
+
+
+@pytest.fixture(autouse=True)
+def _local_persistent_storage(tmp_path, mocker):
+    """Use an isolated local persistent-storage backend for each test."""
+    persistent_root = tmp_path / "persistent-media"
+
+    test_config = SimpleNamespace(
+        media=SimpleNamespace(
+            backend="local",
+            local=SimpleNamespace(
+                root=persistent_root,
+            ),
+            s3=None,
+        )
+    )
+
+    mocker.patch(
+        "corna.middleware.storage.get_config",
+        return_value=test_config,
+    )
+
+    # A previous test may have initialised storage using another config.
+    storage.get_storage.cache_clear()
+
+    yield persistent_root
+
+    storage.get_storage.cache_clear()
 
 
 class FlaskSqlProfiler:

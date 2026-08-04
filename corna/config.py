@@ -102,6 +102,81 @@ class VaultConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class LocalMediaConfig(BaseModel):
+    """Local media storage settings.
+
+    :ivar root: Directory used to store uploaded media files.
+    """
+
+    root: Path
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("root")
+    @classmethod
+    def ensure_root_exists(cls, root: Path) -> Path:
+        """Create the configured media root when it does not exist.
+
+        :param root: Configured local media root directory.
+        :returns: The original root path after ensuring it exists.
+        :rtype: Path
+        """
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+
+
+class MediaConfig(BaseModel):
+    """Media storage settings.
+
+    :ivar backend: Selected media backend, either `local` or `s3`.
+    :ivar local: Local backend configuration when `backend` is `local`.
+    :ivar s3: S3 backend configuration when `backend` is `s3`.
+    """
+
+    backend: Literal["local", "s3"]
+    local: LocalMediaConfig | None = None
+    s3: S3MediaConfig | None = None
+
+    model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="after")
+    def validate_selected_backend(self) -> MediaConfig:
+        """Require exactly the configuration used by the selected backend.
+
+        :returns: The validated media configuration.
+        :rtype: MediaConfig
+        :raises ValueError: If the selected backend configuration is missing
+            or an unused backend configuration is present.
+        """
+        if self.backend == "local":
+            if self.local is None:
+                raise ValueError(
+                    "media.local must be configured when "
+                    "media.backend is 'local'"
+                )
+
+            if self.s3 is not None:
+                raise ValueError(
+                    "media.s3 must not be configured when "
+                    "media.backend is 'local'"
+                )
+
+        if self.backend == "s3":
+            if self.s3 is None:
+                raise ValueError(
+                    "media.s3 must be configured when "
+                    "media.backend is 's3'"
+                )
+
+            if self.local is not None:
+                raise ValueError(
+                    "media.local must not be configured when "
+                    "media.backend is 's3'"
+                )
+
+        return self
+
+
 class AppConfig(BaseModel):
     """Application runtime settings.
 
@@ -222,11 +297,13 @@ class Config(BaseModel):
 
     :ivar app: Application runtime settings.
     :ivar database: Database connection settings.
+    :ivar media: Media storage settings.
     :ivar vault: Ansible Vault settings.
     """
 
     app: AppConfig
     database: DatabaseConfig
+    media: MediaConfig
     vault: VaultConfig
 
     model_config = ConfigDict(extra="forbid")

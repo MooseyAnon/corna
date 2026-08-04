@@ -11,7 +11,7 @@ import pathlib
 import random
 import re
 import shutil
-from typing import Iterator, List, Optional
+from typing import List, Optional
 
 from sqlalchemy.orm.scoping import scoped_session as Session
 from typing_extensions import TypedDict
@@ -223,27 +223,6 @@ def download(session: Session, slug: str) -> str:
     return image
 
 
-def to_path(media_object: models.Media) -> str:
-    """Return the full path of a media object.
-
-    This is relvent as we have different downloading strategies for different
-    types of files and we also have to consider the face that the 'picture'
-    directory can move (i.e. it could be a directory path or a url path).
-
-    We can also do our existance checks here :)
-
-    :param models.Media media_object: a row from the media table.
-    :returns: the full path the the media object
-    :rtype: str
-    """
-    full_path = pathlib.Path(f"{image_proc.PICTURE_DIR}/{media_object.path}")
-
-    if not full_path.exists():
-        raise FileNotFoundError("No image found")
-
-    return str(full_path)
-
-
 def get_range(headers: dict, size: int) -> tuple[int, int] | None:
     """Get the range to be returned for a video file.
 
@@ -268,37 +247,6 @@ def get_range(headers: dict, size: int) -> tuple[int, int] | None:
     end: int = int(end_str) if end_str else size - 1
 
     return start, end
-
-
-def video_stream(
-    path: str,
-    start: int,
-    end: int,
-    read_bytes: int = image_proc.READ_BYTES,
-) -> Iterator[bytes]:
-    """Generate a video stream.
-
-    :param str path: path to video
-    :param int start: byte to start read from
-    :param int end: last byte to read
-    :param int read_bytes: the number of bytes to read
-    :yields: block of data
-    :ytype: bytes
-    """
-    with open(path, "rb") as fd:
-        fd.seek(start)
-
-        chunk_length: int = end - start + 1
-
-        while chunk_length > 0:
-            read_size: int = min(chunk_length, read_bytes)
-            data: bytes = fd.read(read_size)
-
-            if not data:
-                break
-
-            yield data
-            chunk_length -= len(data)
 
 
 def random_avatar(session: Session) -> Avatar:
