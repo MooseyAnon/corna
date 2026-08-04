@@ -31,7 +31,9 @@ def _clear_config_state(monkeypatch):
 
 def _mock_config(
     *,
+    backend: str = "local",
     with_placeholder: bool = False,
+    local_root: str = "./tmp-assets",
 ) -> dict:
     """Return valid example configuration data."""
     database_name = "${DB_NAME}" if with_placeholder else "corna_dev"
@@ -52,6 +54,7 @@ def _mock_config(
             "debug": True,
             "port": 5000,
             "sqlalchemy_echo": True,
+            "upload_tmp_dir": "tmp/chunks",
             "max_file_size": 10_485_760,
             "allowed_extensions": [
                 "gif",
@@ -66,6 +69,16 @@ def _mock_config(
         },
     }
 
+    if backend == "local":
+        config_data["media"] = {
+            "backend": "local",
+            "local": {
+                "root": local_root,
+            },
+        }
+    else:
+        raise ValueError(f"Unsupported test backend: {backend}")
+
     return config_data
 
 
@@ -75,6 +88,17 @@ def temp_config_file(tmp_path):
     config_path.write_text(
         yaml.safe_dump(
             _mock_config(),
+            _mock_config(
+                local_root=str(tmp_path / "media"),
+            ),
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    return config_path
+
+
             sort_keys=False,
         ),
         encoding="utf-8",
@@ -98,6 +122,7 @@ def test_config_loads_local_backend_from_yaml(temp_config_file):
     assert test_config.app.debug is True
     assert test_config.app.port == 5000
     assert test_config.app.sqlalchemy_echo is True
+    assert str(test_config.app.upload_tmp_dir) == "tmp/chunks"
     assert test_config.app.max_file_size == 10_485_760
     assert test_config.app.allowed_extensions == [
         "gif",
@@ -229,6 +254,70 @@ def test_config_fails_when_path_is_directory(tmp_path):
         match="Configuration path is not a file",
     ):
         config.load_config(tmp_path)
+
+
+def test_local_backend_requires_local_config(tmp_path):
+    config_data = _mock_config(
+        local_root=str(tmp_path / "media"),
+    )
+    config_data["media"] = {
+        "backend": "local",
+    }
+
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(config_data),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="media.local must be configured",
+    ):
+        config.load_config(config_path)
+
+
+def test_local_backend_rejects_s3_config(tmp_path):
+    config_data = _mock_config(
+        local_root=str(tmp_path / "media"),
+    )
+    config_data["media"]["s3"] = {
+        "bucket": "unexpected",
+        "region": "eu-west-2",
+        "access_key": "key",
+        "secret_key": "secret",
+    }
+
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(config_data),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="media.s3 must not be configured",
+    ):
+        config.load_config(config_path)
+
+
+def test_unknown_configuration_field_is_rejected(tmp_path):
+    config_data = _mock_config(
+        local_root=str(tmp_path / "media"),
+    )
+    config_data["app"]["sqlalchemy_ecoh"] = True
+
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(config_data),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="sqlalchemy_ecoh",
+    ):
+        config.load_config(config_path)
 
 
 def test_get_config_is_cached(

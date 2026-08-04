@@ -15,6 +15,7 @@ from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from corna import config
+from corna.middleware import storage
 
 logger = logging.Logger(__name__)
 
@@ -112,36 +113,16 @@ def save(image: FileStorage, bucket: str, hash_: str) -> str:
     secure_image_name: str = secure_filename(image.filename)
     hashed_dir: str = hash_to_dir(hash_)
     # combination of the root assets dir and the hash derived fs
-    directory_path: str = f"{PICTURE_DIR}/{bucket}/{hashed_dir}"
+    full_path: str = f"{bucket}/{hashed_dir}/{secure_image_name}"
+    store = storage.get_storage()
 
-    # Eventually we will replace this with either a `phash` or `dhash`
-    # to check for similarity but this is a useful initial tool to use
-    # in monitoring and obvious duplicates
-    try:
-        mkdir(directory_path, exists_ok=False)
-
-    except FileExistsError as error_message:
-        logger.warning(
-            "Photo directory exists, duplicate? Dir path: %s. "
-            "Name of image: %s. Error: %s",
-            directory_path,
-            secure_image_name,
-            error_message,
-        )
-
-    full_path: str = f"{directory_path}/{secure_image_name}"
     # save picture
     try:
-        image.save(full_path)
+        store.save_file(full_path, image, content_type=image.content_type)
     except OSError as e:
         raise e
 
-    # we do not want to save the full path to the image which includes
-    # `PICTURE_DIR` because `PICTURE_DIR` is not guaranteed to always be
-    # in the same place. However, the hashed fs will always exits so we can
-    # defer the responsibility of finding the correct `PICUTRE_DIR` to the
-    # download code.
-    return f"{bucket}/{hashed_dir}/{secure_image_name}"
+    return full_path
 
 
 def size(path: str) -> int:
@@ -157,9 +138,9 @@ def size(path: str) -> int:
     :rtype: int
     :raises OSError: if file does not exist
     """
-    full_path: str = f"{PICTURE_DIR}/{path}"
+    store = storage.get_storage()
     try:
-        result: int = os.stat(full_path).st_size
+        result: int = store.size(path)
 
     except OSError as e:
         logger.error(e)

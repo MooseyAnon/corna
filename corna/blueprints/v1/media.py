@@ -1,6 +1,7 @@
 """Endpoints to manage media files."""
 
 from http import HTTPStatus
+import mimetypes
 from typing import List
 
 import flask
@@ -11,6 +12,7 @@ from werkzeug.datastructures import FileStorage
 
 from corna import enums
 from corna.controls import media_control
+from corna.middleware import storage
 from corna.oss.flask_sqlalchemy_session import current_session as session
 from corna.utils import secure, utils
 
@@ -138,10 +140,11 @@ def download(url_extension: str):
 
     try:
         media_file = media_control.download(session, url_extension)
-        path: str = media_control.to_path(media_file)
 
     except FileNotFoundError as e:
         utils.respond_json_error(str(e), HTTPStatus.BAD_REQUEST)
+
+    store = storage.get_storage()
 
     if (
         not (media_file.type == enums.MediaTypes.VIDEO)
@@ -150,7 +153,11 @@ def download(url_extension: str):
         )
     ):
         # send full file if not video or does not contain range header
-        return flask.send_file(path)
+        return flask.Response(
+            store.iter_bytes(media_file.path),
+            mimetype=mimetypes.guess_type(media_file.path, strict=False)[0],
+            direct_passthrough=True,
+        )
 
     start, end = ranges
     file_size = media_file.size
@@ -163,7 +170,11 @@ def download(url_extension: str):
     length: int = end - start + 1
 
     response = flask.Response(
-        media_control.video_stream(path, start, end),
+        store.iter_bytes(
+            media_file.path,
+            start=start,
+            end=end,
+        ),
         status=206,
         mimetype='video/mp4',
         direct_passthrough=True

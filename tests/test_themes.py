@@ -6,6 +6,7 @@ import pytest
 from corna import enums
 from corna.controls import theme_control
 from corna.db import models
+from corna.middleware import storage
 from corna.utils import encodings, image_proc, mkdir, secure, utils
 from tests.shared_data import ASSET_DIR, single_user
 
@@ -24,14 +25,17 @@ def _all_required_themes_stubs(tmpdir, mocker, monkeypatch):
         return_value="thisisafakehash12345",
     )
     monkeypatch.setattr(
-        image_proc,
-        "PICTURE_DIR",
-        tmpdir.mkdir("assets"),
-    )
-    monkeypatch.setattr(
         theme_control,
         "THEMES_DIR",
         tmpdir.mkdir("themes")
+    )
+
+    assets = tmpdir.mkdir("assets")
+    chunks = assets.mkdir("chunks")
+
+    mocker.patch(
+        "corna.utils.image_proc.get_workdir",
+        return_value=chunks,
     )
 
 
@@ -250,16 +254,20 @@ def test_create_theme_with_thumbnail(session, client, login):
     assert theme.creator_user_id == user.uuid
     assert theme.thumbnail is not None
 
-    expected_path = image_proc.PICTURE_DIR / "thumbnail/thi/sis/afa/kehash12345"
+    expected_path = (
+        storage.get_storage()._backend._root
+        / "thumbnail/thi/sis/afa/kehash12345"
+    )
     assert expected_path.exists()
-    assert len(expected_path.listdir()) == 1
-    for file in expected_path.listdir():
+    # The storage fixture returns a Path object which does not have `listdir`
+    assert len([p for p in expected_path.iterdir()]) == 1
+    for file in expected_path.iterdir():
         # assert we've saved some data successfully
         assert os.stat(file).st_size >= 1024
 
     thumbnail_uuid = theme.thumbnail
     media = session.query(models.Media).first()
-    basename = expected_path.listdir()[0].basename
+    basename = [p for p in expected_path.iterdir()][0].name
     assert media.uuid == thumbnail_uuid
     assert media.path == f"thumbnail/thi/sis/afa/kehash12345/{basename}"
     assert session.query(models.Images).count() == 1

@@ -9,6 +9,7 @@ import werkzeug
 from corna import enums
 from corna.controls import post_control
 from corna.db import models
+from corna.middleware import storage
 from corna.utils import utils, image_proc
 from tests import shared_data
 
@@ -65,10 +66,13 @@ def _all_post_based_stubs(request, tmpdir, mocker, monkeypatch):
         "corna.utils.image_proc.hash_image",
         return_value="thisisafakehash12345",
     )
-    monkeypatch.setattr(
-        image_proc,
-        "PICTURE_DIR",
-        tmpdir.mkdir("assets"),
+
+    assets = tmpdir.mkdir("assets")
+    chunks = assets.mkdir("chunks")
+
+    mocker.patch(
+        "corna.utils.image_proc.get_workdir",
+        return_value=chunks,
     )
 
 
@@ -121,7 +125,6 @@ def test_create_post(session, client, corna):
 def test_post_with_picture(session, client, corna, with_image, expected):
     # create image
     _upload_single_image(session, client)
-    assets = image_proc.PICTURE_DIR
     out_post = shared_data.mock_post(
         type_="picture",
         with_content=True,
@@ -137,14 +140,18 @@ def test_post_with_picture(session, client, corna, with_image, expected):
     # return early on no image text as there is nothing to check
     if not with_image: return
 
-    expected_path = assets / "image" / "thi/sis/afa/kehash12345"
+    expected_path = (
+        storage.get_storage()._backend._root
+        / "image/thi/sis/afa/kehash12345"
+    )
     assert expected_path.exists()
-    assert len(expected_path.listdir()) == 1
-    for file in expected_path.listdir():
+    # The storage fixture returns a Path object which does not have `listdir`
+    assert len([p for p in expected_path.iterdir()]) == 1
+    for file in expected_path.iterdir():
         # assert we've saved some data successfully
         assert os.stat(file).st_size >= 1024
 
-    image_basename = expected_path.listdir()[0].basename
+    image_basename = [p for p in expected_path.iterdir()][0].name
     # ensure database relationships are correct
     posts = session.query(models.PostTable).all()
     assert len(posts) == 1
@@ -262,9 +269,16 @@ def test_linking_preloaded_images(session, client, corna):
 def test_linking_multiple_images(session, client, corna):
     # create multiple image
     image_urls = []
-    for _ in range(2):
-        data = _upload_single_image(session, client)
-        image_urls.append(data["url_extension"])
+
+    for filename in ("anders-jilden.jpg", "earth.gif"):
+        file = (shared_data.ASSET_DIR / filename).open("rb")
+        resp = client.post(
+            "/api/v1/media/upload",
+            data={"image": file, "type": "image"},
+        )
+
+        assert resp.status_code == 201
+        image_urls.append(resp.json["url_extension"])
 
     out_post = shared_data.mock_post(
         with_content=True,
@@ -434,7 +448,6 @@ def test_vido_post(session, client, mocker, corna):
         return_value="thisisafakestringhash",
     )
 
-    assets = image_proc.PICTURE_DIR
     # create video
     _upload_single_image(session, client, type_="video")
     out_post = {
@@ -457,14 +470,18 @@ def test_vido_post(session, client, mocker, corna):
     )
     assert resp.status_code == 201
 
-    expected_path = assets / "video" / "thi/sis/afa/kestringhash"
+    expected_path = (
+        storage.get_storage()._backend._root
+        / "video/thi/sis/afa/kestringhash"
+    )
     assert expected_path.exists()
-    assert len(expected_path.listdir()) == 1
-    for file in expected_path.listdir():
+    # The storage fixture returns a Path object which does not have `listdir`
+    assert len([p for p in expected_path.iterdir()]) == 1
+    for file in expected_path.iterdir():
         # assert we've saved some data successfully
         assert os.stat(file).st_size >= 1024
 
-    image_basename = expected_path.listdir()[0].basename
+    image_basename = [p for p in expected_path.iterdir()][0].name
     # ensure database relationships are correct
     posts = session.query(models.PostTable).all()
     assert len(posts) == 1
