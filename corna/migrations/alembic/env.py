@@ -4,8 +4,6 @@ import os
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from corna.utils import vault_item
-
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -32,20 +30,9 @@ target_metadata = models.Base.metadata
 # from a template when needed but there is the risk that it could be
 # checked into git and become public. Here we securely generate the
 # url and override the value inside the alembic.ini config.
-db_address = os.getenv("DB_ADDRESS")
-db_user = os.getenv("DB_USER")
-if not (db_address and db_user):
-    raise RuntimeError(
-        "The environment variables DB_ADDRESS or DB_USER are not "
-        "defined")
+from corna.config import get_config
 
-db_password = vault_item(f"postgres.{db_user}")
-db_port = os.getenv('DB_PORT')
-db_name = os.getenv('DB_NAME')
-sqlalchemy_url = (
-    f"postgresql://{db_user}:{db_password}"
-    f"@{db_address}:{db_port}/{db_name}"
-)
+sqlalchemy_url = get_config().database.url
 
 
 def run_migrations_offline():

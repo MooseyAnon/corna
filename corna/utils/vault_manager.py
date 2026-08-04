@@ -3,22 +3,13 @@
 from binascii import unhexlify
 import json
 import logging
-import os
 import sys
 from typing import Any, Dict, Optional, Tuple, Union
 
 import yaml
 
+from corna.config import get_config
 from corna.utils.crypto import VaultAES256
-
-VAULT_PATH: str = os.environ.get(
-    'ANSIBLE_VAULT_PATH',
-    os.path.join(os.path.expanduser('~/vault'))
-)
-PASSWORD_PATH: str = os.environ.get(
-    'ANSIBLE_VAULT_PASSWORD_FILE',
-    os.path.join(os.path.expanduser('~/.vault-password'))
-)
 
 # Cache of decrypted data
 _VAULT_DATA: Optional[Dict[str, Any]] = None
@@ -74,19 +65,22 @@ def get_decrypted_data() -> Dict[str, Any]:
 
     global _VAULT_DATA  # pylint: disable=global-statement
     if _VAULT_DATA is None:
-        logger.debug('Decrypting Ansible Vault %r...', VAULT_PATH)
+        vault_path = get_config().vault.path
+        pwd_path = get_config().vault.password_file
+
+        logger.debug('Decrypting Ansible Vault %r...', vault_path)
 
         try:
-            with open(PASSWORD_PATH, 'r', encoding="utf-8") as password_file:
+            with open(pwd_path, 'r', encoding="utf-8") as password_file:
                 password: str = password_file.read().strip().encode("utf-8")
         except IOError as e:
-            raise OSError(f"Password file {PASSWORD_PATH!r} not found") from e
+            raise OSError(f"Password file {pwd_path!r} not found") from e
 
         try:
-            with open(VAULT_PATH, "r", encoding="utf-8") as vault_file:
+            with open(vault_path, "r", encoding="utf-8") as vault_file:
                 encrypted_data: bytes = vault_file.readlines()
         except IOError as e:
-            raise OSError(f"Vault file {VAULT_PATH!r} not found") from e
+            raise OSError(f"Vault file {vault_path!r} not found") from e
 
         _VAULT_DATA = decrypt_data(password, encrypted_data)
 

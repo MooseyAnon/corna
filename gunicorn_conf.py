@@ -5,12 +5,14 @@
 import os
 import traceback
 
+from corna.config import get_config
+
 _this_dir = os.path.abspath(os.path.dirname(__file__))
 
 # This means: remote address, status line, status
 access_log_format = '%(h)s "%(r)s" %(s)s'
 
-bind = "0.0.0.0:{}".format(os.environ['CORNA_PORT'])
+bind = "0.0.0.0:{}".format(get_config().app.port)
 chdir = _this_dir
 logconfig = os.path.join(_this_dir, "gunicorn.logging.ini")
 
