@@ -343,7 +343,7 @@ def save_chunk(
     #
     # path-to-parts = <file-system>/<chunk-dir>/<upload-id>/parts
     parts_dir: pathlib.Path = mkdir(
-        f"{image_proc.get_workdir()}/{upload_id}/parts")
+        f"{image_proc.get_workdir()}/chunks/{upload_id}/parts")
 
     # save the chunk to a deterministic location: 000000.part, 000001.part, ...
     # with the filename of each part being based on its index
@@ -365,7 +365,8 @@ def merge_chunks(filename: str, upload_id: str) -> FileStorage:
     :rtype: FileStorage
     :raises MergingError: if upload not found or is incomplete
     """
-    base_dir: pathlib.Path = pathlib.Path(f"{image_proc.get_workdir()}/{upload_id}")
+    base_dir: pathlib.Path = pathlib.Path(
+        f"{image_proc.get_workdir()}/chunks/{upload_id}")
 
     # check if this is a valid upload
     if not (metadata := utils.load_json(base_dir / "meta.json")):
@@ -472,7 +473,7 @@ def update_meta(
     :returns: the number of successfully received chunks
     :rtype: int
     """
-    meta_path: str = f"{image_proc.get_workdir()}/{upload_id}/meta.json"
+    meta_path: str = f"{image_proc.get_workdir()}/chunks/{upload_id}/meta.json"
     # default empty dict to use if there is not pre-existing metadata file
     meta: dict[str, str | int] = {}
 
@@ -545,7 +546,7 @@ def chunk_status(upload_id: str) -> int:
     :raises ValueError: if metadata file is malformed
     """
     # calculate directory
-    meta_file: str = f"{image_proc.get_workdir()}/{upload_id}/meta.json"
+    meta_file: str = f"{image_proc.get_workdir()}/chunks/{upload_id}/meta.json"
 
     if not (metadata := utils.load_json(meta_file)):
         raise FileNotFoundError
@@ -563,7 +564,7 @@ def clean_chunks(upload_id: str) -> None:
         being uploaded.
     """
     # base_dir for a partition is: <FS>/<chunks-dir>/<uploadID>
-    base_dir = pathlib.Path(f"{image_proc.get_workdir()}/{upload_id}")
+    base_dir = pathlib.Path(f"{image_proc.get_workdir()}/chunks/{upload_id}")
     meta_path: pathlib.Path = base_dir / "meta.json"
     chunk_dir: pathlib.Path = base_dir / "parts"
 

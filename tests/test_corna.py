@@ -25,14 +25,16 @@ def _theme(client, tmpdir, mocker, monkeypatch, login):
         return_value="thisisafakehash12345",
     )
     monkeypatch.setattr(
-        image_proc,
-        "PICTURE_DIR",
-        tmpdir.mkdir("assets"),
-    )
-    monkeypatch.setattr(
         theme_control,
         "THEMES_DIR",
         tmpdir.mkdir("themes")
+    )
+
+    assets = tmpdir.mkdir("assets")
+
+    mocker.patch(
+        "corna.utils.image_proc.get_workdir",
+        return_value=assets,
     )
 
     path = pathlib.Path(theme_control.THEMES_DIR) / "index.html"

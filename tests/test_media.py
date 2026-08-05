@@ -34,11 +34,10 @@ def _all_media_based_stubs(request, tmpdir, mocker, monkeypatch):
     )
 
     assets = tmpdir.mkdir("assets")
-    chunks = assets.mkdir("chunks")
 
     mocker.patch(
         "corna.utils.image_proc.get_workdir",
-        return_value=chunks,
+        return_value=assets,
     )
 
 
@@ -495,8 +494,12 @@ def test_random_avatar_gen(client, session, login):
 
 def test_chunk_status__no_chunks_uploaded(client):
 
+    # chunks does not exist at the point of running this because workdir is
+    # just the top level dir
+    chunk_path = image_proc.get_workdir().mkdir("chunks")
+
     fake_upload_id = "000111111"
-    base_path = image_proc.get_workdir().mkdir(fake_upload_id)
+    base_path = chunk_path.mkdir(fake_upload_id)
 
     meta_path = base_path / "meta.json"
 
@@ -512,8 +515,12 @@ def test_chunk_status__no_chunks_uploaded(client):
 
 def test_chunk_status__upload_complete(client):
 
+    # chunks does not exist at the point of running this because workdir is
+    # just the top level dir
+    chunk_path = image_proc.get_workdir().mkdir("chunks")
+
     fake_upload_id = "000111111"
-    base_path = image_proc.get_workdir().mkdir(fake_upload_id)
+    base_path = chunk_path.mkdir(fake_upload_id)
 
     meta_path = base_path / "meta.json"
 
@@ -545,8 +552,12 @@ def test_chunk_status__no_metadata_file(client):
 
 def test_chunk_status__malformed_metadata_file(client):
 
+    # chunks does not exist at the point of running this because workdir is
+    # just the top level dir
+    chunk_path = image_proc.get_workdir().mkdir("chunks")
+
     fake_upload_id = "000111111"
-    base_path = image_proc.get_workdir().mkdir(fake_upload_id)
+    base_path = chunk_path.mkdir(fake_upload_id)
 
     meta_path = base_path / "meta.json"
 
@@ -592,12 +603,12 @@ def test_chunk_upload__full_upload(client, login):
             assert resp.json["message"] == "upload complete"
 
     # ensure main dirs/files are created
-    assert (image_proc.get_workdir() / fake_upload_id / "meta.json").exists()
-    assert (image_proc.get_workdir() / fake_upload_id / "parts").exists()
+    assert ((image_proc.get_workdir() / "chunks") / fake_upload_id / "meta.json").exists()
+    assert ((image_proc.get_workdir() / "chunks") / fake_upload_id / "parts").exists()
 
     received = None
     # read metadata file and check fields are legit
-    with open((image_proc.get_workdir() / fake_upload_id / "meta.json"), "r") as fd:
+    with open(((image_proc.get_workdir() / "chunks") / fake_upload_id / "meta.json"), "r") as fd:
         m_data = json.load(fd)
 
         assert m_data["totalChunks"] == total_chunks
@@ -607,7 +618,7 @@ def test_chunk_upload__full_upload(client, login):
 
     # loop through expected indexes and see if they all exist
     for i in range(total_chunks):
-        assert (image_proc.get_workdir() / fake_upload_id / "parts" / f"{i:06d}.part").exists()
+        assert ((image_proc.get_workdir() / "chunks") / fake_upload_id / "parts" / f"{i:06d}.part").exists()
         # check if its in received
         assert i in received
 
@@ -650,8 +661,8 @@ def test_chunk_upload__merge(mocker, client, login):
             assert resp.json["message"] == "upload complete"
 
     # ensure main dirs/files are created
-    assert (image_proc.get_workdir() / fake_upload_id / "meta.json").exists()
-    assert (image_proc.get_workdir() / fake_upload_id / "parts").exists()
+    assert ((image_proc.get_workdir() / "chunks") / fake_upload_id / "meta.json").exists()
+    assert ((image_proc.get_workdir() / "chunks") / fake_upload_id / "parts").exists()
 
     # --------- test starts here ---------
     req = {
@@ -702,8 +713,8 @@ def test_chunk_upload__merge_ensure_cleanup(mocker, client, session, login):
         assert resp.status_code == 201
 
     # ensure main dirs/files are created
-    assert (image_proc.get_workdir() / fake_upload_id / "meta.json").exists()
-    assert (image_proc.get_workdir() / fake_upload_id / "parts").exists()
+    assert ((image_proc.get_workdir() / "chunks") / fake_upload_id / "meta.json").exists()
+    assert ((image_proc.get_workdir() / "chunks") / fake_upload_id / "parts").exists()
 
     # --------- test starts here ---------
     req = {
@@ -726,7 +737,7 @@ def test_chunk_upload__merge_ensure_cleanup(mocker, client, session, login):
     assert resp.json == expected
 
     # check cleanup
-    assert not (image_proc.get_workdir() / fake_upload_id).exists()
+    assert not ((image_proc.get_workdir() / "chunks") / fake_upload_id).exists()
 
     # ensure file is actually saved - use the storage system to check
     expected_path = (
@@ -794,8 +805,12 @@ def test_chunk_upload__merge_file_too_large(monkeypatch, client, login):
 
 def test_chunk_upload__merge_in_press(client, login):
     # create fake lock
+    # chunks does not exist at the point running this because workdir is
+    # just the top level dir
+    chunk_path = image_proc.get_workdir().mkdir("chunks")
+
     fake_upload_id = "000111111"
-    base_path = image_proc.get_workdir().mkdir(fake_upload_id)
+    base_path = chunk_path.mkdir(fake_upload_id)
 
     meta_path = base_path / ".merge.lock"
 

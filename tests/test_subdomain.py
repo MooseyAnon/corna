@@ -29,16 +29,11 @@ def _all_media_based_stubs(request, tmpdir, mocker, monkeypatch):
         "corna.utils.image_proc.random_hash",
         return_value="thisisafakestringhash",
     )
-    monkeypatch.setattr(
-        image_proc,
-        "PICTURE_DIR",
-        tmpdir.mkdir("assets"),
-    )
+    assets = tmpdir.mkdir("assets")
 
-    monkeypatch.setattr(
-        image_proc,
-        "CHUNK_DIR",
-        tmpdir.mkdir("assets/chunks"),
+    mocker.patch(
+        "corna.utils.image_proc.get_workdir",
+        return_value=assets,
     )
 
 
@@ -95,7 +90,6 @@ def create_post(
     uploaded_images=None,
 ):
     """Create a post for subdomain contract tests."""
-    print(image_proc.PICTURE_DIR, "------->")
     payload = shared_data.mock_post(
         type_=type_,
         with_title=with_title,
@@ -249,11 +243,6 @@ def test_build_page_returns_empty_listing_contract(session, client, login):
 def test_build_page_text_post_includes_cover_media(
     monkeypatch, tmpdir, session, client, login):
     """Build page payloads should include parsed cover media in the listing."""
-    monkeypatch.setattr(
-        image_proc,
-        "PICTURE_DIR",
-        tmpdir.mkdir("assets"),
-    )
 
     create_corna(client, session)
     media_slug = _upload_media(client, "anders-jilden.jpg", "image")
@@ -300,11 +289,6 @@ def test_build_page_text_post_includes_cover_media(
 def test_single_post_image_parses_media_metadata(
     monkeypatch, tmpdir, session, client, login):
     """Image posts should expose parsed media metadata."""
-    monkeypatch.setattr(
-        image_proc,
-        "PICTURE_DIR",
-        tmpdir.mkdir("assets"),
-    )
 
     create_corna(client, session)
     media_slug = _upload_media(client, "anders-jilden.jpg", "image")
@@ -339,11 +323,6 @@ def test_single_post_image_parses_media_metadata(
 def test_single_post_video_parses_media_metadata(
     monkeypatch, tmpdir, session, client, login):
     """Video posts should expose parsed media metadata."""
-    monkeypatch.setattr(
-        image_proc,
-        "PICTURE_DIR",
-        tmpdir.mkdir("assets"),
-    )
 
     create_corna(client, session)
     media_slug = _upload_media(client, "big-bunny.mp4", "video")
@@ -401,11 +380,6 @@ def test_single_post_text_only_has_no_media(session, client, login):
 
 def test_image_only_post(monkeypatch, tmpdir, session, client, login):
     """Image posts should expose parsed media metadata."""
-    monkeypatch.setattr(
-        image_proc,
-        "PICTURE_DIR",
-        tmpdir.mkdir("assets"),
-    )
 
     create_corna(client, session)
     media_slug = _upload_media(client, "anders-jilden.jpg", "image")
