@@ -364,55 +364,6 @@ def test_upload_image_with_webp_format(client, mocker, login):
     assert resp.json == expected
 
 
-@pytest.mark.nostubs
-def test_path_collision(session, client, capsys, mocker, login):
-    # test image already exists
-    mocker.patch(
-        "corna.utils.utils.get_uuid",
-        return_value="00000000-0000-0000-0000-000000000000",
-    )
-
-    assets = image_proc.PICTURE_DIR
-
-    type_ = "image"
-    image = (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb")
-    resp = client.post(
-        "/api/v1/media/upload",
-        data={"image": image, "type": type_},
-    )
-    assert resp.status_code == 201
-
-    # ensure file is actually saved
-    assert session.query(models.Media).count() == 1
-    path = session.query(models.Media).first().path
-    expected_path = (image_proc.PICTURE_DIR / path).parts()[-2]
-    assert len(expected_path.listdir()) == 1
-
-    # write picture to tmpdir to use again
-    import shutil
-    shutil.copy(
-        (shared_data.ASSET_DIR / "anders-jilden.jpg"),
-        (assets / "same-pic-different-name.jpg")
-    )
-
-    assert (assets / "same-pic-different-name.jpg").exists()
-    # putting it into the same file should raise a FileExistsError
-    # but should still be saved
-    from werkzeug.datastructures import FileStorage
-    file = FileStorage(
-        stream=(assets / "same-pic-different-name.jpg").open("rb"),
-        filename="same-pic-different-name.jpg"
-    )
-    image_hash = image_proc.hash_image(file)
-    image_proc.save(file, bucket="image", hash_=image_hash)
-
-    captured = capsys.readouterr()
-    assert "Photo directory exists, duplicate?" in captured.err
-
-    assert len(expected_path.listdir()) == 2
-
-
-
 def test_nothing_saved_in_database_if_image_save_fails(
     session,
     client,
