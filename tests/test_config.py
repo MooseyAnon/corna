@@ -76,6 +76,19 @@ def _mock_config(
                 "root": local_root,
             },
         }
+    elif backend == "s3":
+        config_data["media"] = {
+            "backend": "s3",
+            "s3": {
+                "bucket": "corna-test-media",
+                "region": "eu-west-2",
+                "endpoint_url": None,
+                "access_key": "test-access-key",
+                "secret_key": "test-secret-key",
+                "use_signed_urls": False,
+                "signed_url_ttl": 300,
+            },
+        }
     else:
         raise ValueError(f"Unsupported test backend: {backend}")
 
@@ -87,7 +100,6 @@ def temp_config_file(tmp_path):
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
         yaml.safe_dump(
-            _mock_config(),
             _mock_config(
                 local_root=str(tmp_path / "media"),
             ),
@@ -99,6 +111,12 @@ def temp_config_file(tmp_path):
     return config_path
 
 
+@pytest.fixture
+def temp_s3_config_file(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(
+            _mock_config(backend="s3"),
             sort_keys=False,
         ),
         encoding="utf-8",
@@ -277,6 +295,27 @@ def test_local_backend_requires_local_config(tmp_path):
         config.load_config(config_path)
 
 
+def test_s3_backend_requires_s3_config(tmp_path):
+    config_data = _mock_config(
+        local_root=str(tmp_path / "media"),
+    )
+    config_data["media"] = {
+        "backend": "s3",
+    }
+
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(config_data),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="media.s3 must be configured",
+    ):
+        config.load_config(config_path)
+
+
 def test_local_backend_rejects_s3_config(tmp_path):
     config_data = _mock_config(
         local_root=str(tmp_path / "media"),
@@ -298,6 +337,51 @@ def test_local_backend_rejects_s3_config(tmp_path):
         ValidationError,
         match="media.s3 must not be configured",
     ):
+        config.load_config(config_path)
+
+
+def test_s3_backend_rejects_local_config(tmp_path):
+    config_data = _mock_config(backend="s3")
+    config_data["media"]["local"] = {
+        "root": str(tmp_path / "media"),
+    }
+
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(config_data),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="media.local must not be configured",
+    ):
+        config.load_config(config_path)
+
+
+@pytest.mark.parametrize(
+    "missing_field",
+    [
+        "bucket",
+        "region",
+        "access_key",
+        "secret_key",
+    ],
+)
+def test_s3_backend_requires_mandatory_fields(
+    tmp_path,
+    missing_field,
+):
+    config_data = _mock_config(backend="s3")
+    del config_data["media"]["s3"][missing_field]
+
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(config_data),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValidationError):
         config.load_config(config_path)
 
 
