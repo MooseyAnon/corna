@@ -125,6 +125,66 @@ class LocalMediaConfig(BaseModel):
         return root
 
 
+class S3MediaConfig(BaseModel):
+    """S3-compatible media storage settings.
+
+    :ivar bucket: S3 bucket name.
+    :ivar region: S3 region name.
+    :ivar access_key: S3 access key ID.
+    :ivar secret_key: S3 secret access key.
+    :ivar endpoint_url: Optional custom S3-compatible endpoint URL.
+    :ivar use_signed_urls: Whether generated media URLs should be signed.
+    :ivar signed_url_ttl: Signed URL lifetime in seconds.
+    """
+
+    bucket: str
+    region: str
+    access_key: str
+    secret_key: str
+    endpoint_url: str | None = None
+    use_signed_urls: bool = False
+    signed_url_ttl: int = 300
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator(
+        "bucket",
+        "region",
+        "access_key",
+        "secret_key",
+    )
+    @classmethod
+    def must_not_be_empty(cls, value: str) -> str:
+        """Reject empty required S3 values.
+
+        :param value: Required S3 configuration value.
+        :returns: The stripped value.
+        :rtype: str
+        :raises ValueError: If the stripped value is empty.
+        """
+        value = value.strip()
+
+        if not value:
+            raise ValueError("Value must not be empty")
+
+        return value
+
+    @field_validator("signed_url_ttl")
+    @classmethod
+    def signed_url_ttl_must_be_positive(cls, value: int) -> int:
+        """Require a positive signed URL lifetime.
+
+        :param value: Signed URL lifetime in seconds.
+        :returns: The validated lifetime.
+        :rtype: int
+        :raises ValueError: If the lifetime is less than or equal to zero.
+        """
+        if value <= 0:
+            raise ValueError("signed_url_ttl must be greater than zero")
+
+        return value
+
+
 class MediaConfig(BaseModel):
     """Media storage settings.
 

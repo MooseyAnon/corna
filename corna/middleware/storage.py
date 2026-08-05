@@ -8,7 +8,11 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
-from typing import BinaryIO, Iterator, Protocol, runtime_checkable
+from typing import BinaryIO, Iterator, Protocol, cast, runtime_checkable
+
+import boto3
+from botocore.client import BaseClient
+from botocore.exceptions import BotoCoreError, ClientError
 
 from corna.config import get_config
 
@@ -600,6 +604,283 @@ class LocalStorageBackend:
         temporary_path.unlink()
 
 
+class S3StorageBackend:
+    """Persistent media storage backed by an S3-compatible service.
+
+    :param bucket: S3 bucket name.
+    :param region: S3 region name.
+    :param endpoint_url: Optional custom S3-compatible endpoint URL.
+    :param access_key: Optional access key used to construct the client.
+    :param secret_key: Optional secret key used to construct the client.
+    :param client: Optional pre-built boto3-compatible S3 client.
+    """
+
+    def __init__(
+        self,
+        *,
+        bucket: str,
+        region: str,
+        endpoint_url: str | None = None,
+        access_key: str | None = None,
+        secret_key: str | None = None,
+        client: BaseClient | None = None,
+    ) -> None:
+        """Create an S3 storage backend.
+
+        A client may be supplied directly for testing. Otherwise, a boto3 S3
+        client is constructed from the provided configuration.
+
+        :param bucket: S3 bucket name.
+        :param region: S3 region name.
+        :param endpoint_url: Optional custom S3-compatible endpoint URL.
+        :param access_key: Optional access key used to construct the client.
+        :param secret_key: Optional secret key used to construct the client.
+        :param client: Optional pre-built boto3-compatible S3 client.
+        """
+        self._bucket = bucket
+
+        if client is not None:
+            self._client = client
+            return
+
+        client_options: dict[str, str] = {
+            "region_name": region,
+        }
+
+        if endpoint_url is not None:
+            client_options["endpoint_url"] = endpoint_url
+
+        if access_key is not None:
+            client_options["aws_access_key_id"] = access_key
+
+        if secret_key is not None:
+            client_options["aws_secret_access_key"] = secret_key
+
+        self._client = boto3.client(
+            "s3",
+            **client_options,
+        )
+
+    def save_file(
+        self,
+        key: str,
+        stream: BinaryIO,
+        *,
+        content_type: str | None = None,
+        overwrite: bool = False,
+    ) -> None:
+        """Persist a stream as an S3 object.
+
+        When overwriting is disabled, the upload is conditional and fails if
+        the object key already exists.
+
+        :param key: Backend-independent logical storage key.
+        :param stream: Binary stream containing the object data.
+        :param content_type: Optional MIME type associated with the object.
+        :param overwrite: Whether an existing object may be replaced.
+        :raises StorageObjectExistsError: If the key exists and overwrite is
+            disabled.
+        :raises StorageWriteError: If the object cannot be persisted.
+        """
+        request: dict[str, object] = {
+            "Bucket": self._bucket,
+            "Key": key,
+            "Body": stream,
+        }
+
+        if content_type is not None:
+            request["ContentType"] = content_type
+
+        if not overwrite:
+            request["IfNoneMatch"] = "*"
+
+        try:
+            self._client.put_object(**request)
+
+        except ClientError as error:
+            error_code = self._error_code(error)
+            status_code = self._status_code(error)
+
+            if status_code == 412 or error_code == "PreconditionFailed":
+                raise StorageObjectExistsError(
+                    f"Storage object already exists: {key!r}"
+                ) from error
+
+            if (
+                status_code == 409
+                or error_code == "ConditionalRequestConflict"
+            ):
+                raise StorageWriteError(
+                    f"Conflicting write for storage object: {key!r}"
+                ) from error
+
+            raise StorageWriteError(
+                f"Unable to save storage object: {key!r}"
+            ) from error
+
+        except BotoCoreError as error:
+            raise StorageWriteError(
+                f"Unable to save storage object: {key!r}"
+            ) from error
+
+    @contextmanager
+    def open_stream(
+        self,
+        key: str,
+        *,
+        start: int | None = None,
+        end: int | None = None,
+    ) -> Iterator[BinaryIO]:
+        """Open an S3 object as a managed readable stream.
+
+        :param key: Backend-independent logical storage key.
+        :param start: Optional first byte to expose.
+        :param end: Optional final byte to expose, inclusive.
+        :returns: Iterator yielding a readable binary stream.
+        :raises StorageObjectNotFoundError: If the object does not exist.
+        :raises StorageReadError: If the object cannot be opened or read.
+        """
+        request: dict[str, object] = {
+            "Bucket": self._bucket,
+            "Key": key,
+        }
+
+        if start is not None:
+            range_value = f"bytes={start}-"
+
+            if end is not None:
+                range_value = f"bytes={start}-{end}"
+
+            request["Range"] = range_value
+
+        try:
+            response = self._client.get_object(**request)
+            body = response["Body"]
+
+        except ClientError as error:
+            if self._is_missing_object(error):
+                raise StorageObjectNotFoundError(
+                    f"Storage object not found: {key!r}"
+                ) from error
+
+            raise StorageReadError(
+                f"Unable to open storage object: {key!r}"
+            ) from error
+
+        except BotoCoreError as error:
+            raise StorageReadError(
+                f"Unable to open storage object: {key!r}"
+            ) from error
+
+        try:
+            # boto3 returns "Body" as an untyped object. We know it is a
+            # StreamingBody, which provides the read() and close() methods
+            # used by the storage interface. `cast()` only informs the type
+            # checker of this; it does not perform any runtime conversion or
+            # wrapping.
+            yield cast(BinaryIO, body)
+
+        except (BotoCoreError, OSError) as error:
+            raise StorageReadError(
+                f"Unable to read storage object: {key!r}"
+            ) from error
+
+        finally:
+            body.close()
+
+    def size(self, key: str) -> int:
+        """Return the S3 object's size in bytes.
+
+        :param key: Backend-independent logical storage key.
+        :returns: Object size in bytes.
+        :raises StorageObjectNotFoundError: If the object does not exist.
+        :raises StorageReadError: If object metadata cannot be read.
+        """
+        try:
+            response = self._client.head_object(
+                Bucket=self._bucket,
+                Key=key,
+            )
+
+            return int(response["ContentLength"])
+
+        except ClientError as error:
+            if self._is_missing_object(error):
+                raise StorageObjectNotFoundError(
+                    f"Storage object not found: {key!r}"
+                ) from error
+
+            raise StorageReadError(
+                f"Unable to read storage object metadata: {key!r}"
+            ) from error
+
+        except (BotoCoreError, KeyError, TypeError, ValueError) as error:
+            raise StorageReadError(
+                f"Unable to read storage object metadata: {key!r}"
+            ) from error
+
+    def delete(self, key: str) -> None:
+        """Delete an object from S3 storage.
+
+        :param key: Backend-independent logical storage key.
+        :raises NotImplementedError: Always raised until deletion semantics are
+            implemented.
+        """
+        del key
+
+        # Incoming once deletion semantics have been decided, including:
+        # - whether deletion should be immediate or tombstone-driven
+        # - how database and storage failures should be reconciled
+        # - whether missing objects should be ignored or reported
+        raise NotImplementedError(
+            "Persistent media deletion is not implemented yet"
+        )
+
+    @classmethod
+    def _is_missing_object(cls, error: ClientError) -> bool:
+        """Return whether an S3 error represents a missing object.
+
+        :param error: AWS client error to inspect.
+        :returns: ``True`` when the error indicates a missing object.
+        """
+        return (
+            cls._status_code(error) == 404
+            or cls._error_code(error) in {
+                "404",
+                "NoSuchKey",
+                "NotFound",
+            }
+        )
+
+    @staticmethod
+    def _error_code(error: ClientError) -> str:
+        """Extract an AWS error code.
+
+        :param error: AWS client error to inspect.
+        :returns: AWS error code, or an empty string when unavailable.
+        """
+        return str(
+            error.response
+            .get("Error", {})
+            .get("Code", "")
+        )
+
+    @staticmethod
+    def _status_code(error: ClientError) -> int | None:
+        """Extract the HTTP status code from an AWS error.
+
+        :param error: AWS client error to inspect.
+        :returns: HTTP status code when available.
+        """
+        status = (
+            error.response
+            .get("ResponseMetadata", {})
+            .get("HTTPStatusCode")
+        )
+
+        return status if isinstance(status, int) else None
+
+
 def _build_storage() -> Storage:
     """Construct persistent storage from application configuration.
 
@@ -619,6 +900,20 @@ def _build_storage() -> Storage:
 
         backend: StorageBackend = LocalStorageBackend(
             media_config.local.root
+        )
+
+    elif media_config.backend == "s3":
+        if media_config.s3 is None:
+            raise RuntimeError(
+                "S3 media configuration is missing"
+            )
+
+        backend = S3StorageBackend(
+            bucket=media_config.s3.bucket,
+            region=media_config.s3.region,
+            endpoint_url=media_config.s3.endpoint_url,
+            access_key=media_config.s3.access_key,
+            secret_key=media_config.s3.secret_key,
         )
 
     else:
