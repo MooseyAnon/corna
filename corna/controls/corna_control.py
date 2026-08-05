@@ -76,10 +76,7 @@ def create(
     if not domain_unique(session, domain_name):
         raise DomainExistsError("Domain name in use")
 
-    about_: Optional[str] = about(
-        session=session,
-        about_content=about_me,
-    )
+    about: Optional[str] = about_me.strip() if about_me else None
 
     theme: Optional[str] = str(theme_uuid) if theme_uuid else None
 
@@ -90,39 +87,11 @@ def create(
             title=title,
             date_created=get_utc_now(),
             user_uuid=user.uuid,
-            about=about_,
+            about=about,
             theme=theme,
             permissions=perms.create_role(permissions),
         )
     )
-
-
-def about(session: LocalProxy, about_content: str = None) -> str:
-    """Save Corna 'about me' content.
-
-    Underneath the hood, 'about me' is saved as a block of
-    text content. This allows us to easily edit/update this
-    content in the future, while also giving the flexibility of
-    a full text object.
-
-    :params LocalProxy session: db session
-    :params Optional[str] about_content: the content to save
-    :return: uuid of saved data
-    :rtype: str
-    """
-    if not about_content:
-        return None
-
-    new_uuid = utils.get_uuid()
-    session.add(
-        models.TextContent(
-            uuid=new_uuid,
-            content=about_content,
-            created=get_utc_now(),
-            post_uuid=None,
-        )
-    )
-    return new_uuid
 
 
 def get_domain(session: LocalProxy, signed_cookie: str) -> str:
