@@ -298,7 +298,7 @@ class CornaTable(Base):
         back_populates="corna"
     )
     about = Column(
-        UUID,
+        Text,
         nullable=True,
         doc="Corna about/bio",
     )

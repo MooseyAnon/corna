@@ -247,20 +247,7 @@ def test_corna_with_about(session, client, login):
     assert corna is not None
     user = single_user()
     assert corna.user.username == user["username"]
-    assert corna.about is not None
-
-    assert len(session.query(models.TextContent).all()) == 1
-    about = (
-        session
-        .query(models.TextContent)
-        .filter(models.TextContent.uuid == corna.about)
-        .one_or_none()
-    )
-
-    assert about is not None
-    assert about.post_uuid is None
-    assert about.post is None
-    assert about.content == "Hey this is my cool new Corna!"
+    assert corna.about == "Hey this is my cool new Corna!"
 
 
 def test_create_corna_with_theme(session, client, login, theme):
@@ -286,20 +273,7 @@ def test_create_corna_with_theme(session, client, login, theme):
     assert corna is not None
     user = single_user()
     assert corna.user.username == user["username"]
-    assert corna.about is not None
-
-    assert len(session.query(models.TextContent).all()) == 1
-    about = (
-        session
-        .query(models.TextContent)
-        .filter(models.TextContent.uuid == corna.about)
-        .one_or_none()
-    )
-
-    assert about is not None
-    assert about.post_uuid is None
-    assert about.post is None
-    assert about.content == "Hey this is my cool new Corna!"
+    assert corna.about == "Hey this is my cool new Corna!"
 
     theme = (
         session
