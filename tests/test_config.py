@@ -7,14 +7,6 @@ import yaml
 from corna import config
 
 
-# clear cache before every test run
-@pytest.fixture(autouse=True)
-def clear_config_cache():
-    config.get_config.cache_clear()
-    yield
-    config.get_config.cache_clear()
-
-
 @pytest.fixture(autouse=True)
 def _clear_config_state(monkeypatch):
     monkeypatch.setenv("CONFIG_FILE_PATH", "i-do-not-exist.yml")
@@ -31,6 +23,7 @@ def _clear_config_state(monkeypatch):
 
 def _mock_config(
     *,
+    upload_dir: str,
     backend: str = "local",
     with_placeholder: bool = False,
     local_root: str = "./tmp-assets",
@@ -54,7 +47,7 @@ def _mock_config(
             "debug": True,
             "port": 5000,
             "sqlalchemy_echo": True,
-            "upload_tmp_dir": "tmp/chunks",
+            "upload_tmp_dir": upload_dir,
             "max_file_size": 10_485_760,
             "allowed_extensions": [
                 "gif",
@@ -98,10 +91,12 @@ def _mock_config(
 @pytest.fixture
 def temp_config_file(tmp_path):
     config_path = tmp_path / "config.yaml"
+    upload_dir = tmp_path / "uploads"
     config_path.write_text(
         yaml.safe_dump(
             _mock_config(
                 local_root=str(tmp_path / "media"),
+                upload_dir=str(upload_dir)
             ),
             sort_keys=False,
         ),
@@ -114,9 +109,10 @@ def temp_config_file(tmp_path):
 @pytest.fixture
 def temp_s3_config_file(tmp_path):
     config_path = tmp_path / "config.yaml"
+    upload_dir = tmp_path / "uploads"
     config_path.write_text(
         yaml.safe_dump(
-            _mock_config(backend="s3"),
+            _mock_config(backend="s3", upload_dir=str(upload_dir)),
             sort_keys=False,
         ),
         encoding="utf-8",
@@ -125,8 +121,10 @@ def temp_s3_config_file(tmp_path):
     return config_path
 
 
-def test_config_loads_local_backend_from_yaml(temp_config_file):
+def test_config_loads_local_backend_from_yaml(tmp_path, temp_config_file):
     test_config = config.load_config(temp_config_file)
+
+    expected_workdir = tmp_path / "uploads"
 
     assert test_config.database.address == "localhost"
     assert test_config.database.user == "cornauser"
@@ -140,7 +138,7 @@ def test_config_loads_local_backend_from_yaml(temp_config_file):
     assert test_config.app.debug is True
     assert test_config.app.port == 5000
     assert test_config.app.sqlalchemy_echo is True
-    assert str(test_config.app.upload_tmp_dir) == "tmp/chunks"
+    assert test_config.app.upload_tmp_dir == expected_workdir
     assert test_config.app.max_file_size == 10_485_760
     assert test_config.app.allowed_extensions == [
         "gif",
@@ -207,11 +205,13 @@ def test_config_expands_environment_placeholder(
     monkeypatch.setenv("DB_NAME", "placeholder_value")
 
     config_path = tmp_path / "config.yaml"
+    upload_dir = tmp_path / "uploads"
     config_path.write_text(
         yaml.safe_dump(
             _mock_config(
                 with_placeholder=True,
                 local_root=str(tmp_path / "media"),
+                upload_dir=str(upload_dir),
             ),
             sort_keys=False,
         ),
@@ -230,11 +230,13 @@ def test_missing_environment_placeholder_becomes_empty_string(
     monkeypatch.delenv("DB_NAME", raising=False)
 
     config_path = tmp_path / "config.yaml"
+    upload_dir = tmp_path / "uploads"
     config_path.write_text(
         yaml.safe_dump(
             _mock_config(
                 with_placeholder=True,
                 local_root=str(tmp_path / "media"),
+                upload_dir=str(upload_dir),
             ),
             sort_keys=False,
         ),
@@ -277,6 +279,7 @@ def test_config_fails_when_path_is_directory(tmp_path):
 def test_local_backend_requires_local_config(tmp_path):
     config_data = _mock_config(
         local_root=str(tmp_path / "media"),
+        upload_dir=str(tmp_path / "uploads"),
     )
     config_data["media"] = {
         "backend": "local",
@@ -298,6 +301,7 @@ def test_local_backend_requires_local_config(tmp_path):
 def test_s3_backend_requires_s3_config(tmp_path):
     config_data = _mock_config(
         local_root=str(tmp_path / "media"),
+        upload_dir=str(tmp_path / "uploads"),
     )
     config_data["media"] = {
         "backend": "s3",
@@ -319,6 +323,7 @@ def test_s3_backend_requires_s3_config(tmp_path):
 def test_local_backend_rejects_s3_config(tmp_path):
     config_data = _mock_config(
         local_root=str(tmp_path / "media"),
+        upload_dir= str(tmp_path / "uploads"),
     )
     config_data["media"]["s3"] = {
         "bucket": "unexpected",
@@ -341,7 +346,7 @@ def test_local_backend_rejects_s3_config(tmp_path):
 
 
 def test_s3_backend_rejects_local_config(tmp_path):
-    config_data = _mock_config(backend="s3")
+    config_data = _mock_config(backend="s3", upload_dir=str(tmp_path / "uploads"))
     config_data["media"]["local"] = {
         "root": str(tmp_path / "media"),
     }
@@ -372,7 +377,7 @@ def test_s3_backend_requires_mandatory_fields(
     tmp_path,
     missing_field,
 ):
-    config_data = _mock_config(backend="s3")
+    config_data = _mock_config(backend="s3", upload_dir=str(tmp_path / "uploads"))
     del config_data["media"]["s3"][missing_field]
 
     config_path = tmp_path / "config.yaml"
@@ -388,6 +393,7 @@ def test_s3_backend_requires_mandatory_fields(
 def test_unknown_configuration_field_is_rejected(tmp_path):
     config_data = _mock_config(
         local_root=str(tmp_path / "media"),
+        upload_dir=str(tmp_path / "uploads")
     )
     config_data["app"]["sqlalchemy_ecoh"] = True
 

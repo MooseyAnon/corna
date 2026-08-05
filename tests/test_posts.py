@@ -68,11 +68,10 @@ def _all_post_based_stubs(request, tmpdir, mocker, monkeypatch):
     )
 
     assets = tmpdir.mkdir("assets")
-    chunks = assets.mkdir("chunks")
 
     mocker.patch(
         "corna.utils.image_proc.get_workdir",
-        return_value=chunks,
+        return_value=assets,
     )
 
 
