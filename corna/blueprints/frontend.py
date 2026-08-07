@@ -62,7 +62,7 @@ def is_valid_token(session_, token: str) -> bool:
     try:
         token_hash: str = secure.hash_invite_token(token)
     except ValueError:
-        return False
+        return False, None
 
     # we dont actually save the raw token string (it only gets shown once on
     # the out path) so we need to search using the token hash - which we do
@@ -81,9 +81,11 @@ def is_valid_token(session_, token: str) -> bool:
         or invite.revoked_at is not None
         or invite.expires_at <= now
     ):
-        return False
+        return False, None
 
-    return True
+    email: str | None = invite.email_address if invite.email_address else None
+
+    return True, email
 
 
 @frontend.after_request
@@ -151,9 +153,13 @@ def join_request(token: str):
         "message": "Thanks for choosing to signup to Corna!",
     }
 
-    if not is_valid_token(session, token):
+    token_valid, email = is_valid_token(session, token)
+    if not token_valid:
         payload["is_valid"] = False
         payload["message"] = "Invite token is invalid or expired."
+
+    if token_valid and email:
+        payload["email"] = email
 
     bootstrap = handle_intent("join")
     bootstrap.update({"payload": payload})

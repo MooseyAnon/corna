@@ -286,6 +286,7 @@ def approve_request(
     token = auth_control.create_invite_for_user(
         session,
         joinbot.uuid,
+        email=invite_request.email_address,
     )
 
     # create_invite_for_user returns the raw token rather than the ORM object.

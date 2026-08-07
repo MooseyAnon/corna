@@ -60,6 +60,7 @@ interface JoinIntentData {
     token: string;
     is_valid: boolean;
     message: string;
+    email?: string;
 }
 
 
@@ -74,6 +75,9 @@ interface State {
     domainName: string | null;
     // this stores any join tokens so they can be used after swaps have happened
     pendingJoinToken: string | null;
+    // if the token is system generated via "request invite", we bind the email
+    // to the joining form
+    pendingJoinEmail: string | null;
     // holds error messages while we wait for the appropriate view to be swapped in
     pendingErrorMessage: string | null;
 
@@ -130,7 +134,10 @@ const toolbarRoutes: ToolbarRoute[] = [
         triggerElementId: "corna-trigger--register",
         handler: () => {
             const token = state.pendingJoinToken;
+            const email = state.pendingJoinEmail;
+
             state.pendingJoinToken = null;
+            state.pendingJoinEmail = null;
 
             if (!token) {
                 displayErrorMessage("Registration token required for this action.");
@@ -139,7 +146,7 @@ const toolbarRoutes: ToolbarRoute[] = [
                 );
             }
 
-            return processNewUser(token);
+            return processNewUser(token, email);
         },
     },
 
@@ -500,6 +507,7 @@ function init(): State {
     const isLoggedIn: boolean = false;
     const domainName: string | null = null;
     const pendingJoinToken: string | null = null;
+    const pendingJoinEmail: string | null = null;
     const pendingErrorMessage: string | null = null;
 
     return {
@@ -509,6 +517,7 @@ function init(): State {
         overlay,
         domainName,
         pendingJoinToken,
+        pendingJoinEmail,
         pendingErrorMessage,
         flags: {
             modalOpen: false,
@@ -722,6 +731,8 @@ function handleHostIntent(message: HostIntentMessage["payload"]): void {
             }
 
             state.pendingJoinToken = joinData.token;
+            // update `pendingJoinEmail` iff email exists and is not null
+            state.pendingJoinEmail = joinData.email ?? state.pendingJoinEmail;
             openToolbarRoute("#registerContainer");
             break;
         }

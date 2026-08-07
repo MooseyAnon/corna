@@ -464,7 +464,11 @@ async function userRegister(): Promise<void> {
  * @param { HTMLElement } root: fragment root container
  * @returns { RegisterConfig }
  */
-function initState(root: HTMLElement, token: string): RegisterConfig {
+function initState(
+    root: HTMLElement,
+    token: string,
+    bindingEmail: string | null
+): RegisterConfig {
     // we'll keep these optional so we can present a helpful message to users
     const username = queryOptional<HTMLInputElement>(root, "#usernameInput");
     const email = queryOptional<HTMLInputElement>(root, "#emailInput");
@@ -480,6 +484,12 @@ function initState(root: HTMLElement, token: string): RegisterConfig {
     ) {
         displayErrorMessage("Registration form failed to load. Please try again.");
         throw new Error("register.ts: missing required DOM elements");
+    }
+
+    // bind email if we have it
+    if (bindingEmail) {
+        email.value = bindingEmail;
+        email.readOnly = true;
     }
 
     const hasScrolled: boolean = false;
@@ -516,6 +526,7 @@ function initState(root: HTMLElement, token: string): RegisterConfig {
  */
 export async function processNewUser(
     inviteToken: string,
+    bindingEmail: string | null,
 ): Promise<void> {
     // pass in the root element to enable correct scoping of queries
     const regCont = document.getElementById("registerContainer") as HTMLElement | null;
@@ -531,7 +542,7 @@ export async function processNewUser(
 
     // init the conf here because we need to do it at HTMX swap time not
     // at import time, which will cause it to be empty
-    regConf = initState(regCont, inviteToken);
+    regConf = initState(regCont, inviteToken, bindingEmail);
 
     // we want to show an avatar when the user starts the registration process
     const avatar: { url: string, slug: string } = await getAvatar();
