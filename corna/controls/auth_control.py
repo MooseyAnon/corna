@@ -149,6 +149,14 @@ def register_user(
 
     invite = validate_invite(session, token)
 
+    if invite.email_address and (invite.email_address != email):
+        logger.warning(
+            "Unknown email attempting to use invite token."
+            "Expected email: %s, received email: %s",
+            invite.email_address, email
+        )
+        raise InvalidInviteError("Invite token is invalid or expired.")
+
     user_uuid = utils.get_uuid()
     avatar_uuid: Optional[models.Media] = (
         assign_avatar(session, avatar)
@@ -303,6 +311,7 @@ def create_invite(
 def create_invite_for_user(
     session: LocalProxy,
     creator_uuid: str,
+    email: str | None = None,
 ) -> str:
     """Create and persist a single-use invite.
 
@@ -318,6 +327,10 @@ def create_invite_for_user(
 
     :param sqlalchemy.Session session: session object
     :param str creator_uuid: UUID of user creating the invite
+    :param str email: Optional email field. This is typically used when
+        an invite is requested by the user, we bind to invite to that
+        email address. When invite is user created, it can be consumed by
+        any email addy.
     :returns: plaintext invite token
     :rtype: str
     :raises InviteCreationError: if the invite cannot be persisted
@@ -331,6 +344,8 @@ def create_invite_for_user(
         created_by_user_id=creator_uuid,
         date_created=get_utc_now(),
         expires_at=future(days=3),
+        # we can use the default if None as field is nullable
+        email_address=email,
     )
 
     session.add(invite)
