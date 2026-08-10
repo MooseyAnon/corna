@@ -48,7 +48,7 @@ def create_role(permissions: List[str]) -> int:
     for permission in permissions:
         perm: str = permission.upper()
         if not CornaPermissions.has_key(perm):
-            logger.warning("%s not found in CornaPermissions")
+            logger.warning("%s not found in CornaPermissions", perm)
             continue
 
         res |= CornaPermissions[perm]
