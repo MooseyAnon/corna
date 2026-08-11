@@ -127,6 +127,7 @@ def _client(session, mocker, request):
     # for this to work we need to mock out avatars where it is called, because
     # we still want to use the "create system users" bootstrap
     mocker.patch("bin.bootstrap.bootstrap_avatars", return_value=False)
+    mocker.patch("bin.bootstrap.bootstrap_themes", return_value=False)
 
     app = create_app(session)
     app.config['TESTING'] = True
