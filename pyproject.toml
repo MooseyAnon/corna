@@ -1,0 +1,54 @@
+[project]
+name = "corna"
+version = "0.1.0"
+description = "Corna backend"
+readme = "README.md"
+authors = [
+    { name = "MooseyAnon", email = "moooseyanon@gmail.com" }
+]
+requires-python = ">=3.10,<3.13"
+
+dependencies = [
+    "boto3",
+    "cryptography==43.0.1",
+    "flask",
+    "flask-apispec",
+    "furl",
+    "greenlet",
+    "gunicorn",
+    "marshmallow==3.22.0",
+    "nh3",
+    "opencv-python==4.12.0.88",
+    "psycopg2",
+    "pydantic>=2.0.0",
+    "python-dateutil",
+    "pyyaml",
+    "requests",
+    "SQLAlchemy>1.4,<1.5",
+    "typing-extensions",
+    "validators",
+]
+
+[dependency-groups]
+dev = [
+    "ansible-core>=2.17.14",
+    "freezegun",
+    "isort",
+    "mock",
+    "mypy",
+    "pycodestyle",
+    "pylint",
+    "pytest",
+    "pytest-mock",
+    "sqltap",
+    "testing.postgresql",
+]
+
+migration = [
+    "alembic==1.0.10",
+]
+
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"
