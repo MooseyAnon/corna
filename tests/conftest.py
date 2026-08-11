@@ -115,8 +115,19 @@ def _session(session_class):
 
 
 @pytest.fixture(name='client')
-def _client(session, request):
+def _client(session, mocker, request):
     """Provide access to the Flask app."""
+    # mock out avatar creation unless explicitly needed. This prevents having
+    # to change all the media tests by marking them with `nostubs`.
+    # 
+    # We need to do this because the tests create a predictable media url
+    # (which has to be unique) and if avatars already exists this will cause
+    # a clash with the generated url - thus failing all media related tests.
+    #
+    # for this to work we need to mock out avatars where it is called, because
+    # we still want to use the "create system users" bootstrap
+    mocker.patch("bin.bootstrap.bootstrap_avatars", return_value=False)
+
     app = create_app(session)
     app.config['TESTING'] = True
 
