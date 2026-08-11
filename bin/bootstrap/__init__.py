@@ -63,6 +63,12 @@ def bootstrap(session: Session) -> bool:
         return False
 
     accounts_ran = bootstrap_accounts(session)
-    avatars_ran = bootstrap_avatars(session)
+    # Themes depend on system accounts such as themebot existing. Flush pending
+    # inserts so subsequent bootstrap jobs can query them without committing the
+    # overall bootstrap transaction.
+    session.flush()
 
-    return accounts_ran or avatars_ran
+    avatars_ran = bootstrap_avatars(session)
+    themes_ran = bootstrap_themes(session)
+
+    return accounts_ran or avatars_ran or themes_ran
