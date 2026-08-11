@@ -2,7 +2,6 @@
 
 import logging
 
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from corna.utils import get_utc_now, utils
@@ -10,11 +9,6 @@ from corna.db import models
 
 
 logger = logging.getLogger(__name__)
-# Arbitrary application-specific advisory lock identifier.
-#
-# This value must remain stable so all workers and replicas contend for the
-# same PostgreSQL advisory lock.
-ACCOUNT_BOOTSTRAP_LOCK_ID = 6_283_441_001
 
 
 SYSTEM_ACCOUNTS = (
@@ -26,26 +20,6 @@ SYSTEM_ACCOUNTS = (
 
 class BootstrapError(RuntimeError):
     """Raised when existing data conflicts with the required bootstrap state."""
-
-
-def try_acquire_lock(session: Session) -> bool:
-    """Try to acquire the account-bootstrap lock for this transaction.
-
-    PostgreSQL releases the lock automatically when the surrounding
-    transaction commits or rolls back.
-    """
-    acquired = session.execute(
-        text(
-            """
-            SELECT pg_try_advisory_xact_lock(:lock_id)
-            """
-        ),
-        {
-            "lock_id": ACCOUNT_BOOTSTRAP_LOCK_ID,
-        },
-    ).scalar_one()
-
-    return bool(acquired)
 
 
 def ensure_system_account(
@@ -96,10 +70,6 @@ def bootstrap_accounts(session: Session) -> bool:
         True when this process acquired the lock and checked the accounts.
         False when another process currently owns the bootstrap lock.
     """
-    if not try_acquire_lock(session):
-        logger.info(
-            "Skipping account bootstrap as another process is already running.")
-        return False
 
     for username in SYSTEM_ACCOUNTS:
         ensure_system_account(
