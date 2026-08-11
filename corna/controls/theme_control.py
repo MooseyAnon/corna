@@ -88,8 +88,8 @@ def add(
     :param str name: name of theme
     :param Optional[str] description: theme description
     :param Optional[str] path: path to theme html
-    :param Optional[str] thumbnail: theme thumbnail UUID. The thumbnail must
-        have already been uploaded to the server.
+    :param Optional[str] thumbnail: theme thumbnail url slug. The thumbnail
+        must have already been uploaded to the server.
 
     :raises NoneExistingUserError: if user session cannot be found
     :raises ValueError: if the user has already made a theme with the
