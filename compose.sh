@@ -45,15 +45,9 @@ tmp_cert() {
     local filename="${PROJECT_ROOT}/tmp_${1}.pem"
 
     # file does not already exist so we need to create it
-    if [ ! -f "${filenmae}" ]; then 
+    if [ ! -f "${filename}" ]; then
 
-        ensure_venv  # ensure we have a venv
-
-        ANSIBLE_VAULT_PATH="${PROJECT_ROOT}/corna/utils/vault" \
-        ANSIBLE_VAULT_PASSWORD_FILE="${ANSIBLE_VAULT_PASSWORD_FILE}" \
-        venv/bin/python -c \
-            "import corna.utils as utils; print(utils.vault_item('keys.ssl-certs.${1}'))" \
-            >> "${filename}"
+       vault_item "vault.keys.ssl-certs.${1}" > "${filename}"
     fi
 
     if [[ ! $? -eq 0 ]]; then
@@ -64,6 +58,24 @@ tmp_cert() {
     chmod 600 "${filename}"
 }
 
+
+vault_item() {
+    local key="$1"
+
+    .venv/bin/ansible-vault view \
+        --vault-password-file "${ANSIBLE_VAULT_PASSWORD_FILE}" \
+        "${PROJECT_ROOT}/corna/utils/vault" |
+        .venv/bin/python -c "
+import sys
+import yaml
+
+data = yaml.safe_load(sys.stdin)
+keys = '${key}'.split('.')
+for k in keys:
+    data = data[k]
+print(data)
+"
+}
 
 compose() {
     local opt="${1}"
