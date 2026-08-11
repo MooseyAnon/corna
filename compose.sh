@@ -184,16 +184,9 @@ done
 
 
 cat <<EOT>> .env
-ANSIBLE_VAULT_PATH=/home/corna-user/workspace/corna/utils/vault
-# this path is created by the docker secrets functionality
-ANSIBLE_VAULT_PASSWORD_FILE_IN_CONTAINER=/run/secrets/vault_password
+CONFIG_FILE_PATH=/home/corna-user/workspace/development.yml
 DB_ADDRESS=$(my_ip)
-DB_USER=cornauser
-DB_PORT=5432
-DB_NAME=corna
-CORNA_PORT=5001
-PICTURE_DIR=$(pwd)/tmp-assets
-SSL_MODE=prefer
+UPLOAD_TMP_DIR=$(pwd)/tmp-assets
 CORNA_INVITE_APPROVAL_DIR=$(pwd)/tmp-assets
 EOT
 
