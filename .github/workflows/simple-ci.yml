@@ -33,19 +33,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-13 postgresql-contrib
 
-      - name: Install Python3.12
-        uses: actions/setup-python@v3
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
         with:
+          version: "0.12.3"
           python-version: "3.12"
 
-      - name: Install Requirements
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+      - name: Install dependencies
+        run: make install-dev
 
-      # Runs a single command using the runners shell
-      - name: Run pylint
-        run: python -m pylint corna
+      - name: Run Pylint
+        run: make check-pylint-main
 
   pycodestyle:
     # The type of runner that the job will run on
@@ -63,19 +61,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-13 postgresql-contrib
 
-      - name: Install Python3.12
-        uses: actions/setup-python@v3
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
         with:
+          version: "0.12.3"
           python-version: "3.12"
 
-      - name: Install Requirements
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+      - name: Install dependencies
+        run: make install-dev
 
-      # Runs a single command using the runners shell
       - name: Run pycodestyle
-        run: python -m pycodestyle corna
+        run: make check-pycodestyle
 
   pytests:
     # The type of runner that the job will run on
@@ -101,14 +97,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        with:
+          version: "0.12.3"
+          python-version: ${{ matrix.python-version }}
+
       - name: Install Requirements
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+        run: make install-dev
 
       # Runs a single command using the runners shell
       - name: Run tests
-        run: SQLALCHEMY_WARN_20=0 SQLALCHEMY_SILENCE_UBER_WARNING=1 python -m pytest -v
+        run: PYTHON=python${{ matrix.python-version }} make check-tests
 
   isort:
     # The type of runner that the job will run on
@@ -126,19 +126,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-13 postgresql-contrib
 
-      - name: Install Python3.12
-        uses: actions/setup-python@v3
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
         with:
+          version: "0.12.3"
           python-version: "3.12"
 
-      - name: Install Requirements
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+      - name: Install dependencies
+        run: make install-dev
 
-      # Runs a single command using the runners shell
       - name: Run isort
-        run: python -m isort corna --check-only --diff --skip venv
+        run: make check-isort
 
   eslint:
 
