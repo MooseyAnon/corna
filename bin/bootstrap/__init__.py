@@ -62,3 +62,7 @@ def bootstrap(session: Session) -> bool:
             "Skipping account bootstrap as another process is already running.")
         return False
 
+    accounts_ran = bootstrap_accounts(session)
+    avatars_ran = bootstrap_avatars(session)
+
+    return accounts_ran or avatars_ran
