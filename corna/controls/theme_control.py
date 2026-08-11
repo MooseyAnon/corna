@@ -71,19 +71,17 @@ def sanitize_path(path: str = None) -> Optional[str]:
     return path
 
 
-def add(
+def create_theme(
     session: LocalProxy,
-    cookie: str,
     creator: str,
     name: str,
     description: Optional[str] = None,
     path: Optional[str] = None,
     thumbnail: Optional[str] = None,
 ) -> None:
-    """Add a new theme.
+    """This exists to bypass session rules for system bootstrap.
 
     :param LocalProxy session: database connection
-    :param str cookie: current user cookie
     :param str creator: theme creator
     :param str name: name of theme
     :param Optional[str] description: theme description
@@ -91,17 +89,9 @@ def add(
     :param Optional[str] thumbnail: theme thumbnail url slug. The thumbnail
         must have already been uploaded to the server.
 
-    :raises NoneExistingUserError: if user session cannot be found
     :raises ValueError: if the user has already made a theme with the
         same name
     """
-    # ensure current user is logged in
-    # this will be also used as a permissions gate in the future
-    utils.current_user(
-        session, cookie,
-        exception=NoneExistingUserError,
-    )
-
     user: Optional[models.UserTable] = (
         session
         .query(models.UserTable)
@@ -146,6 +136,47 @@ def add(
             creator_user_id=user.uuid,
             thumbnail=thumnail_uuid,
         )
+    )
+
+
+def add(
+    session: LocalProxy,
+    cookie: str,
+    creator: str,
+    name: str,
+    description: Optional[str] = None,
+    path: Optional[str] = None,
+    thumbnail: Optional[str] = None,
+) -> None:
+    """Add a new theme.
+
+    :param LocalProxy session: database connection
+    :param str cookie: current user cookie
+    :param str creator: theme creator
+    :param str name: name of theme
+    :param Optional[str] description: theme description
+    :param Optional[str] path: path to theme html
+    :param Optional[str] thumbnail: theme thumbnail url slug. The thumbnail
+        must have already been uploaded to the server.
+
+    :raises NoneExistingUserError: if user session cannot be found
+    :raises ValueError: if the user has already made a theme with the
+        same name
+    """
+    # ensure current user is logged in
+    # this will be also used as a permissions gate in the future
+    utils.current_user(
+        session, cookie,
+        exception=NoneExistingUserError,
+    )
+
+    create_theme(
+        session=session,
+        creator=creator,
+        name=name,
+        description=description,
+        path=path,
+        thumbnail=thumbnail,
     )
 
 
