@@ -128,6 +128,97 @@ def test_upload(session, client, mocker, login):
     assert image.width == 2400
 
 
+
+def test_upload__custom_avatar(session, client, mocker, login):
+    mocker.patch(
+        "corna.utils.utils.get_uuid",
+        return_value="00000000-0000-0000-0000-000000000000",
+    )
+
+    # generate invite
+    resp = client.post("/api/v1/auth/invite")
+    assert resp.status_code == 201
+
+    token = resp.json["join_url"].rsplit("/")[1]
+
+    type_ = "image"
+    image = (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb")
+    resp = client.post(
+        "/api/v1/media/register-avatar-upload",
+        data={"image": image, "type": type_, "token": token},
+    )
+    assert resp.status_code == 201
+
+    expected = {
+        "filename": f"{shared_data.ASSET_DIR}/anders-jilden.jpg",
+        "size": os.stat((shared_data.ASSET_DIR / "anders-jilden.jpg")).st_size,
+        "id": "00000000-0000-0000-0000-000000000000",
+        "url_extension": "abcdef",
+        "mime_type": "image/jpeg"
+    }
+
+    assert resp.json == expected
+
+
+def test_upload__custom_avatar_bad_token(session, client, mocker, login):
+    mocker.patch(
+        "corna.utils.utils.get_uuid",
+        return_value="00000000-0000-0000-0000-000000000000",
+    )
+
+    token = "bad-token-sad-face"
+
+    type_ = "image"
+    image = (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb")
+    resp = client.post(
+        "/api/v1/media/register-avatar-upload",
+        data={"image": image, "type": type_, "token": token},
+    )
+    assert resp.status_code == 400
+
+
+def test_upload__custom_avatar_not_image_type(session, client, mocker, login):
+    mocker.patch(
+        "corna.utils.utils.get_uuid",
+        return_value="00000000-0000-0000-0000-000000000000",
+    )
+
+    # generate invite
+    resp = client.post("/api/v1/auth/invite")
+    assert resp.status_code == 201
+
+    token = resp.json["join_url"].rsplit("/")[1]
+
+    type_ = "video"
+    image = (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb")
+    resp = client.post(
+        "/api/v1/media/register-avatar-upload",
+        data={"image": image, "type": type_, "token": token},
+    )
+    assert resp.status_code == 400
+
+
+def test_upload__custom_avatar_not_image_file(session, client, mocker, login):
+    mocker.patch(
+        "corna.utils.utils.get_uuid",
+        return_value="00000000-0000-0000-0000-000000000000",
+    )
+
+    # generate invite
+    resp = client.post("/api/v1/auth/invite")
+    assert resp.status_code == 201
+
+    token = resp.json["join_url"].rsplit("/")[1]
+
+    type_ = "image"
+    image = (shared_data.ASSET_DIR / "big-bunny.mp4").open("rb")
+    resp = client.post(
+        "/api/v1/media/register-avatar-upload",
+        data={"image": image, "type": type_, "token": token},
+    )
+    assert resp.status_code == 400
+
+
 def test_file_not_saved_properly(session, client, mocker, login):
     mocker.patch(
         "corna.utils.image_proc.save",

@@ -11,7 +11,7 @@ from marshmallow import Schema, fields, validate
 from werkzeug.datastructures import FileStorage
 
 from corna import enums
-from corna.controls import media_control
+from corna.controls import auth_control, media_control
 from corna.middleware import storage
 from corna.oss.flask_sqlalchemy_session import current_session as session
 from corna.utils import secure, utils
@@ -413,3 +413,81 @@ def get_upload_status(upload_id: str):
     }
 
     return response
+
+
+class RegisterAvatarUploadSchema(FileUploadSend):
+    """Schema for invite-token avatar uploads during registration."""
+
+    token = fields.String(
+        required=True,
+        metadata={
+            "description": "single-use invite token for account creation",
+        },
+    )
+
+
+@media.route("/media/register-avatar-upload", methods=["POST"])
+@marshal_with(FileUploadReturn(), code=201)
+@use_kwargs(RegisterAvatarUploadSchema(), location="form")
+@doc(
+    tags=["media"],
+    description="Upload a registration avatar using an invite token",
+    response={
+        HTTPStatus.BAD_REQUEST: {
+            "description":
+                "Invalid invite token, invalid media type, or no file sent",
+        },
+        HTTPStatus.INTERNAL_SERVER_ERROR: {
+            "description": "Unable to save file",
+        },
+        HTTPStatus.CREATED: {
+            "description": "Successfully saved file",
+        },
+    }
+)
+def upload_register_avatar(
+    type: str,
+    token: str,
+):  # pylint: disable=redefined-builtin
+    """Upload a registration avatar after validating the invite token."""
+    if type != enums.MediaTypes.IMAGE.value:
+        return utils.respond_json_error(
+            "Only image uploads are allowed for registration avatars",
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    if not request.files.get("image"):
+        return utils.respond_json_error(
+            "Media file required",
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    images: List[FileStorage] = request.files.getlist("image")
+    utils.validate_files(images)
+
+    avatar = images[0]
+    # this is to make the check slightly stricter. Its still not super perfect
+    # but between the two layers of checks, it should be good enough till
+    # we move to a more robust solution.
+    m_type = mimetypes.guess_type(avatar.filename, strict=True)[0]
+
+    if not m_type.startswith("image"):
+        return utils.respond_json_error(
+            "avatar must be a valid image",
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    try:
+        auth_control.validate_invite(session, token)
+        image_data = media_control.upload(session, images[0], type)
+    except auth_control.InvalidInviteError as err:
+        return utils.respond_json_error(str(err), HTTPStatus.BAD_REQUEST)
+    except OSError:
+        return utils.respond_json_error(
+            "Unable to save file",
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+
+    session.commit()
+
+    return image_data, HTTPStatus.CREATED
