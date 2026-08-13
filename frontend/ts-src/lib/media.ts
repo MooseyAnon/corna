@@ -41,10 +41,12 @@ export async function uploadMediaFile(file: File, opts?: Opts) {
     }
 
     let callable: (file: File, opts?: Opts) => AxiosPromise = smallUpload;
+
     if (file.size > MAX_SIMPLE_UPLOAD) {
         callable = largeUpload;
     }
-    return callable(file, opts)
+
+    return callable(file, opts);
 }
 
 
@@ -66,6 +68,7 @@ async function smallUpload(file: File, opts?: Opts): AxiosPromise {
     const uploadUrl: string = opts?.uploadUrl ?? SIMPLE_UPLOAD_URL;
 
     const formData = new FormData();
+
     formData.append("image", file, file.name);
     formData.append("type", fileType);
 
@@ -78,17 +81,13 @@ async function smallUpload(file: File, opts?: Opts): AxiosPromise {
         }
     }
 
-    return request<FormData>(
-        uploadUrl, method, formData, undefined,
-        {
-            signal: opts?.signal,
-            onUploadProgress: (e) => {
-                if (opts?.onProgress && e.total) {
-                    opts.onProgress(e.loaded / e.total);
-                }
-            },
-        }
-    );
+    return request<FormData>(uploadUrl, method, formData, undefined, {
+        signal: opts?.signal,
+        onUploadProgress: (e) => {
+            if (opts?.onProgress && e.total) {
+                opts.onProgress(e.loaded / e.total);
+            }
+        }});
 }
 
 
@@ -121,22 +120,20 @@ async function largeUpload(file: File, opts?: Opts): AxiosPromise {
     // if this errors, the error will bubble up to the caller
     // TODO: This should do retries with exponential backoff!
     // there is a high chance it could get throttled by the rate limiter
-    await sendChunks(file, uploadId, opts)
+    await sendChunks(file, uploadId, opts);
 
     // check status
     // TODO: if upload is not complete retry and throw error if persists!
     const [error,] = await handlePromise(
         request(`${CHUNK_UPLOAD_URL}/status/${uploadId}`, "get")) as RRT;
-    if (error) { throw new Error(error.message) }
+    if (error) { throw new Error(error.message); }
 
     // merge
-    return request(
-        `${CHUNK_UPLOAD_URL}/merge`, "post",
-        {
-            filename: file.name,
-            uploadId: uploadId,
-            contentType: fileType,
-        })
+    return request(`${CHUNK_UPLOAD_URL}/merge`, "post", {
+        filename: file.name,
+        uploadId: uploadId,
+        contentType: fileType,
+    });
 
 }
 
@@ -171,18 +168,20 @@ async function sendChunks(
     const chunkSize = opts?.chunkSize ?? DEFAULT_CHUNK_SIZE;
     const totalChunks: number = Math.ceil(file.size / chunkSize);
 
-    let uploadedBytes: number = 0
+    let uploadedBytes: number = 0;
 
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
         const start: number = chunkIndex * chunkSize;  // offset
-        const end: number   = Math.min(start + chunkSize, file.size);
-        const blob  = file.slice(start, end);
+        const end: number = Math.min(start + chunkSize, file.size);
+        const blob = file.slice(start, end);
 
         const fd = new FormData();
+
         fd.append("chunk", blob, `${file.name}.part${chunkIndex}`);
         fd.append("chunkIndex", String(chunkIndex));
         fd.append("totalChunks", String(totalChunks));
-        fd.append("uploadId", uploadId); // server groups chunks by this
+        fd.append("uploadId", uploadId);
+
         if (opts?.extraFormFields) {
             for (const key in opts.extraFormFields) {
                 /* eslint-disable-next-line no-prototype-builtins */
@@ -203,12 +202,11 @@ async function sendChunks(
         if (error) { throw new Error(error.message); }
 
         uploadedBytes += blob.size;
-        if (opts?.onProgress) {
-            opts?.onProgress(uploadedBytes / file.size);
-        }
+
+        opts?.onProgress?.(uploadedBytes / file.size);
     }
 
-    return uploadedBytes
+    return uploadedBytes;
 }
 
 /* ---------- utilities ---------- */
