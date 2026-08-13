@@ -1132,6 +1132,11 @@ h1 {
   position: relative;
   justify-content: center;
 }
+.avatarUploadActions {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
 .cornaURL {
   display: flex;
   flex-direction: row;
@@ -1190,7 +1195,8 @@ h1 {
 
 #avatar {
   height: 100%;
-  width: auto;
+  width: 100%;
+  object-fit: cover;
 }
 
 /*----------------------------MODAL-------------------------------*/

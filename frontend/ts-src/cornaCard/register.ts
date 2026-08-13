@@ -2,10 +2,13 @@
 
 import {
     RequestReturnType as RRT,
+    getApiUrl,
     handleNetworkError,
     postData,
     request,
 } from "./../lib/network.js";
+
+import { uploadMediaFile } from "./../lib/media.js";
 
 import {
     clean,
@@ -27,6 +30,9 @@ import {
 
 
 interface RegisterConfig {
+    avatar: HTMLImageElement;
+    avatarUploadButton: HTMLButtonElement;
+    avatarUploadInput: HTMLInputElement;
     blocked: boolean;
     domainName: HTMLInputElement;
     email: HTMLInputElement;
@@ -47,11 +53,16 @@ interface RegisterConfig {
  * Holds base user details when creating an account
  */
 interface UserDetails {
+    avatar?: string | null;
     username: string;
     email: string;
     password: string;
     token: string
 }
+
+
+const REGISTER_AVATAR_UPLOAD_URL = "v1/media/register-avatar-upload";
+const MAX_REGISTER_AVATAR_FILE_SIZE = 5 * 1024 * 1024;
 
 
 /**
@@ -380,8 +391,58 @@ async function getAvatar(): Promise<{ url: string, slug: string }> {
  * Display user avatar
  */
 function displayAvatar(src: string): void {
-    const avatar = document.getElementById("avatar") as HTMLImageElement;
-    avatar.src = src;
+    regConf.avatar.src = src;
+}
+
+
+/**
+ * Upload a custom avatar.
+ * 
+ * This function both handles the upload of the avatar and displaying it
+ * upon upload successfully completing.
+ * 
+ * If there are any issues, we default to system generated avatar.
+ */
+async function uploadAvatar(): Promise<void> {
+    const file: File | undefined = regConf.avatarUploadInput.files?.[0];
+    if (!file) { return; }
+
+    const avatartSrcUrl = `${getApiUrl()}/v1/media/download`;
+
+    if (!file.type.startsWith("image/")) {
+        displayErrorMessage("Only image uploads are allowed for avatars");
+        regConf.avatarUploadInput.value = "";
+        return;
+    }
+
+    // dont allow clicking while upload is in process
+    regConf.avatarUploadButton.disabled = true;
+    regConf.avatarUploadInput.disabled = true;
+
+    const [error, response] = await handlePromise(uploadMediaFile(file, {
+        uploadUrl: REGISTER_AVATAR_UPLOAD_URL,
+        maxFileSize: MAX_REGISTER_AVATAR_FILE_SIZE,
+        extraFormFields: {
+            token: regConf.inviteToken,
+            type: "image",
+        },
+    })) as RRT;
+
+    regConf.avatarUploadButton.disabled = false;
+    regConf.avatarUploadInput.disabled = false;
+    regConf.avatarUploadInput.value = "";
+
+    // update display to show custom avatar
+    if (response) {
+        regConf.selectedAvatar = response.data.url_extension;
+        displayAvatar(`${avatartSrcUrl}/${regConf.selectedAvatar as string}`);
+        return;
+    }
+
+    if (error) {
+        const errMsg = handleNetworkError(error);
+        displayErrorMessage(errMsg);
+    }
 }
 
 
@@ -469,6 +530,9 @@ function initState(
     token: string,
     bindingEmail: string | null
 ): RegisterConfig {
+    const avatar = queryOptional<HTMLImageElement>(root, "#avatar");
+    const avatarUploadButton = queryOptional<HTMLButtonElement>(root, "#avatarUploadButton");
+    const avatarUploadInput = queryOptional<HTMLInputElement>(root, "#avatarUploadInput");
     // we'll keep these optional so we can present a helpful message to users
     const username = queryOptional<HTMLInputElement>(root, "#usernameInput");
     const email = queryOptional<HTMLInputElement>(root, "#emailInput");
@@ -479,7 +543,7 @@ function initState(
     const title = queryOptional<HTMLInputElement>(root, "#tabtitleInput");
 
     if (
-        !username || !email || !password || !themeDetailsSection
+        !avatar || !avatarUploadButton || !avatarUploadInput || !username || !email || !password || !themeDetailsSection
         || !themeGallery || !domainName || !title
     ) {
         displayErrorMessage("Registration form failed to load. Please try again.");
@@ -499,6 +563,9 @@ function initState(
     const inviteToken: string = token;
 
     return {
+        avatar,
+        avatarUploadButton,
+        avatarUploadInput,
         blocked,
         domainName,
         email,
@@ -573,6 +640,15 @@ export async function processNewUser(
             }
         });
     }
+
+    regConf.avatarUploadButton.addEventListener("click", function() {
+        regConf.avatarUploadInput.click();
+    });
+
+    regConf.avatarUploadInput.addEventListener("change", async function() {
+        resetMessages();
+        await uploadAvatar();
+    });
 
 
 }

@@ -19,6 +19,7 @@ interface Opts {
     onProgress?: (fraction: number) => void;   // 0..1
     signal?: AbortSignal;                      // to cancel
     extraFormFields?: Record<string, string>;  // e.g. { type: "image" }
+    uploadUrl?: string;                        // override simple upload URL when needed
 }
 
 /**
@@ -62,6 +63,7 @@ async function smallUpload(file: File, opts?: Opts): AxiosPromise {
 
     const fileType: string = file.type.split("/")[0];
     const method: ("get" | "delete" | "post" | "put") = "post";
+    const uploadUrl: string = opts?.uploadUrl ?? SIMPLE_UPLOAD_URL;
 
     const formData = new FormData();
     formData.append("image", file, file.name);
@@ -77,7 +79,7 @@ async function smallUpload(file: File, opts?: Opts): AxiosPromise {
     }
 
     return request<FormData>(
-        SIMPLE_UPLOAD_URL, method, formData, undefined,
+        uploadUrl, method, formData, undefined,
         {
             signal: opts?.signal,
             onUploadProgress: (e) => {
