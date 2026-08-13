@@ -244,7 +244,11 @@ def get_range(headers: dict, size: int) -> tuple[int, int] | None:
     start: int = int(range_match.group(1))
     # end does not always have to be defined
     end_str: Optional[str] = range_match.group(2)
-    end: int = int(end_str) if end_str else size - 1
+
+    if end_str:
+        end: int = int(end_str)
+    else:
+        end = min(start + image_proc.RANGE_RESPONSE_SIZE - 1, size - 1)
 
     return start, end
 

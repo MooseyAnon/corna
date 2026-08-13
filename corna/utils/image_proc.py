@@ -23,6 +23,19 @@ IMAGE_EXTENSIONS: Set[str] = {"gif", "jpg", "jpeg", "png", "webp"}
 VIDEO_EXTENSIONS: Set[str] = {"avi", "flv", "mkv", "mp4", "mov", "wmv"}
 # 100MB - current file size limit for images/videos
 MAX_BLOB_SIZE: int = 100 * 1024 * 1024
+# 3MB - The amount of data we send back to the browser for each range
+# request on a large file.
+#
+# This is a tradeoff:
+# - Larger chunks keep the streaming connection open for longer, which can
+#   provide a more consistent stream, but they also tie up server resources
+#   for longer.
+# - Smaller chunks give the browser more opportunities to disconnect, freeing
+#   server resources sooner, but result in more requests.
+#
+# The goal is to find the right balance. Larger chunks can also provide a
+# worse experience on slower or less reliable internet connections.
+RANGE_RESPONSE_SIZE = 3 * 1024 * 1024
 # Using md5 there seems to be some small chance of collisions
 # however, my maths is not good enough to calculate it myself
 # and there seems to be some conflicting points RE answers I've
