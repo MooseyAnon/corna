@@ -147,7 +147,7 @@ def download(url_extension: str):
     store = storage.get_storage()
 
     if (
-        not (media_file.type == enums.MediaTypes.VIDEO)
+        not (media_file.type == enums.MediaTypes.VIDEO.value)
         or not (
             ranges := media_control.get_range(request.headers, media_file.size)
         )
