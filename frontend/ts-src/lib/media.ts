@@ -1,6 +1,7 @@
 /* Handle the peculiarities of uploading media files. */
 
-import { AxiosPromise } from "axios";
+import axios from "axios";
+import { AxiosError, AxiosPromise } from "axios";
 
 import { request, RequestReturnType as RRT } from "./network.js";
 import { handlePromise } from "./utils.js";
@@ -11,6 +12,17 @@ const DEFAULT_MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB (make 0 to disable)
 const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024;      // 5 MB
 const SIMPLE_UPLOAD_URL = "v1/media/upload";
 const CHUNK_UPLOAD_URL  = "v1/media/chunk";
+
+const MAX_CHUNK_ATTEMPTS = 4;                   // max attempts to resend chunks before aborting
+const CHUNK_RETRY_BASE_DELAY_MS = 500;          // base backoff delay
+
+const RETRYABLE_STATUS_CODES = new Set([
+    429,
+    500,
+    502,
+    503,
+    504,
+]);
 
 
 interface Opts {
@@ -139,6 +151,184 @@ async function largeUpload(file: File, opts?: Opts): AxiosPromise {
 
 
 /**
+ * Determine whether a failed chunk upload can be safely retried.
+ *
+ * @param { unknown } error - The error returned by the upload request.
+ * @returns { boolean } True if the request should be retried, otherwise false.
+ */
+function isRetryableChunkError(error: unknown): boolean {
+    if (!axios.isAxiosError(error)) {
+        return false;
+    }
+
+    // Request was cancelled by the caller.
+    if (error.code === "ERR_CANCELED") {
+        return false;
+    }
+
+    // No response means the request failed at the network/transport layer.
+    if (!error.response) {
+        return true;
+    }
+
+    return RETRYABLE_STATUS_CODES.has(error.response.status);
+}
+
+
+/**
+ * Parse the Retry-After response header into a delay in milliseconds.
+ *
+ * Supports both delay-in-seconds and HTTP-date Retry-After values as it
+ * can contain either:
+ *
+ *   Retry-After: 5
+ *   Retry-After: Wed, 21 Oct 2015 07:28:00 GMT
+ *
+ * @param { AxiosError } error - The Axios error containing the response headers.
+ * @returns { number | undefined } The retry delay in milliseconds, or undefined
+ *     if no valid Retry-After header is present.
+ */
+function retryAfterMs(error: AxiosError): number | undefined {
+    const retryAfter = error.response?.headers?.["retry-after"];
+
+    if (retryAfter === undefined) {
+        return undefined;
+    }
+
+    const seconds = Number(retryAfter);
+
+    if (Number.isFinite(seconds)) {
+        return Math.max(0, seconds * 1000);
+    }
+
+    const retryAt = Date.parse(String(retryAfter));
+
+    if (!Number.isNaN(retryAt)) {
+        return Math.max(0, retryAt - Date.now());
+    }
+
+    return undefined;
+}
+
+
+/**
+ * Calculate the delay before retrying a failed chunk upload.
+ *
+ * Uses the server-provided Retry-After value for rate-limited requests when
+ * available, otherwise calculates exponential backoff with jitter.
+ *
+ * @param { unknown } error - The error returned by the upload request.
+ * @param { number } retryNumber - The zero-based retry number.
+ * @returns { number } The delay before the next attempt in milliseconds.
+ */
+function retryDelayMs(error: unknown, retryNumber: number): number {
+    if (
+        axios.isAxiosError(error)
+        && error.response?.status === 429
+    ) {
+        const serverDelay = retryAfterMs(error);
+
+        if (serverDelay !== undefined) {
+            return serverDelay;
+        }
+    }
+
+    const exponentialDelay = CHUNK_RETRY_BASE_DELAY_MS * (2 ** retryNumber);
+
+    // 75%-125% jitter.
+    const jitter = 0.75 + (Math.random() * 0.5);
+
+    return exponentialDelay * jitter;
+}
+
+
+/**
+ * Sleep for a specified duration while supporting cancellation.
+ *
+ * @param { number } ms - The duration to wait in milliseconds.
+ * @param { AbortSignal } [signal] - Optional signal used to cancel the wait.
+ * @returns { Promise<void> } Resolves once the delay has elapsed.
+ *
+ * @throws { DOMException } Throws if the operation is aborted.
+ */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+        if (signal?.aborted) {
+            reject(signal.reason ?? new DOMException(
+                "Operation aborted",
+                "AbortError",
+            ));
+            return;
+        }
+
+        const timeout = window.setTimeout(() => {
+            signal?.removeEventListener("abort", onAbort);
+            resolve();
+        }, ms);
+
+        const onAbort = (): void => {
+            window.clearTimeout(timeout);
+            signal?.removeEventListener("abort", onAbort);
+
+            reject(signal?.reason ?? new DOMException(
+                "Operation aborted",
+                "AbortError",
+            ));
+        };
+
+        signal?.addEventListener("abort", onAbort, { once: true });
+    });
+}
+
+
+/**
+ * Upload a single chunk, retrying transient failures with exponential backoff.
+ *
+ * Requests are retried when they fail due to a network error or return a
+ * retryable HTTP status code. If the server returns a 429 response with a
+ * Retry-After header, the requested delay is used instead of the calculated
+ * backoff.
+ *
+ * @param { FormData } fd - Form data containing the chunk and its upload metadata.
+ * @param { AbortSignal } [signal] - Optional signal used to cancel the upload.
+ * @returns { Promise<void> } Resolves once the chunk has been uploaded successfully.
+ *
+ * @throws { AxiosError } Throws the final request error when retries are exhausted,
+ *     the error is not retryable, or the request is cancelled.
+ */
+async function sendChunkWithRetry(
+    fd: FormData,
+    signal?: AbortSignal,
+): Promise<void> {
+
+    for (let attempt = 0; attempt < MAX_CHUNK_ATTEMPTS; attempt++) {
+
+        const [error,] = await handlePromise(request<FormData>(
+            `${CHUNK_UPLOAD_URL}/upload`, "post", fd, undefined, { signal })
+        ) as RRT;
+
+        if (!error) {
+            return;
+        }
+
+        const finalAttempt = attempt === MAX_CHUNK_ATTEMPTS - 1;
+
+        if (finalAttempt || !isRetryableChunkError(error)) {
+            throw error;
+        }
+
+        const delay = retryDelayMs(error, attempt);
+
+        const [sleepError,] = await handlePromise(sleep(delay, signal));
+
+        if (sleepError) {
+            throw sleepError;
+        }
+    }
+}
+
+
+/**
  * Uploads a file in chunks to the server.
  * 
  * This function splits a file into smaller chunks and uploads each chunk sequentially 
@@ -191,15 +381,7 @@ async function sendChunks(
             }
         }
 
-        // we only care about errors here
-        const [error,] = await handlePromise(
-            request<FormData>(
-                `${CHUNK_UPLOAD_URL}/upload`, "post", fd, undefined,
-                { signal: opts?.signal }
-            )
-        ) as RRT;
-
-        if (error) { throw new Error(error.message); }
+        await sendChunkWithRetry(fd, opts?.signal);
 
         uploadedBytes += blob.size;
 
