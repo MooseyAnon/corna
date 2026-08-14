@@ -27,6 +27,7 @@ def test_image_nullable_fk(session):
         models.Media(
             uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
             url_extension="fake-extension",
+            original_filename="some-fake-filename.jpeg",
             path="some/fake/path",
             created=FROZEN_TIME,
             size=8096,
@@ -42,6 +43,7 @@ def test_image_nullable_fk(session):
     assert image is not None
     assert image.uuid == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
     assert image.url_extension == "fake-extension"
+    assert image.original_filename == "some-fake-filename.jpeg"
     assert image.path == "some/fake/path"
     assert image.created.isoformat() == FROZEN_TIME
     assert image.size == 8096
@@ -79,6 +81,7 @@ def test_post_with_multiple_images(session, corna):
             models.Media(
                 uuid=uuid,
                 url_extension=f"fake-extension-{index}",
+                original_filename=f"some-fake-filename-{index}.jpeg",
                 path="some/fake/path",
                 created=FROZEN_TIME,
                 size=8096,
@@ -100,6 +103,7 @@ def test_post_with_multiple_images(session, corna):
         assert image is not None
         assert image.uuid == uuid
         assert image.url_extension == f"fake-extension-{index}"
+        assert image.original_filename == f"some-fake-filename-{index}.jpeg"
         assert image.path == "some/fake/path"
         assert image.created.isoformat() == FROZEN_TIME
         assert image.size == 8096

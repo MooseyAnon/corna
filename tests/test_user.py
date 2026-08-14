@@ -25,6 +25,7 @@ def upload_avatar(session):
     session.add(
         models.Media(
             uuid=fake_uuid,
+            original_filename="kojo-aura-farming.png",
             url_extension="abcdef",
             path="some/fake/path",
             size=8096,
