@@ -37,6 +37,7 @@ def _upload_avatar(session):
         models.Media(
             uuid="00000000-0000-0000-0000-000000000000",
             url_extension="abcdef",
+            original_filename="some-fake-filename.jpeg",
             path="thi/sis/afa/kehash12345",
             size=8096,
             created="2023-04-29T03:21:34",

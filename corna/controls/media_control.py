@@ -16,6 +16,7 @@ from typing import List, Optional
 from sqlalchemy.orm.scoping import scoped_session as Session
 from typing_extensions import TypedDict
 from werkzeug.datastructures import FileStorage
+from werkzeug.utils import secure_filename
 
 from corna.db import models
 from corna.enums import MediaTypes
@@ -142,7 +143,12 @@ def process_media_asset(
     :returns: a MediaAsset data transfer object (DTO)
     :rtype: MediaAsset
     :raises ValueError: if the media type is not supported yet e.g. audio
+        or media file has no valid filename
     """
+    # filename is not guaranteed and it's required by the media table
+    if not file.filename:
+        raise ValueError("Valid media file is required")
+
     if image_proc.is_image(file.filename):
         return process_image(session, file, media_type)
 
@@ -175,9 +181,12 @@ def upload(
     size: int = image_proc.size(asset.path)
     uuid: str = utils.get_uuid()
 
+    original_filename: str = secure_filename(file.filename)
+
     media = models.Media(
         uuid=uuid,
         path=asset.path,
+        original_filename=original_filename,
         size=size,
         type=type,
         orphaned=True,
@@ -191,7 +200,7 @@ def upload(
 
     response: UploadResponse = {
         "id": uuid,
-        "filename": file.filename,
+        "filename": original_filename,
         # the werkzeug documentation acknowledges that this is an unreliable
         # way to find the mimetype of a file and more often than not will not
         # be present. In light of this, in the future we need a more robust

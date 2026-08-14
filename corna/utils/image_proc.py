@@ -12,10 +12,10 @@ from typing import Callable, Set
 import cv2
 import numpy as np
 from werkzeug.datastructures import FileStorage
-from werkzeug.utils import secure_filename
 
 from corna import config
 from corna.middleware import storage
+from corna.utils import utils
 
 logger = logging.Logger(__name__)
 
@@ -123,10 +123,11 @@ def save(image: FileStorage, bucket: str, hash_: str) -> str:
     if not image.filename:
         raise OSError("File needs name to be saved")
 
-    secure_image_name: str = secure_filename(image.filename)
+    suffix: str = pathlib.Path(image.filename).suffix
+    new_file_name: str = utils.random_short_string(16)
     hashed_dir: str = hash_to_dir(hash_)
     # combination of the root assets dir and the hash derived fs
-    full_path: str = f"{bucket}/{hashed_dir}/{secure_image_name}"
+    full_path: str = f"{bucket}/{hashed_dir}/{new_file_name}{suffix}"
     store = storage.get_storage()
 
     # save picture

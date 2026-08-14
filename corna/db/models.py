@@ -445,6 +445,12 @@ class Media(Base):
         doc="The url extension of the picture, this will be used to "
             "fetch the image on the client.",
     )
+    original_filename = Column(
+        Text,
+        nullable=False,
+        doc="The original filename of the file. We do not use this as part "
+            "of saving the file. This purely for client side display reasons.",
+    )
     path = Column(
         Text,
         nullable=False,
