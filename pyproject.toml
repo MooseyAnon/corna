@@ -31,6 +31,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "alembic>=1.0.10",
     "ansible-core>=2.17.14",
     "freezegun",
     "isort",
