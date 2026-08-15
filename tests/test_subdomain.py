@@ -11,7 +11,7 @@ from corna.utils import errors
 from tests import shared_data
 
 
-pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True)
 def _all_media_based_stubs(request, tmpdir, mocker, monkeypatch):
     """Environment variable and function mocks needed for post
     related testing.
@@ -34,6 +34,11 @@ def _all_media_based_stubs(request, tmpdir, mocker, monkeypatch):
     mocker.patch(
         "corna.utils.image_proc.get_workdir",
         return_value=assets,
+    )
+    monkeypatch.setattr(
+        theme_control,
+        "THEMES_DIR",
+        pathlib.Path(tmpdir.mkdir("themes"))
     )
 
 
@@ -240,6 +245,7 @@ def test_build_page_returns_empty_listing_contract(session, client, login):
     _assert_default_listing_contract(page.listing, 0)
 
 
+@pytest.mark.nostubs
 def test_build_page_text_post_includes_cover_media(
     monkeypatch, tmpdir, session, client, login):
     """Build page payloads should include parsed cover media in the listing."""
@@ -286,6 +292,7 @@ def test_build_page_text_post_includes_cover_media(
     _assert_default_listing_contract(page.listing, 1)
 
 
+@pytest.mark.nostubs
 def test_single_post_image_parses_media_metadata(
     monkeypatch, tmpdir, session, client, login):
     """Image posts should expose parsed media metadata."""
@@ -320,6 +327,7 @@ def test_single_post_image_parses_media_metadata(
     assert media.aspect_ratio == image_proc.aspect_ratio(media.height, media.width)
 
 
+@pytest.mark.nostubs
 def test_single_post_video_parses_media_metadata(
     monkeypatch, tmpdir, session, client, login):
     """Video posts should expose parsed media metadata."""
@@ -378,6 +386,7 @@ def test_single_post_text_only_has_no_media(session, client, login):
     assert post.media == []
 
 
+@pytest.mark.nostubs
 def test_image_only_post(monkeypatch, tmpdir, session, client, login):
     """Image posts should expose parsed media metadata."""
 

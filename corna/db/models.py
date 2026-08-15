@@ -477,6 +477,12 @@ class Media(Base):
             "e.g. for file preview on the client but the user subsequently "
             "deletes the file before creating the post."
     )
+    thumbnail_uuid = Column(
+        UUID,
+        ForeignKey("media.uuid"),
+        nullable=True,
+        doc="Optional derived thumbnail for the media asset",
+    )
     image_uuid = Column(
         UUID,
         ForeignKey("images.uuid"),
