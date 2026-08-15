@@ -13,13 +13,14 @@ from tests.shared_data import ASSET_DIR, corna_info, single_user
 
 
 @pytest.fixture(name="theme")
-def _theme(client, tmpdir, mocker, monkeypatch, login):
+def _theme(request, client, tmpdir, mocker, monkeypatch, login):
     # create a theme for tests
 
-    mocker.patch(
-        "corna.utils.utils.random_short_string",
-        return_value="abcdef",
-    )
+    if not ("nostubs" in request.keywords):
+        mocker.patch(
+            "corna.utils.utils.random_short_string",
+            return_value="abcdef",
+        )
     mocker.patch(
         "corna.utils.image_proc.hash_image",
         return_value="thisisafakehash12345",
@@ -52,10 +53,11 @@ def _theme(client, tmpdir, mocker, monkeypatch, login):
         "name": "new fancy theme",
         "description": "This theme does super cool theme stuff.",
         "path": "index.html",
-        "thumbnail": "abcdef",
+        "thumbnail": resp.json["url_extension"],
     }
 
     resp = client.post("api/v1/themes", json=theme_data)
+    print(resp.text)
     assert resp.status_code == 201
 
 
@@ -251,7 +253,7 @@ def test_corna_with_about(session, client, login):
     assert corna.user.username == user["username"]
     assert corna.about == "Hey this is my cool new Corna!"
 
-
+@pytest.mark.nostubs
 def test_create_corna_with_theme(session, client, login, theme):
 
     theme = session.query(models.Themes).first()

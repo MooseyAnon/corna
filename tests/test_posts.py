@@ -119,17 +119,21 @@ def test_create_post(session, client, corna):
     assert text.title == out_post["title"]
 
 
+@pytest.mark.nostubs
 @freeze_time(FROZEN_TIME)
 @pytest.mark.parametrize("with_image,expected", [(False, 400), (True, 201)])
 def test_post_with_picture(session, client, corna, with_image, expected):
     # create image
-    _upload_single_image(session, client)
+    image_slug = _upload_single_image(session, client)["url_extension"]
+
     out_post = shared_data.mock_post(
         type_="picture",
         with_content=True,
         with_title=True,
         with_image=with_image
     )
+    out_post["uploaded_images"] = [image_slug] if with_image else []
+
     resp = client.post(
         f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
         json=out_post
@@ -166,7 +170,7 @@ def test_post_with_picture(session, client, corna, with_image, expected):
     )
     assert len(corna.posts) == 1
     post = session.query(models.PostTable).first()
-    pic = session.query(models.Media).first()
+    pic = session.query(models.Media).filter_by(type="image").first()
     text = session.query(models.TextContent).first()
 
     # checking foreign key relationships
@@ -181,11 +185,12 @@ def test_post_with_picture(session, client, corna, with_image, expected):
     assert text.content == out_post["content"]
     assert pic.size >= 1024
     assert pic.path == f"image/thi/sis/afa/kehash12345/{image_basename}"
-    assert pic.url_extension == "abcdef"
+    assert pic.url_extension == image_slug
     assert not pic.orphaned
 
     # ensure we do actually have an image and not just a media entry
-    assert session.query(models.Images).count() == 1
+    # Note: we automatically create thumbnails for each new image
+    assert session.query(models.Images).count() == 2
 
 
 def test_when_user_not_logged_in_client_text_post(session, client):
@@ -234,15 +239,17 @@ def test_user_attempt_with_invalid_cookie(session, client, corna):
     assert "Login required for this action" in resp.json["message"]
 
 
+@pytest.mark.nostubs
 def test_linking_preloaded_images(session, client, corna):
     # create image
-    _upload_single_image(session, client)
+    image_slug = _upload_single_image(session, client)["url_extension"]
 
     out_post = shared_data.mock_post(
         with_content=True,
         with_title=True,
         with_image=True,
     )
+    out_post["uploaded_images"] = [image_slug]
 
     resp = client.post(
         f"/api/v1/posts/{shared_data.corna_info['domain_name']}/post",
@@ -251,7 +258,9 @@ def test_linking_preloaded_images(session, client, corna):
     assert resp.status_code == 201
 
     # ensure we only still have one image and one post saved
-    assert session.query(models.Images).count() == 1
+    # Note: we automatically create thumbnails for each image, so we need to
+    # disregard that
+    assert session.query(models.Media).filter_by(type="image").count() == 1
     assert session.query(models.PostTable).count() == 1
 
     # ensure relationships are correct
@@ -260,7 +269,7 @@ def test_linking_preloaded_images(session, client, corna):
     assert len(post.media) == 1
 
     image = post.media[0]
-    assert image.url_extension == "abcdef"
+    assert image.url_extension == image_slug
     assert image.orphaned == False
 
 
@@ -292,7 +301,9 @@ def test_linking_multiple_images(session, client, corna):
     assert resp.status_code == 201
 
     # ensure we two images and one post saved
-    assert session.query(models.Images).count() == 2
+    # Note: we automatically create thumbnails for each image, so we need to
+    # disregard that
+    assert session.query(models.Media).filter_by(type="image").count() == 2
     assert session.query(models.PostTable).count() == 1
 
     # ensure relationships are correct
@@ -440,6 +451,7 @@ def test_none_owner_not_allowed_to_create_post(client, session, corna):
     assert resp.json["message"] == "User unauthorized to create posts"
 
 
+@pytest.mark.nostubs
 @freeze_time(FROZEN_TIME)
 def test_vido_post(session, client, mocker, corna):
     mocker.patch(
@@ -448,11 +460,11 @@ def test_vido_post(session, client, mocker, corna):
     )
 
     # create video
-    _upload_single_image(session, client, type_="video")
+    video_slug = _upload_single_image(session, client, type_="video")["url_extension"]
     out_post = {
         "type": "video",
         "title": "this is a title of a post",
-        "uploaded_images": ["abcdef"],
+        "uploaded_images": [video_slug],
         "content": (
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed "
             "do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut "
@@ -496,7 +508,7 @@ def test_vido_post(session, client, mocker, corna):
     )
     assert len(corna.posts) == 1
     post = session.query(models.PostTable).first()
-    vid = session.query(models.Media).first()
+    vid = session.query(models.Media).filter_by(type="video").first()
     text = session.query(models.TextContent).first()
 
     # checking foreign key relationships
@@ -511,7 +523,7 @@ def test_vido_post(session, client, mocker, corna):
     assert text.content == out_post["content"]
     assert vid.size >= 1024
     assert vid.path == f"video/thi/sis/afa/kestringhash/{image_basename}"
-    assert vid.url_extension == "abcdef"
+    assert vid.url_extension == video_slug
     assert not vid.orphaned
 
 

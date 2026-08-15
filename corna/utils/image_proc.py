@@ -2,6 +2,7 @@
 
 from fractions import Fraction
 import hashlib
+import io
 import logging
 import os
 import pathlib
@@ -13,7 +14,7 @@ import cv2
 import numpy as np
 from werkzeug.datastructures import FileStorage
 
-from corna import config
+from corna import config, enums
 from corna.middleware import storage
 from corna.utils import utils
 
@@ -136,6 +137,10 @@ def save(image: FileStorage, bucket: str, hash_: str) -> str:
     except OSError as e:
         raise e
 
+    # save file reads the file till the end. Its up to the stream user to be
+    # a good citizen and seek back to the start so other upstream blocks of
+    # code can read the file without worrying about the pointer position
+    image.seek(0)
     return full_path
 
 
@@ -307,3 +312,116 @@ def aspect_ratio(height: int, width: int, tolerance=0.02) -> str:
     # fallback: return exact simplified ratio
     frac = Fraction(width, height).limit_denominator()
     return f"{frac.numerator}/{frac.denominator}"
+
+
+def create_thumbnail(media_file: FileStorage, file_type: str) -> FileStorage:
+    """Turn a given image into a thumbnail.
+
+    We default to 768x768 but maintain aspect ratio so the largest side
+    will be 768px.
+
+    :param FileStorage media_file: the media file
+    :param str file_type: the media type of the file e.g. video, image
+
+    :returns: a FileStorage object containing the thumbnail.
+    :rtype: FileStorage
+    :raise ValueError: if unknown media type is passed in or there was
+        an encode/decode error.
+    :raises FileNotFoundError: if file reading fails
+    """
+    match file_type:
+        case enums.MediaTypes.VIDEO.value:
+            img: np.ndarray = get_video_frame(media_file)
+        case (
+            enums.MediaTypes.IMAGE.value
+            | enums.MediaTypes.AVATAR.value
+        ):
+            np_arr: np.ndarray = np.frombuffer(media_file.read(), np.uint8)
+            img: np.ndarray = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        case _:
+            raise ValueError(f"Unknown media type: {file_type}")
+
+    if img is None:
+        raise FileNotFoundError(
+            f"Can't read file with name '{media_file.filename}'")
+
+    height, width, _ = img.shape
+    # we dont want the biggest side being larger than 768px
+    max_size: int = 768
+
+    # Ensure we keep the same aspect ratio, e.g.
+    #    - 4000×3000 → 768×576
+    #    - 3000×4000 → 576×768
+    #    - 4000×1000 → 768×192
+    #
+    # We also ensure that only files larger than 768 x 768 get resized e.g.
+    #    - 768 × 576 → 768 × 576
+    scale: float = min(1.0, max_size / height, max_size / width)
+    new_size: tuple[int, int] = (
+        int(width * scale),
+        int(height * scale),
+    )
+
+    resized_image: np.ndarray = cv2.resize(
+        img,
+        new_size,
+        interpolation=cv2.INTER_AREA,
+    )
+    # re-encode to JPEG
+    success, encoded = cv2.imencode(
+        ".jpg",
+        resized_image,
+        # we dont need perfect quality for thumbnails
+        [cv2.IMWRITE_JPEG_QUALITY, 85],
+    )
+
+    if not success:
+        raise ValueError("Failed to encode thumbnail")
+
+    # store encoded bytes into bytesIO object
+    result = io.BytesIO(encoded.tobytes())
+
+    fs_name: str = f"{utils.random_short_string(16)}.jpg"
+    thumbnail: FileStorage = utils.to_filestorage(result, fs_name)
+
+    media_file.seek(0)
+    return thumbnail
+
+
+def get_video_frame(video_file: FileStorage) -> np.ndarray:
+    """Grab a frame from a video file.
+
+    This defaults to grabbing the first frame.
+
+    :param FileStorage video_file: the video file
+    :returns: numpy array containing the first frame of the video
+    :rtype: np.ndarray
+    :raises ValueError: if video reading fails
+    """
+    suffix: str = pathlib.Path(video_file.filename).suffix
+
+    # We need to save to a temp file as openCV can't read from in-mem buffers
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        video_file.save(tmp)
+        tmp_path = tmp.name
+
+    cap = cv2.VideoCapture(tmp_path)
+
+    try:
+        if not cap.isOpened():
+            raise ValueError("Failed to open video file.")
+
+        success, frame = cap.read()
+
+        if not success:
+            raise ValueError("Failed to read frame from video")
+
+    finally:
+        # close connection
+        cap.release()
+        # Clean up temp file
+        os.remove(tmp_path)
+        # seek video back to start
+        video_file.seek(0)
+
+    return frame

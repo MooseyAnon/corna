@@ -183,18 +183,39 @@ def upload(
 
     original_filename: str = secure_filename(file.filename)
 
+    thumbnail_uuid: str | None = None
+    # we need to ensure this isn't a thumbnail otherwise we will infinity
+    # recurse
+    if type != MediaTypes.THUMBNAIL.value:
+        try:
+            thumbnail: FileStorage = image_proc.create_thumbnail(file, type)
+        except ValueError as err:
+            # raise OSError from this as that is caught more meaningfully
+            # by the API endpoints
+            raise OSError from err
+
+        thumbnail_uuid = upload(
+            session,
+            thumbnail,
+            MediaTypes.THUMBNAIL.value,
+        )["id"]
+
+    # assume all thumbnails are not orphans by default
+    orphaned: bool = not type == MediaTypes.THUMBNAIL.value
+
     media = models.Media(
         uuid=uuid,
         path=asset.path,
         original_filename=original_filename,
         size=size,
         type=type,
-        orphaned=True,
+        orphaned=orphaned,
         post_uuid=None,
         created=get_utc_now(),
         image_uuid=asset.uuid if image_proc.is_image(file.filename) else None,
         video_uuid=asset.uuid if image_proc.is_video(file.filename) else None,
         url_extension=url_extension,
+        thumbnail_uuid=thumbnail_uuid,
     )
     session.add(media)
 
