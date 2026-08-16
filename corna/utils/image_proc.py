@@ -228,9 +228,9 @@ def video_dimensions(video: FileStorage) -> tuple[int, int]:
     :rtype: tuple
     :raises ValueError: if the file is empty or if file can't be read
     """
-
+    suffix: str = pathlib.Path(video.filename).suffix
     # We need to save to a temp file as openCV can't read from in-mem buffers
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         video.save(tmp)
         tmp_path = tmp.name
 
@@ -242,17 +242,19 @@ def video_dimensions(video: FileStorage) -> tuple[int, int]:
 
         width: int = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height: int = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        cap.release()
 
         if height == 0:
             raise ValueError(
                 "Video height is zero; cannot compute aspect ratio.")
 
     finally:
+        # close connection
+        cap.release()
         # Clean up temp file
         os.remove(tmp_path)
+        # seek video back to start
+        video.seek(0)
 
-    video.seek(0)
     return height, width
 
 
