@@ -18,7 +18,7 @@ dependencies = [
     "gunicorn",
     "marshmallow==3.22.0",
     "nh3",
-    "opencv-python==4.12.0.88",
+    "opencv-python-headless==4.12.0.88",
     "psycopg2",
     "pydantic>=2.0.0",
     "python-dateutil",
