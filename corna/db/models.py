@@ -308,13 +308,6 @@ class CornaTable(Base):
         doc="Theme for Corna",
     )
 
-    ForeignKeyConstraint(
-        ["about"],
-        ["text.uuid"],
-        use_alter=True,
-        ondelete="SET NULL",
-    )
-
     __table_args__ = (
         ForeignKeyConstraint(
             ["theme"],
