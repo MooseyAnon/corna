@@ -289,6 +289,10 @@ def test_build_page_text_post_includes_cover_media(
         post.media[0].height,
         post.media[0].width,
     )
+    assert post.media[0].thumbnails is not None
+    assert post.media[0].thumbnails.type == "thumbnail"
+    assert post.media[0].thumbnails.href
+    assert post.media[0].thumbnails.thumbnails is None
 
     _assert_default_listing_contract(page.listing, 1)
 
@@ -327,6 +331,16 @@ def test_single_post_image_parses_media_metadata(
     assert media.width == media_row.image.width
     assert media.height == media_row.image.height
     assert media.aspect_ratio == image_proc.aspect_ratio(media.height, media.width)
+    assert media.thumbnails is not None
+    assert media.thumbnails.type == "thumbnail"
+    assert media.thumbnails.href
+    assert media.thumbnails.width is not None
+    assert media.thumbnails.height is not None
+    assert media.thumbnails.aspect_ratio == image_proc.aspect_ratio(
+        media.thumbnails.height,
+        media.thumbnails.width,
+    )
+    assert media.thumbnails.thumbnails is None
 
 
 @pytest.mark.nostubs
@@ -363,6 +377,16 @@ def test_single_post_video_parses_media_metadata(
     assert media.width == media_row.video.width
     assert media.height == media_row.video.height
     assert media.aspect_ratio == image_proc.aspect_ratio(media.height, media.width)
+    assert media.thumbnails is not None
+    assert media.thumbnails.type == "thumbnail"
+    assert media.thumbnails.href
+    assert media.thumbnails.width is not None
+    assert media.thumbnails.height is not None
+    assert media.thumbnails.aspect_ratio == image_proc.aspect_ratio(
+        media.thumbnails.height,
+        media.thumbnails.width,
+    )
+    assert media.thumbnails.thumbnails is None
 
 
 def test_single_post_text_only_has_no_media(session, client, login):
