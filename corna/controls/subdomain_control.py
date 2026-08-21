@@ -43,6 +43,7 @@ class Post:
 
     :ivar str created: timestamp as a string.
     :ivar str type: post type.
+    :ivar str creator: username of the user who created the post.
     :ivar str domain_name: the subdomain extension.
     :ivar Optional[str] title: post title
     :ivar Optional[str] created_display: formatted timestamp for templates.
@@ -59,6 +60,7 @@ class Post:
     href: str
     created: str
     type: str
+    creator: str
     domain_name: str
     title: Optional[str]
     full_href: str
@@ -159,6 +161,11 @@ class Post:
 
         :returns: a parse post object
         :rtype: Post
+
+        Notes:
+        - Accessing relationship attributes via dot notation, such as
+          ``post.user.username``, may trigger an additional lazy database query
+          under the hood if that relationship has not already been loaded.
         """
         # type stored in DB is text; keep as string for template compatibility
         post_type: str = str(post.type)
@@ -178,6 +185,7 @@ class Post:
             href=post.url_extension,
             created=post.created.isoformat(),
             type=post_type,
+            creator=post.user.username,
             domain_name=subdomain,
             title=title,
             created_display=cls._created_display(post.created),
@@ -198,6 +206,7 @@ class Post:
             "href": self.href,
             "created": self.created,
             "type": self.type,
+            "creator": self.creator,
             "domain_name": self.domain_name,
             "title": self.title,
             "created_display": self.created_display,
@@ -220,6 +229,9 @@ class Post:
                     "width": media.width,
                     "height": media.height,
                     "aspect_ratio": media.aspect_ratio,
+                    "thumbnails": media.thumbnails.to_dict()
+                    if media.thumbnails is not None
+                    else None,
                 }
                 for media in self.media
             ],
