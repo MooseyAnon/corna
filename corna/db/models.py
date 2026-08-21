@@ -132,6 +132,10 @@ class UserTable(Base):
         "CornaTable",
         back_populates="user",
     )
+    posts = relationship(
+        "PostTable",
+        back_populates="user",
+    )
     roles = relationship(
         "Role",
         secondary=role_user_map,
@@ -368,6 +372,10 @@ class PostTable(Base):
         ForeignKey("users.uuid"),
         nullable=False,
         doc="Creator of the post"
+    )
+    user = relationship(
+        "UserTable",
+        back_populates="posts",
     )
 
 

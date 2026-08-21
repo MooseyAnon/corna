@@ -275,6 +275,7 @@ def test_build_page_text_post_includes_cover_media(
     post = page.listing.items[0]
     assert post.href == post_url
     assert post.type == "text"
+    assert post.creator == "john_snow"
     assert post.title == "this is a title of a post"
     assert post.domain_name == shared_data.corna_info["domain_name"]
     assert post.text_html is not None
@@ -317,6 +318,7 @@ def test_single_post_image_parses_media_metadata(
         cookie=cookie.value,
     )
 
+    assert post.creator == "john_snow"
     assert len(post.media) == 1
     media = post.media[0]
     media_row = session.query(models.Media).filter_by(url_extension=media_slug).one()
@@ -352,6 +354,7 @@ def test_single_post_video_parses_media_metadata(
         cookie=cookie.value,
     )
 
+    assert post.creator == "john_snow"
     assert len(post.media) == 1
     media = post.media[0]
     media_row = session.query(models.Media).filter_by(url_extension=media_slug).one()
