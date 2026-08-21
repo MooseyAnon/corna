@@ -253,6 +253,7 @@ class Media:
     :ivar Optional[int] width: Media width in pixels, if known.
     :ivar Optional[int] height: Media height in pixels, if known.
     :ivar Optional[str] aspect_ratio: Simplified aspect ratio string, if known.
+    :ivar Optional[Media] thumbnails: Thumbnail media, if one exists.
     """
 
     href: str
@@ -260,6 +261,7 @@ class Media:
     width: Optional[int]
     height: Optional[int]
     aspect_ratio: Optional[str]
+    thumbnails: Optional[Media] = None
 
     @classmethod
     def _media_api_href(cls, url_extension: str) -> str:
@@ -318,6 +320,11 @@ class Media:
         :param Media media: media row to parse.
         :returns: parsed media payload.
         :rtype: Media
+
+        Notes:
+        - Accessing relationship attributes via dot notation, such as
+          ``media.thumbnail``, may trigger an additional lazy database query
+          under the hood if that relationship has not already been loaded.
         """
         height, width = cls._media_dimensions(media)
 
@@ -327,7 +334,25 @@ class Media:
             width=width,
             height=height,
             aspect_ratio=cls._media_aspect_ratio(width, height),
+            thumbnails=(
+                cls.from_model(media.thumbnail)
+                if media.thumbnail is not None
+                else None
+            ),
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize media data to a dict."""
+        return {
+            "href": self.href,
+            "type": self.type,
+            "width": self.width,
+            "height": self.height,
+            "aspect_ratio": self.aspect_ratio,
+            "thumbnails": self.thumbnails.to_dict()
+            if self.thumbnails is not None
+            else None,
+        }
 
 
 @dataclass(frozen=True)

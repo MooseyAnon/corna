@@ -484,6 +484,12 @@ class Media(Base):
         nullable=True,
         doc="Optional derived thumbnail for the media asset",
     )
+    thumbnail = relationship(
+        "Media",
+        remote_side=[uuid],
+        foreign_keys=[thumbnail_uuid],
+        uselist=False,
+    )
     image_uuid = Column(
         UUID,
         ForeignKey("images.uuid"),
