@@ -58,10 +58,13 @@ def _theme(**kwargs):
 def create_theme_helper(client):
     """Helper to create themes for testing none create endpoints."""
 
-    path = pathlib.Path(theme_control.THEMES_DIR) / "index.html"
-    path.touch()
+    dir_name = "fake-custom-theme-dir"
+    path = pathlib.Path(theme_control.THEMES_DIR) / dir_name
+    path.mkdir()
+    # create metadata file
+    (path / "metadata.yml").touch()
 
-    resp = client.post("api/v1/themes", json=_theme(path="index.html"))
+    resp = client.post("api/v1/themes", json=_theme(path=dir_name))
     assert resp.status_code == 201
 
 

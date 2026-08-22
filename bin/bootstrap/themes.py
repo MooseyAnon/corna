@@ -181,12 +181,6 @@ def _bootstrap_theme(
             f"System theme has no index.html: {theme_path}"
         )
 
-    # Theme paths are persisted relative to the themes root so the physical
-    # location of the themes directory can change independently.
-    relative_index_path = (
-        Path(theme_directory_name) / "index.html"
-    ).as_posix()
-
     thumbnail_extension: Optional[str] = None
     thumbnail_filename = metadata.get("thumbnail")
 
@@ -208,7 +202,7 @@ def _bootstrap_theme(
         "Registering system theme: creator=%s name=%s path=%s",
         creator,
         name,
-        relative_index_path,
+        theme_directory_name,
     )
 
     theme_control.create_theme(
@@ -216,7 +210,7 @@ def _bootstrap_theme(
         creator=creator,
         name=name,
         description=metadata.get("description"),
-        path=relative_index_path,
+        path=theme_directory_name,
         thumbnail=thumbnail_extension,
     )
 

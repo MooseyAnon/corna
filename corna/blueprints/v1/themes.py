@@ -157,7 +157,7 @@ def add_theme(**data: Dict[str, str]) -> flask.wrappers.Response:
     except NoneExistingUserError as error:
         utils.respond_json_error(str(error), HTTPStatus.UNAUTHORIZED)
 
-    except ValueError as error:
+    except (control.ThemeError, ValueError) as error:
         utils.respond_json_error(str(error), HTTPStatus.BAD_REQUEST)
 
     session.commit()

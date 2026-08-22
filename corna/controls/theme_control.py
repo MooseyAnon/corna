@@ -2,6 +2,7 @@
 
 import logging
 from typing import List, Optional
+import pathlib
 
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from typing_extensions import TypedDict
@@ -19,6 +20,10 @@ ALLOWED_EXTENSIONS = {"html", "css", "js"}
 logger = logging.getLogger(__name__)
 
 
+class ThemeError(ValueError):
+    """Raised when a theme cannot be resolved."""
+
+
 # ***** types ******
 
 class Theme(TypedDict):
@@ -33,25 +38,14 @@ class Theme(TypedDict):
 ThemeList = List[Optional[Theme]]
 
 
-def is_allowed(filename: str) -> bool:
-    """Check if file extension is valid.
-
-    This is lifted straight out of the flask docs for handling
-    file upload.
-
-    :param str filename: the name of the file being uploaded
-    :return: True if extension is valid
-    :rtype: bool
-    """
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
 def sanitize_path(path: str = None) -> Optional[str]:
     """Ensure file path (if given) is legit.
 
     This function largely exists for debugging later. We
     dont want all errors pass through silently.
+
+    We validate the theme root not a particular theme file exists.
+    The only required file is the metadata file.
 
     :param str path: the path to the main theme file
     :returns: path (if legit)
@@ -61,12 +55,23 @@ def sanitize_path(path: str = None) -> Optional[str]:
     if not path:
         return None
 
-    if not (THEMES_DIR / path).exists():
-        raise ValueError("Theme not in directory")
+    theme_root: pathlib.Path = THEMES_DIR.resolve()
+    expected_dir: pathlib.Path = (theme_root / path).resolve()
 
-    if not is_allowed(path):
-        logging.error("incorrect file type attempt: %s", path)
-        raise ValueError("Incorrect file type")
+    # this ensures the path does not escape the theme directory
+    # e.g. `../../<some-dangerous-path>`
+    if not expected_dir.is_relative_to(theme_root):
+        logging.error("Theme path outside theme directory: %s", path)
+        raise ThemeError("Invalid theme path")
+
+    if not expected_dir.exists() or not expected_dir.is_dir():
+        raise ThemeError("Theme not found")
+
+    metadata_path = expected_dir / "metadata.yml"
+
+    if not metadata_path.is_file():
+        logging.error("No metadata file found: %s", path)
+        raise ThemeError("Theme must have a metadata file")
 
     return path
 
