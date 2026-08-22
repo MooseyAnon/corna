@@ -27,7 +27,7 @@ def _all_required_themes_stubs(tmpdir, mocker, monkeypatch):
     monkeypatch.setattr(
         theme_control,
         "THEMES_DIR",
-        tmpdir.mkdir("themes")
+        pathlib.Path(tmpdir.mkdir("themes"))
     )
 
     assets = tmpdir.mkdir("assets")
@@ -67,6 +67,18 @@ def create_theme_helper(client, **kwargs):
 
     resp = client.post("api/v1/themes", json=_theme(**kwargs))
     assert resp.status_code == 201
+
+
+def create_theme_directory():
+    """Create a fake dir and metadata file in temp storage."""
+
+    dir_name = "fake-custom-theme-dir"
+    path = pathlib.Path(theme_control.THEMES_DIR) / dir_name
+    mkdir(path)
+    # create metadata file
+    (path / "metadata.yml").touch()
+
+    return dir_name
 
 
 @pytest.fixture(name="cwfc")
@@ -114,11 +126,10 @@ def test_add_theme(session, client, login):
 
 
 def test_add_theme_with_path(session, client, login):
+    # create theme stubs in tmp fs
+    dir_name = create_theme_directory()
 
-    path = pathlib.Path(theme_control.THEMES_DIR) / "index.html"
-    path.touch()
-
-    resp = client.post("/api/v1/themes", json=_theme(path="index.html"))
+    resp = client.post("/api/v1/themes", json=_theme(path=dir_name))
     assert resp.status_code == 201
 
     # grab db data
@@ -132,50 +143,43 @@ def test_add_theme_with_path(session, client, login):
     assert theme.uuid != None
     assert theme.name == "new fancy theme"
     assert theme.description == "This theme does super cool theme stuff."
-    assert theme.path == "index.html"
+    # we only save the root directory for the theme, not the files inside
+    assert theme.path == dir_name
     assert theme.status == enums.ThemeReviewState.MERGED.value
     assert theme.creator_user_id == user.uuid
 
 
-@pytest.mark.parametrize("fd,expected", 
-    [
-        ("index.html", 201),
-        ("index.css", 201),
-        ("index.js", 201),
-        ("index.py", 400),
-        ("index.php", 400),
-        ("index.cpp", 400),
-        ("index.java", 400),
-        ("index", 400),
-    ]
-)
-def test_theme_with_bad_extensions(client, login, fd, expected):
-    path_ = pathlib.Path(theme_control.THEMES_DIR) / fd
-    path_.touch()
-
-    resp = client.post("/api/v1/themes", json=_theme(path=fd))
-    assert resp.status_code == expected
-
-
-@pytest.mark.parametrize("fd,expected",
-    [
-        ("some/very/long/path/index.html", 201),
-        ("some/long.path/with.periods/index.html", 201),
-        ("some/long.path/with.periods/index.css", 201),
-        ("some/long.path/with.periods/index.js", 201),
-        ("some/long.path/with.periods/index.php", 400),
-        ("some/long.path/with.periods/index.py", 400),
-        ("long/path/with.period/but/no/extension/index", 400),
-
-    ]
-)
-def test_theme_with_weirdly_long_path(client, login, fd, expected):
-
-    path = theme_control.THEMES_DIR / fd
+def test_theme_with_no_metadata(client, login):
+    # make only the top level dir
+    dir_name = "fake-custom-theme-dir"
+    path = pathlib.Path(theme_control.THEMES_DIR) / dir_name
     mkdir(path)
 
-    resp = client.post("/api/v1/themes", json=_theme(path=fd))
-    assert resp.status_code == expected
+    resp = client.post("/api/v1/themes", json=_theme(path=dir_name))
+    assert resp.status_code == 400
+    assert resp.json["message"] == "Theme must have a metadata file"
+
+
+def test_theme_with_dangerous_path(client, login):
+    # make only the top level dir
+    dir_name = "../../some-fake-dangerous-path"
+    path = pathlib.Path(theme_control.THEMES_DIR) / dir_name
+    mkdir(path)
+
+    resp = client.post("/api/v1/themes", json=_theme(path=dir_name))
+    assert resp.status_code == 400
+    assert resp.json["message"] == "Invalid theme path"
+
+
+def test_theme_path_is_file(client, login):
+    # make only the top level dir
+    dir_name = "fake-custom-theme.html"
+    path = pathlib.Path(theme_control.THEMES_DIR) / dir_name
+    path.touch()
+
+    resp = client.post("/api/v1/themes", json=_theme(path=dir_name))
+    assert resp.status_code == 400
+    assert resp.json["message"] == "Theme not found"
 
 
 def test_user_has_cookie_but_is_not_found(cwfc):
@@ -283,16 +287,15 @@ def test_add_theme_duplicate(client, session, login):
 
 def test_status_update_with_path(client, session, login):
 
-    path = pathlib.Path(theme_control.THEMES_DIR) / "index.html"
-    path.touch()
+    dir_name = create_theme_directory()
 
     data = {
         "creator": "john_snow",
         "name": "new fancy theme",
-        "path": "index.html",
+        "path": dir_name,
         "status": "unknown",
     }
-    create_theme_helper(client, path="index.html")
+    create_theme_helper(client, path=dir_name)
 
     resp = client.put("/api/v1/themes/status", json=data)
     assert resp.status_code == 200
@@ -307,7 +310,7 @@ def test_status_update_with_path(client, session, login):
     assert theme.uuid != None
     assert theme.name == "new fancy theme"
     assert theme.description == "This theme does super cool theme stuff."
-    assert theme.path == "index.html"
+    assert theme.path == dir_name
     assert theme.status == enums.ThemeReviewState.UNKNOWN.value
     assert theme.creator_user_id == user.uuid
 
@@ -385,7 +388,7 @@ def test_status_update_bad_path(client, login):
 
     resp = client.put("/api/v1/themes/status", json=data)
     assert resp.status_code == 400
-    assert resp.json["message"] == "Incorrect file type"
+    assert resp.json["message"] == "Theme not found"
 
 
 def test_anon_user_update_status(client):
@@ -412,12 +415,11 @@ def test_get_theme_list(client, mocker, login):
         return_value="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
     )
 
-    path = pathlib.Path(theme_control.THEMES_DIR) / "index.html"
-    path.touch()
+    dir_name = create_theme_directory()
 
     # upload thumbnail
     thumbnail = _upload_thumbnail(client)
-    create_theme_helper(client, path="index.html", thumbnail=thumbnail)
+    create_theme_helper(client, path=dir_name, thumbnail=thumbnail)
 
     expected = {"themes": [
         {

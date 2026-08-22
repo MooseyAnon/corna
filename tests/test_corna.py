@@ -28,7 +28,7 @@ def _theme(request, client, tmpdir, mocker, monkeypatch, login):
     monkeypatch.setattr(
         theme_control,
         "THEMES_DIR",
-        tmpdir.mkdir("themes")
+        pathlib.Path(tmpdir.mkdir("themes"))
     )
 
     assets = tmpdir.mkdir("assets")
@@ -38,8 +38,10 @@ def _theme(request, client, tmpdir, mocker, monkeypatch, login):
         return_value=assets,
     )
 
-    path = pathlib.Path(theme_control.THEMES_DIR) / "index.html"
-    path.touch()
+    path = pathlib.Path(theme_control.THEMES_DIR) / "fake-theme-dir"
+    path.mkdir()
+    # make metadata file
+    (path / "metadata.yml").touch()
 
     # upload image
     image = (ASSET_DIR / "anders-jilden.jpg").open("rb")
@@ -52,12 +54,11 @@ def _theme(request, client, tmpdir, mocker, monkeypatch, login):
         "creator": "john_snow",
         "name": "new fancy theme",
         "description": "This theme does super cool theme stuff.",
-        "path": "index.html",
+        "path": "fake-theme-dir",
         "thumbnail": resp.json["url_extension"],
     }
 
     resp = client.post("api/v1/themes", json=theme_data)
-    print(resp.text)
     assert resp.status_code == 201
 
 
