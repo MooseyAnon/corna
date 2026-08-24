@@ -72,6 +72,11 @@ def create_theme_helper(client):
       homepage: index.html
       post_page: post.html
       about: about.html
+    error_pages:
+      homepage: index.html
+      post_page: post.html
+      about: about.html
+      default: index.html
     """
     (path / "metadata.yml").write_text(yml_str, encoding="utf-8")
     # make index.html page
@@ -468,6 +473,53 @@ def test_image_only_post(monkeypatch, tmpdir, session, client, login):
     assert len(post.media) == 1
 
 
+def test_get_error_page(session, client, login):
+    # create private corna
+    create_corna(client, session)
+
+    error_page = control.get_error_page(
+        session,
+        shared_data.corna_info["domain_name"],
+        "homepage",
+    )
+
+    # based on yaml at top of file
+    assert str(error_page) == "fake-custom-theme-dir/index.html"
+
+
+def test_get_error_page__fallback_to_default(session, client, login):
+    # create private corna
+    create_corna(client, session)
+    # create random page with no error page
+    yml_str = \
+    """
+    name: "GOJO Fundz"
+    creator: "themebot"
+    description: "Theme with crazy aura."
+    thumbnail: "thumbnail.png"
+
+    pages:
+      homepage: index.html
+      post_page: post.html
+
+    error_pages:
+      default: error.html
+    """
+    (theme_control.THEMES_DIR / "fake-custom-theme-dir/metadata.yml").write_text(
+        yml_str, encoding="utf-8")
+    # create error page
+    (theme_control.THEMES_DIR / "fake-custom-theme-dir/error.html").touch()
+
+    error_page = control.get_error_page(
+        session,
+        shared_data.corna_info["domain_name"],
+        "homepage",
+    )
+
+    # based on yaml above
+    assert str(error_page) == "fake-custom-theme-dir/error.html"
+
+
 def test_get_page__no_page(session, client, login):
     create_corna(client, session, corna_permissions=["read"])
     # No about page
@@ -481,6 +533,9 @@ def test_get_page__no_page(session, client, login):
     pages:
       homepage: index.html
       post_page: post.html
+
+    error_pages:
+      default: error.html
     """
     (theme_control.THEMES_DIR / "fake-custom-theme-dir/metadata.yml").write_text(
         yml_str, encoding="utf-8")

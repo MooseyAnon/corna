@@ -8,3 +8,9 @@ pages:
   homepage: index.html
   post_page: post.html
   about: about.html
+
+error_pages:
+  homepage: index.html
+  post_page: post.html
+  about: about.html
+  default: index.html

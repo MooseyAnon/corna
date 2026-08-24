@@ -854,3 +854,49 @@ def resolve_theme_page(
         raise ValueError(str(err)) from err
 
     return page
+
+
+def get_error_page(
+    session: SessionT,
+    domain_name: str,
+    page: str,
+) -> pathlib.Path | None:
+    """Simple wrapper around themes get_error_page.
+
+    Note: we need to manually verify theme info because this
+    live outside the page/post building control flow as there are many errors
+    which abort before we know which theme's error page we should be returning.
+    This is just a quick way to grab the theme before erroring.
+
+    :param SessionT session: db connection
+    :param str domain_name: the corna domain
+    :param str page: error page to fetch
+    :returns: path to theme
+    :rtype: pathlib.Path if found else None
+    """
+    path = (
+        session
+        .query(models.Themes.path)
+        .join(
+            models.CornaTable,
+            models.CornaTable.theme == models.Themes.uuid
+        )
+        .filter(models.CornaTable.domain_name == domain_name)
+        .scalar()
+    )
+
+    if not path:
+        return None
+
+    try:
+        # we need to create the full path to the dir here
+        full_path = theme_control.THEMES_DIR / path
+        page_path = theme_control.get_error_page(full_path, page)
+        error_page = theme_control.to_render_path(page_path)
+
+    except theme_control.ThemeError:
+        # we dont need to do anything here, the caller will return the
+        # system error page
+        return None
+
+    return error_page
