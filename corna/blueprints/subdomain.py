@@ -30,38 +30,6 @@ THEME_DIR: pathlib.Path = utils.CORNA_ROOT / "themes"
 subdomain = flask.Blueprint("subdomain", __name__, template_folder=THEME_DIR)
 
 
-def get_theme(domain_name):
-    """Get theme for a corna.
-
-    There are many errors which abort before we know which theme's error page
-    we should be returning. This is just a quick way to grab the theme before
-    erroring.
-
-    :param str domain_name: the corna domain
-    :returns: path to theme
-    :rtype: pathlib.Path
-    """
-    from corna.db import models  # pylint: disable=import-outside-toplevel
-    path = (
-        session
-        .query(models.Themes.path)
-        .join(
-            models.CornaTable,
-            models.CornaTable.theme == models.Themes.uuid
-        )
-        .filter(models.CornaTable.domain_name == domain_name)
-        .scalar()
-    )
-
-    # scalar can return None if no rows match
-    if not path:
-        return None
-
-    # return the parent, not the basic hompage path and let caller handle
-    # which page they care about
-    return pathlib.Path(path).parent
-
-
 def get_cookie() -> Optional[str]:
     """Get signed user cookie, if available.
 
@@ -86,7 +54,7 @@ def render_system_error(message):
     return flask.render_template("system-error.html", message=message)
 
 
-def render_theme_error(domain_name, message, suffix="index.html"):
+def render_theme_error(domain_name, message, page):
     """Render a theme error.
 
     Note: in the weird scenario that a theme does not exist, we fallback
@@ -94,15 +62,16 @@ def render_theme_error(domain_name, message, suffix="index.html"):
 
     :param str domain_name: the corna we care about
     :param str message: the error message to display
-    :param str suffix: the file suffix to render i.e. which template in the
-        theme
+    :param str page: the theme error page to fetch. Each page may have a custom
+        error or theme may opt to return a generic theme error. This is
+        abstracted away.
     """
-    theme_path = get_theme(domain_name)
-    if not theme_path:
+    error_path = control.get_error_page(session, domain_name, page)
+    if not error_path:
         return render_system_error(message)
 
-    error_path = str(theme_path / suffix)
-    return flask.render_template(error_path, success=False, message=message)
+    return flask.render_template(
+        str(error_path), success=False, message=message)
 
 
 @subdomain.after_request
@@ -132,7 +101,7 @@ def user_homepage(domain):
 
     except errors.UnauthorizedActionError:
         msg = "You do not have permission to see this page, sorry."
-        return render_theme_error(domain, msg, suffix="index.html"), 403
+        return render_theme_error(domain, msg, page="homepage"), 403
     # this means this is not a valid domain name. Thus there is no chance
     # of finding a valid theme error, so we need to fall back onto the system
     # error page
@@ -175,11 +144,11 @@ def single_post_page(domain, url_ext):
 
     except errors.UnauthorizedActionError:
         msg = "You do not have permission to see this page, sorry."
-        return render_theme_error(domain, msg, suffix="post.html"), 403
+        return render_theme_error(domain, msg, page="post_page"), 403
 
     except control.PostNotFoundError:
         msg = "Oops, seems like there is nothing here :("
-        return render_theme_error(domain, msg, suffix="post.html"), 404
+        return render_theme_error(domain, msg, page="post.html"), 404
     # this means this is not a valid domain name. Thus there is no chance
     # of finding a valid theme error, so we need to fall back onto the system
     # error page
@@ -220,7 +189,7 @@ def about_page(domain):
 
     except errors.UnauthorizedActionError:
         msg = "You do not have permission to see this page, sorry."
-        return render_theme_error(domain, msg, suffix="about.html"), 403
+        return render_theme_error(domain, msg, page="about"), 403
     # this means this is not a valid domain name. Thus there is no chance
     # of finding a valid theme error, so we need to fall back onto the system
     # error page
@@ -283,4 +252,4 @@ def get_static(path):
 def catch_all_error(domain, path):  # pylint: disable=unused-argument
     """Catch all error on subdomain."""
     msg = "Oops, seems like there is nothing here :("
-    return render_theme_error(domain, msg), 404
+    return render_theme_error(domain, msg, page="default"), 404

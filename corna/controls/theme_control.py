@@ -58,6 +58,7 @@ class ThemeMetadata:
     :ivar description: Description of the theme.
     :ivar thumbnail: Thumbnail filename relative to the theme directory.
     :ivar pages: Mapping of page types to template filenames.
+    :ivar error_pages: Mapping of error pages to template filenames.
     """
 
     name: str
@@ -65,6 +66,7 @@ class ThemeMetadata:
     description: str
     thumbnail: str
     pages: dict[str, str]
+    error_pages: dict[str, str]
 
     @classmethod
     def from_theme_path(cls, theme_path: pathlib.Path) -> "ThemeMetadata":
@@ -82,9 +84,13 @@ class ThemeMetadata:
             metadata = yaml.safe_load(metadata_file)
 
         pages = metadata.get("pages", {})
+        error_pages = metadata.get("error_pages", {})
 
         if "homepage" not in pages:
             raise ThemeError("Theme must define an index page")
+
+        if "default" not in error_pages:
+            raise ThemeError("Theme must define a default error page")
 
         return cls(
             name=metadata["name"],
@@ -92,6 +98,7 @@ class ThemeMetadata:
             description=metadata["description"],
             thumbnail=metadata["thumbnail"],
             pages=pages,
+            error_pages=error_pages,
         )
 
 
@@ -457,3 +464,41 @@ def to_render_path(full_path: pathlib.Path) -> pathlib.Path:
         raise ThemeError(
             f"Theme path is outside themes directory: {full_path}"
         ) from exc
+
+
+def get_error_page(theme_path: pathlib.Path, page: str) -> pathlib.Path:
+    """Return the error template path for a theme page.
+
+    The requested page is resolved from the theme's error page mapping. If the
+    page does not define a specific error template, the theme's default error
+    page is used.
+
+    :param pathlib.Path theme_path: Root path of the theme.
+    :param str page: Page type associated with the error.
+    :returns: Path to the resolved error template.
+    :rtype: pathlib.Path
+    :raises ThemeError: If the resolved error template does not exist or
+        resolves outside the theme directory.
+    """
+    metadata = ThemeMetadata.from_theme_path(theme_path)
+
+    # fallback on the default error page
+    error_page = metadata.error_pages.get(
+        page,
+        metadata.error_pages["default"],
+    )
+
+    theme_root = theme_path.resolve()
+    resolved_path = (theme_root / error_page).resolve()
+
+    if not resolved_path.is_relative_to(theme_root):
+        raise ThemeError(
+            f"Theme error page resolves outside theme directory: {page}"
+        )
+
+    if not resolved_path.is_file():
+        raise ThemeError(
+            f"Theme error page does not exist: {resolved_path}"
+        )
+
+    return resolved_path
