@@ -469,6 +469,7 @@ class Listing:
 class CornaPage:
     """Aggregate dataclass that encapsulates the assembly of a Corna page.
 
+    :ivar str subdomain: the corna url
     :ivar Listing listing: Stable listing payload for the page.
     :ivar Optional[str] title: Page title, if one is available.
     :ivar str theme_path: Path to the theme template.

@@ -116,7 +116,7 @@ def user_homepage(domain):
     # catchall fallback as we never want users to see the basic flask error
     # page
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.execption("Caught unexpected error: %s", e)
+        logger.exception("Caught unexpected error: %s", e)
         msg = "Excuse us, something went horribly wrong!"
         return render_system_error(msg), 500
 
@@ -163,7 +163,7 @@ def single_post_page(domain, url_ext):
     # catchall fallback as we never want users to see the basic flask error
     # page
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.execption("Caught unexpected error: %s", e)
+        logger.exception("Caught unexpected error: %s", e)
         msg = "Excuse us, something went horribly wrong!"
         return render_system_error(msg), 500
 
@@ -204,7 +204,7 @@ def about_page(domain):
     # catchall fallback as we never want users to see the basic flask error
     # page
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.execption("Caught unexpected error: %s", e)
+        logger.exception("Caught unexpected error: %s", e)
         msg = "Excuse us, something went horribly wrong!"
         return render_system_error(msg), 500
 
