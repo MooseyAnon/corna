@@ -11,6 +11,7 @@ from markupsafe import Markup
 from sqlalchemy.orm.scoping import scoped_session as Session
 
 from corna import enums
+from corna.controls import theme_control
 from corna.db import models
 from corna.middleware import alchemy, check
 from corna.utils import errors, image_proc, utils
@@ -506,17 +507,21 @@ class CornaPage:
         return curr_corna.title if (curr_corna and curr_corna.title) else None
 
     @classmethod
-    def _theme(cls, session: SessionT, subdomain: str) -> str:
+    def _theme(cls, session: SessionT, subdomain: str) -> pathlib.Path:
         """Get the theme path for the current corna.
 
         :param SessionT session: connection to the db.
         :param str subdomain: the subdomain extension.
-        :returns: the path to the chosen theme.
-        :rtype: str
+        :returns: the full path to the chosen theme.
+        :rtype: pathlib.Path
+        :raises ValueError: if corna has no theme or does not support the
+            expected page
         """
         curr_corna = cls._current_corna(session, subdomain)
-        theme_homepage = str(theme(session, curr_corna) / "index.html")
-        return theme_homepage
+        if not curr_corna.theme:
+            raise ValueError("Corna has no theme")
+
+        return resolve_theme_page(session, curr_corna.theme, "homepage")
 
     @classmethod
     def _post_list(
@@ -652,44 +657,6 @@ def can_read(
     return check.can_read(session, subdomain, username=username)
 
 
-def theme(session: SessionT, corna: models.CornaTable) -> pathlib.Path:
-    """Return the correct single post view template file.
-
-    Note: all themes have deterministic naming so they can be easily found
-    in the file system. The naming convention is:
-        - <theme-name>/index.html -> main homepage
-        - <theme-name>/spv.html -> single post view template
-    Themes are then allowed to an arbitrary amount of jinja fragments the
-    can load in at run time for e.g. displaying errors.
-
-    :param SessionT session: db connection
-    :param CornaTable corna: details about a corna
-    :returns: path to SPV for the theme
-    :rtype: str
-    :raises ValueError: if corna has no theme
-    """
-    # To avoid circular deps, we explicitly save the the theme uuid on the
-    # corna table instead of creating a relationship
-    theme_: Optional[models.Themes] = (
-        session
-        .query(models.Themes)
-        .filter(models.Themes.uuid == corna.theme)
-        .one_or_none()
-    )
-    if not theme_:
-        raise ValueError("No theme found for Corna")
-
-    # We can just return the top level path name and let the callee decide on
-    # the exact page to serve. Each theme has a predictible set of page names:
-    # - index -> main hompage
-    # - post -> single page view
-    # - about -> the about page
-    #
-    # All three of these sit beneth the top level name.
-    parent_path = pathlib.Path(theme_.path).parent
-    return parent_path
-
-
 def single_post(
     session: SessionT,
     url_extension: str,
@@ -707,6 +674,8 @@ def single_post(
     :rype: tuple[Post, str]
     :raises errors.UnauthorizedActionError: if user is not allowed to read
     :raises PostNotFoundError: if no post is found
+    :raises ValueError: if corna has no theme or does not support the
+        expected page
     """
     if not can_read(session, subdomain, cookie):
         raise errors.UnauthorizedActionError("User not allowed to read")
@@ -719,6 +688,11 @@ def single_post(
         .one_or_none()
     )
 
+    if not corna.theme:
+        raise ValueError("Corna has no theme")
+
+    post_page = resolve_theme_page(session, corna.theme, "post_page")
+
     if not post or post.deleted is True or post.corna_uuid != corna.uuid:
         logger.warning(
             "post with extension %s does not exist on corna with domain %s",
@@ -727,8 +701,7 @@ def single_post(
         )
         raise PostNotFoundError("Post does not exist.")
 
-    theme_path = str(theme(session, corna) / "post.html")
-    return Post.from_model(post, subdomain), theme_path
+    return Post.from_model(post, subdomain), post_page
 
 
 def build_page(
@@ -764,6 +737,8 @@ def about(
     :returns: The details for the corna about page.
     :rtype: AboutDTO
     :raises UnauthorizedActionError: if page is private
+    :raises ValueError: if corna has no theme or does not support the
+        expected page
     """
     def about_text(session: SessionT, uuid: str) -> Optional[str]:
         """Get the about text data.
@@ -820,8 +795,12 @@ def about(
     corna: models.CornaTable = _current_corna(session, subdomain)
     # grab all useful data we need
     owner = corna.user.username
-    theme_path = str(theme(session, corna) / "about.html")
     title = corna.title if corna.title else None
+
+    if not corna.theme:
+        raise ValueError("Corna has no theme")
+
+    about_page = resolve_theme_page(session, corna.theme, "about")
 
     about_text_ = None
     if corna.about:
@@ -834,8 +813,44 @@ def about(
 
     return AboutDTO(
         owner=owner,
-        theme_path=theme_path,
+        theme_path=about_page,
         about=about_text_,
         title=title,
         avatar_url=avatar_url,
     )
+
+
+def resolve_theme_page(
+    session: SessionT,
+    theme_uuid: str,
+    page: str,
+) -> pathlib.Path:
+    """Resolve a theme page to its Jinja render path.
+
+    The theme UUID is resolved to its root directory, the requested semantic
+    page is resolved from the theme metadata, and the resulting filesystem path
+    is converted to a path relative to the Jinja theme root.
+
+    :param SessionT session: Database connection.
+    :param str theme_uuid: UUID of the theme to resolve.
+    :param str page: Semantic page name to resolve.
+    :returns: Jinja-compatible path to the requested theme page.
+    :rtype: pathlib.Path
+    :raises ValueError: If the theme or requested page cannot be resolved.
+    """
+    try:
+        theme_path: pathlib.Path = theme_control.get_theme(session, theme_uuid)
+        page_path: pathlib.Path = theme_control.get_theme_page(
+            theme_path, page)
+
+        page: pathlib.Path = theme_control.to_render_path(page_path)
+
+    except theme_control.ThemeError as err:
+        logging.exception(
+            "Failed to resolve theme page %r for theme %s",
+            page,
+            theme_uuid,
+        )
+        raise ValueError(str(err)) from err
+
+    return page

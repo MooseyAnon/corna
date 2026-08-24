@@ -62,7 +62,22 @@ def create_theme_helper(client):
     path = pathlib.Path(theme_control.THEMES_DIR) / dir_name
     path.mkdir()
     # create metadata file
-    (path / "metadata.yml").touch()
+    yml_str = \
+    """
+    name: "GOJO Fundz"
+    creator: "themebot"
+    description: "Theme with crazy aura."
+    thumbnail: "thumbnail.png"
+    pages:
+      homepage: index.html
+      post_page: post.html
+      about: about.html
+    """
+    (path / "metadata.yml").write_text(yml_str, encoding="utf-8")
+    # make index.html page
+    (path / "index.html").touch()
+    # make single post view page
+    (path / "post.html").touch()
 
     resp = client.post("api/v1/themes", json=_theme(path=dir_name))
     assert resp.status_code == 201
@@ -243,7 +258,8 @@ def test_build_page_returns_empty_listing_contract(session, client, login):
     )
 
     assert page.title == shared_data.corna_info["title"]
-    assert page.theme_path
+    # Theme has to be relative to the theme dir as jinja does the resolution
+    assert str(page.theme_path) == "fake-custom-theme-dir/index.html"
     assert page.listing.items == []
     _assert_default_listing_contract(page.listing, 0)
 
@@ -271,7 +287,8 @@ def test_build_page_text_post_includes_cover_media(
     )
 
     assert page.title == shared_data.corna_info["title"]
-    assert page.theme_path
+    # Theme has to be relative to the theme dir as jinja does the resolution
+    assert str(page.theme_path) == "fake-custom-theme-dir/index.html"
     assert len(page.listing.items) == 1
     assert page.listing.has_items is True
 
@@ -318,7 +335,7 @@ def test_single_post_image_parses_media_metadata(
     cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is not None
 
-    post, _ = control.single_post(
+    post, theme = control.single_post(
         session,
         post_url,
         shared_data.corna_info["domain_name"],
@@ -344,6 +361,8 @@ def test_single_post_image_parses_media_metadata(
         media.thumbnails.width,
     )
     assert media.thumbnails.thumbnails is None
+
+    assert str(theme) == "fake-custom-theme-dir/post.html"
 
 
 @pytest.mark.nostubs
@@ -445,5 +464,29 @@ def test_image_only_post(monkeypatch, tmpdir, session, client, login):
     assert post.text_html == None
     assert post.caption_html == None
     assert post.title == None
-    assert theme == "post.html"
+    assert str(theme) == "fake-custom-theme-dir/post.html"
     assert len(post.media) == 1
+
+
+def test_get_page__no_page(session, client, login):
+    create_corna(client, session, corna_permissions=["read"])
+    # No about page
+    yml_str = \
+    """
+    name: "GOJO Fundz"
+    creator: "themebot"
+    description: "Theme with crazy aura."
+    thumbnail: "thumbnail.png"
+
+    pages:
+      homepage: index.html
+      post_page: post.html
+    """
+    (theme_control.THEMES_DIR / "fake-custom-theme-dir/metadata.yml").write_text(
+        yml_str, encoding="utf-8")
+
+    try:
+        control.about(session, shared_data.corna_info["domain_name"])
+        assert False
+    except ValueError as err:
+        assert str(err) == "Theme does not define page: about"
