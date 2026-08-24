@@ -1,12 +1,17 @@
 """Manage working with Corna themes."""
 
-import logging
-from typing import List, Optional
-import pathlib
+from __future__ import annotations
 
+from dataclasses import dataclass
+import logging
+import pathlib
+from typing import List, Optional, TypeVar
+
+from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from typing_extensions import TypedDict
 from werkzeug.local import LocalProxy
+import yaml
 
 from corna.db import models
 from corna.enums import ThemeReviewState
@@ -16,6 +21,8 @@ from corna.utils.errors import NoneExistingUserError
 
 THEMES_DIR = utils.CORNA_ROOT / "themes"
 ALLOWED_EXTENSIONS = {"html", "css", "js"}
+
+SessionT = TypeVar("SessionT", bound=Session)
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +43,56 @@ class Theme(TypedDict):
 
 
 ThemeList = List[Optional[Theme]]
+
+
+@dataclass
+class ThemeMetadata:
+    """Metadata describing a Corna theme.
+
+    Theme metadata is loaded from the ``metadata.yml`` file within a theme
+    directory. Page mappings are intentionally arbitrary so themes can support
+    additional page types without changes to this class.
+
+    :ivar name: Human-readable name of the theme.
+    :ivar creator: Username of the theme creator.
+    :ivar description: Description of the theme.
+    :ivar thumbnail: Thumbnail filename relative to the theme directory.
+    :ivar pages: Mapping of page types to template filenames.
+    """
+
+    name: str
+    creator: str
+    description: str
+    thumbnail: str
+    pages: dict[str, str]
+
+    @classmethod
+    def from_theme_path(cls, theme_path: pathlib.Path) -> "ThemeMetadata":
+        """Load theme metadata from a theme directory.
+
+        :param pathlib.Path theme_path: Path to the theme directory containing
+            metadata.yml.
+        :returns: Parsed theme metadata.
+        :rtype: ThemeMetadata
+        :raises ThemeError: If required theme metadata is missing.
+        """
+        metadata_path = theme_path / "metadata.yml"
+
+        with metadata_path.open("r", encoding="utf-8") as metadata_file:
+            metadata = yaml.safe_load(metadata_file)
+
+        pages = metadata.get("pages", {})
+
+        if "homepage" not in pages:
+            raise ThemeError("Theme must define an index page")
+
+        return cls(
+            name=metadata["name"],
+            creator=metadata["creator"],
+            description=metadata["description"],
+            thumbnail=metadata["thumbnail"],
+            pages=pages,
+        )
 
 
 def sanitize_path(path: str = None) -> Optional[str]:
@@ -313,3 +370,90 @@ def get(session: LocalProxy) -> ThemeList:
         } for theme in themes]
 
     return theme_list
+
+
+def get_theme(session: SessionT, theme_uuid: str) -> pathlib.Path:
+    """Return the root path for a theme.
+
+    The theme UUID is resolved against the themes table. The stored path
+    represents the root directory of the theme; callers are responsible for
+    resolving files within that directory.
+
+    :param SessionT session: Database connection.
+    :param str theme_uuid: UUID of the theme to resolve.
+    :returns: Root path of the theme.
+    :rtype: pathlib.Path
+    :raises ThemeError: If the theme cannot be found.
+    """
+    theme_: Optional[models.Themes] = (
+        session
+        .query(models.Themes)
+        .filter(models.Themes.uuid == theme_uuid)
+        .one_or_none()
+    )
+
+    if not theme_:
+        raise ThemeError(f"Theme not found: {theme_uuid}")
+
+    # full path including theme dir so it can be resolved correctly
+    return THEMES_DIR / theme_.path
+
+
+def get_theme_page(theme_path: pathlib.Path, page: str) -> pathlib.Path:
+    """Return the path for a page provided by a theme.
+
+    The page is resolved from the theme's metadata and must exist within the
+    theme directory.
+
+    :param pathlib.Path theme_path: Root path of the theme.
+    :param str page: Page type to resolve.
+    :returns: Path to the requested page.
+    :rtype: pathlib.Path
+    :raises ThemeError: If the page is not defined, does not exist, or resolves
+        outside the theme directory.
+    """
+    metadata = ThemeMetadata.from_theme_path(theme_path)
+
+    try:
+        page_path = metadata.pages[page]
+    except KeyError as exc:
+        raise ThemeError(
+            f"Theme does not define page: {page}"
+        ) from exc
+
+    theme_root = theme_path.resolve()
+    resolved_path = (theme_root / page_path).resolve()
+
+    if not resolved_path.is_relative_to(theme_root):
+        raise ThemeError(
+            f"Theme page resolves outside theme directory: {page}"
+        )
+
+    if not resolved_path.is_file():
+        raise ThemeError(
+            f"Theme page does not exist: {resolved_path}"
+        )
+
+    return resolved_path
+
+
+def to_render_path(full_path: pathlib.Path) -> pathlib.Path:
+    """Convert a full theme path to a path relative to the themes directory.
+
+    Jinja resolves theme templates relative to ``THEMES_DIR`` rather than from
+    their absolute filesystem paths.
+
+    :param pathlib.Path full_path: Full path to a theme template.
+    :returns: Template path relative to the themes directory.
+    :rtype: pathlib.Path
+    :raises ThemeError: If the path is outside the themes directory.
+    """
+    themes_root = THEMES_DIR.resolve()
+    resolved_path = full_path.resolve()
+
+    try:
+        return resolved_path.relative_to(themes_root)
+    except ValueError as exc:
+        raise ThemeError(
+            f"Theme path is outside themes directory: {full_path}"
+        ) from exc

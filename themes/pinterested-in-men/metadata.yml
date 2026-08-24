@@ -3,3 +3,8 @@ name: "Pinterested in Men"
 creator: "themebot"
 description: "An image first theme which functions much like pPinterest."
 thumbnail: "thumbnail.png"
+
+pages:
+  homepage: index.html
+  post_page: post.html
+  about: about.html

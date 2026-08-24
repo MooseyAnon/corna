@@ -152,7 +152,7 @@ def user_homepage(domain):
         return render_system_error(msg), 500
 
     return flask.render_template(
-        page.theme_path,
+        str(page.theme_path),
         # I dont like this design might change it
         success=True,
         Listing=page.listing,
@@ -199,7 +199,7 @@ def single_post_page(domain, url_ext):
         return render_system_error(msg), 500
 
     return flask.render_template(
-        theme,
+        str(theme),
         # I dont like this design might change it
         success=True,
         post=post,
@@ -240,7 +240,7 @@ def about_page(domain):
         return render_system_error(msg), 500
 
     return flask.render_template(
-        about_data.theme_path,
+        str(about_data.theme_path),
         # I dont like this design might change it
         success=True,
         cornaTitle=about_data.title,

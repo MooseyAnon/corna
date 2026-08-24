@@ -121,7 +121,9 @@ def _upload_thumbnail(
     response = media_control.upload(
         session,
         thumbnail,
-        enums.MediaTypes.THUMBNAIL.value,
+        # the default themes we save a big files. If we pass this as a
+        # thumbnail the size wont be reduced to a manageable size
+        enums.MediaTypes.IMAGE.value,
     )
 
     logger.info(
@@ -174,7 +176,8 @@ def _bootstrap_theme(
         )
         return False
 
-    index_path = theme_path / "index.html"
+
+    index_path = theme_path / metadata["pages"]["homepage"]
 
     if not index_path.is_file():
         raise ThemeMetadataError(
