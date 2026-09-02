@@ -263,6 +263,7 @@ def test_build_page_returns_empty_listing_contract(session, client, login):
     )
 
     assert page.title == shared_data.corna_info["title"]
+    assert page.owner == "john_snow"
     # Theme has to be relative to the theme dir as jinja does the resolution
     assert str(page.theme_path) == "fake-custom-theme-dir/index.html"
     assert page.listing.items == []
@@ -293,6 +294,7 @@ def test_build_page_text_post_includes_cover_media(
     )
 
     assert page.title == shared_data.corna_info["title"]
+    assert page.owner == "john_snow"
     # Theme has to be relative to the theme dir as jinja does the resolution
     assert str(page.theme_path) == "fake-custom-theme-dir/index.html"
     assert page.subdomain == shared_data.corna_info["domain_name"]
