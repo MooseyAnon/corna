@@ -124,7 +124,7 @@ def user_homepage(domain):
         str(page.theme_path),
         # I dont like this design might change it
         success=True,
-        Listing=page.listing,
+        listing=page.listing,
         title=page.title
     )
 
