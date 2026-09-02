@@ -125,7 +125,8 @@ def user_homepage(domain):
         # I dont like this design might change it
         success=True,
         listing=page.listing,
-        title=page.title
+        title=page.title,
+        domain=page.subdomain,
     )
 
 
