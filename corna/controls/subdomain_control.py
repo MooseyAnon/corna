@@ -481,44 +481,34 @@ class CornaPage:
     listing: Listing
 
     @classmethod
-    def _current_corna(
-        cls,
-        session: SessionT,
-        subdomain: str,
-    ) -> models.CornaTable:
-        """Get the details for the current corna we're working with.
 
-        :param SessionT session: connection to the db.
-        :param str subdomain: the subdomain extension.
-        :returns: corna details.
-        :rtype: CornaTable
         """
-        return _current_corna(session, subdomain)
 
     @classmethod
-    def _title(cls, session: SessionT, subdomain: str) -> Optional[str]:
+    def _title(cls, curr_corna: models.CornaTable) -> Optional[str]:
         """Get the title for the current corna.
 
-        :param SessionT session: connection to the db.
-        :param str subdomain: the subdomain extension.
+        :param CornaTable curr_corna: the current corna
         :returns: title is the corna has one.
         :rtype: str
         """
-        curr_corna = cls._current_corna(session, subdomain)
         return curr_corna.title if (curr_corna and curr_corna.title) else None
 
     @classmethod
-    def _theme(cls, session: SessionT, subdomain: str) -> pathlib.Path:
+    def _theme(
+        cls,
+        session: SessionT,
+        curr_corna: models.CornaTable,
+    ) -> pathlib.Path:
         """Get the theme path for the current corna.
 
-        :param SessionT session: connection to the db.
-        :param str subdomain: the subdomain extension.
+        :param SessionT session: connection to the db
+        :param CornaTable curr_corna: the current corna
         :returns: the full path to the chosen theme.
         :rtype: pathlib.Path
         :raises ValueError: if corna has no theme or does not support the
             expected page
         """
-        curr_corna = cls._current_corna(session, subdomain)
         if not curr_corna.theme:
             raise ValueError("Corna has no theme")
 
@@ -528,28 +518,20 @@ class CornaPage:
     def _post_list(
         cls,
         session: SessionT,
-        subdomain: str,
-        cookie: Optional[str] = None,
-    ) -> List[Post]:
+        corna_uuid: str,
+    ) -> tuple[Any]:
         """Get the posts for a given Corna.
 
-        :param SessionT session: connection to the db.
-        :param str subdomain: the subdomain extension.
-        :param Optional[str] cookie: the current user cookie.
-        :returns: post list for the corna
-        :rtype: list[Post]
-        :raise UnauthorizedActionError: if user is not allowed to see the
-            contents of the page.
+        :param SessionT session: connection to the db
+        :param str curr_uuid: the current corna uuid
+        :returns: All posts from the current corna
+        :rtype: tuple[Any]
         """
-        curr_corna = cls._current_corna(session, subdomain)
-
-        if not can_read(session, subdomain, cookie):
-            raise errors.UnauthorizedActionError("User not allowed to read")
 
         posts: List[Optional[models.PostTable]] = (
             session
             .query(models.PostTable)
-            .filter(models.PostTable.corna_uuid == curr_corna.uuid)
+            .filter(models.PostTable.corna_uuid == corna_uuid)
             # We're disabling pylints (singleton-comparison) check because
             # in sqlalchemy equality checking against the boolean is actually
             # important for the generated SQL statement. Its not a python-land
@@ -558,8 +540,7 @@ class CornaPage:
             .order_by(models.PostTable.created.desc())
             .all()
         )
-        parsed_posts = [Post.from_model(post, subdomain) for post in posts]
-        return parsed_posts
+        return posts
 
     @classmethod
     def load(
@@ -576,10 +557,19 @@ class CornaPage:
         :returns: dataclass representation of a corna page.
         :rtype: CornaPage
         """
-        posts = cls._post_list(session, subdomain, cookie)
-        listing = Listing.from_posts(posts)
-        title = cls._title(session, subdomain)
-        theme_path = cls._theme(session, subdomain)
+        curr_corna = _current_corna(session, subdomain)
+
+        if not can_read(session, subdomain, cookie):
+            raise errors.UnauthorizedActionError("User not allowed to read")
+
+        title = cls._title(curr_corna)
+        theme_path = cls._theme(session, curr_corna)
+
+        # create post listing
+        posts = cls._post_list(session, curr_corna.uuid)
+        # posts is a list of sqlalchemy tuples - we need to format these
+        parsed_posts = [Post.from_model(post, subdomain) for post in posts]
+        listing = Listing.from_posts(parsed_posts)
 
         return cls(
             subdomain=subdomain,
