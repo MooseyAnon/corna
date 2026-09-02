@@ -38,7 +38,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
 
 RUN yum install -y \
         gcc \
-        postgresql16-devel \
+        postgresql17-devel \
         python3.12 \
         python3.12-devel && \
     yum clean all && \
@@ -133,7 +133,7 @@ RUN case "${TARGETARCH}" in \
 # Install only the application runtime dependencies.
 RUN microdnf install -y \
         python3.12 \
-        postgresql16-libs && \
+        postgresql17-libs && \
     microdnf clean all
 
 COPY --from=python-builder /venv /venv
