@@ -127,6 +127,7 @@ def user_homepage(domain):
         listing=page.listing,
         title=page.title,
         domain=page.subdomain,
+        owner=page.owner,
     )
 
 

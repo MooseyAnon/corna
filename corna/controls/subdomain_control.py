@@ -470,19 +470,41 @@ class CornaPage:
     """Aggregate dataclass that encapsulates the assembly of a Corna page.
 
     :ivar str subdomain: the corna url
+    :ivar str owner: the corna owner
     :ivar Listing listing: Stable listing payload for the page.
     :ivar Optional[str] title: Page title, if one is available.
     :ivar str theme_path: Path to the theme template.
     """
 
     subdomain: str
+    owner: str
     title: Optional[str]
     theme_path: str
     listing: Listing
 
     @classmethod
+    def _owner(cls, session: SessionT, curr_corna: models.CornaTable) -> str:
+        """Get the current corna's owner.
 
+        :param SessionT session: connection to the db
+        :param CornaTable curr_corna: the current corna
+        :returns: corna owner username
+        :rtype: str
+        :raises ValueError: if corna does not have an owner - this is enforced
+            by the db.
         """
+        if not curr_corna.user_uuid:
+            # All corna's must have an owner
+            raise ValueError("Invalid Corna, owner required.")
+
+        username = (
+            session.
+            query(models.UserTable.username)
+            .filter(models.UserTable.uuid == curr_corna.user_uuid)
+            .scalar()
+        )
+
+        return username
 
     @classmethod
     def _title(cls, curr_corna: models.CornaTable) -> Optional[str]:
@@ -564,6 +586,7 @@ class CornaPage:
 
         title = cls._title(curr_corna)
         theme_path = cls._theme(session, curr_corna)
+        owner = cls._owner(session, curr_corna)
 
         # create post listing
         posts = cls._post_list(session, curr_corna.uuid)
@@ -576,6 +599,7 @@ class CornaPage:
             title=title,
             theme_path=theme_path,
             listing=listing,
+            owner=owner,
         )
 
 
