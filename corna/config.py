@@ -112,18 +112,6 @@ class LocalMediaConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    @field_validator("root")
-    @classmethod
-    def ensure_root_exists(cls, root: Path) -> Path:
-        """Create the configured media root when it does not exist.
-
-        :param root: Configured local media root directory.
-        :returns: The original root path after ensuring it exists.
-        :rtype: Path
-        """
-        root.mkdir(parents=True, exist_ok=True)
-        return root
-
 
 class S3MediaConfig(BaseModel):
     """S3-compatible media storage settings.
@@ -338,18 +326,6 @@ class AppConfig(BaseModel):
             raise ValueError("allowed_extensions must not be empty")
 
         return extensions
-
-    @field_validator("upload_tmp_dir")
-    @classmethod
-    def ensure_upload_dir_exists(cls, root: Path) -> Path:
-        """Create the configured upload directory when it does not exist.
-
-        :param root: Configured upload temporary directory.
-        :returns: The original path after ensuring it exists.
-        :rtype: Path
-        """
-        root.mkdir(parents=True, exist_ok=True)
-        return root
 
 
 class Config(BaseModel):
