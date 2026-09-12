@@ -25,6 +25,7 @@ module "compute" {
 # --- Database (Managed Postgres with VPC + firewall)
 module "database" {
   source          = "../modules/database"
+  count           = var.enable_db ? 1 : 0
   project_name    = var.project_name
   region          = var.region
   vpc_id          = module.network.vpc_id
@@ -38,6 +39,11 @@ module "database" {
 
   allow_tag       = var.db_allow_tag
   allow_cidrs     = var.db_allow_cidrs
+}
+
+moved {
+  from = module.database
+  to   = module.database[0]
 }
 
 # --- Registry (optional)
@@ -64,8 +70,7 @@ locals {
   project_resource_urns = tolist([
     for r in [
       module.compute.droplet_urn,
-      module.database.db_urn,
-      try(module.registry[0].urn, null),
+      try(module.database[0].db_urn, null),
       try(module.spaces[0].urn, null)
     ] : r if r != null
   ])

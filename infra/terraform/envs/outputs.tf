@@ -8,17 +8,17 @@ output "droplet_ipv4"  { value = module.compute.droplet_ipv4 }
 output "droplet_user"  { value = module.compute.admin_username }
 
 # SAFE DB outputs
-output "db_host" { value = module.database.db_host }
-output "db_port" { value = module.database.db_port }
-output "db_name" { value = module.database.db_name }
+output "db_host" { value = try(module.database[0].db_host, null) }
+output "db_port" { value = try(module.database[0].db_port, null) }
+output "db_name" { value = try(module.database[0].db_name, null) }
 
 # SENSITIVE DB outputs (won't print to console)
 output "db_private_uri" {
-  value     = module.database.private_uri
+  value     = try(module.database[0].private_uri, null)
   sensitive = true
 }
 output "db_public_uri" {
-  value     = module.database.public_uri
+  value     = try(module.database[0].public_uri, null)
   sensitive = true
 }
 
