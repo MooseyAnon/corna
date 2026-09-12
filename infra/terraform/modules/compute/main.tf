@@ -11,7 +11,7 @@ terraform {
 # 1) Import your SSH public key into DO
 resource "digitalocean_ssh_key" "this" {
   name       = "${var.project_name}-ssh"
-  public_key = file(var.ssh_pub_key_path)
+  public_key = file(pathexpand(var.ssh_pub_key_path))
 }
 
 # 2) Droplet in the provided VPC
@@ -25,7 +25,7 @@ resource "digitalocean_droplet" "this" {
   ssh_keys   = [digitalocean_ssh_key.this.fingerprint]
   ipv6       = true
   monitoring = true
-  tags       = concat(var.tags, ["public-edge"])
+  tags       = distinct(concat(var.tags, ["public-edge"]))
 
   # Minimal cloud-init; Ansible will handle the rest
   user_data = <<-EOT
@@ -38,7 +38,7 @@ resource "digitalocean_droplet" "this" {
       groups: sudo
       shell: /bin/bash
       ssh-authorized-keys:
-        - ${trimspace(file(var.ssh_pub_key_path))}
+        - ${trimspace(file(pathexpand(var.ssh_pub_key_path)))}
   EOT
 }
 

@@ -12,3 +12,8 @@ output "endpoint" {
   description = "S3-compatible endpoint URL for this region."
   value       = "https://${digitalocean_spaces_bucket.this.region}.digitaloceanspaces.com"
 }
+
+output "urn" {
+  description = "Spaces bucket URN for project attachments."
+  value       = digitalocean_spaces_bucket.this.urn
+}
