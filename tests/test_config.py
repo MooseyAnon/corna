@@ -139,6 +139,8 @@ def test_config_loads_local_backend_from_yaml(tmp_path, temp_config_file):
     assert test_config.app.port == 5000
     assert test_config.app.sqlalchemy_echo is True
     assert test_config.app.upload_tmp_dir == expected_workdir
+    # ensure there are no side effects from config validation
+    assert not test_config.app.upload_tmp_dir.exists()
     assert test_config.app.max_file_size == 10_485_760
     assert test_config.app.allowed_extensions == [
         "gif",
@@ -155,7 +157,8 @@ def test_config_loads_local_backend_from_yaml(tmp_path, temp_config_file):
     assert test_config.media.local is not None
     assert test_config.media.s3 is None
     assert test_config.media.local.root == temp_config_file.parent / "media"
-    assert test_config.media.local.root.is_dir()
+    # ensure there are no side effects from config validation
+    assert not test_config.media.local.root.exists()
 
 
 def test_config_loads_s3_backend_from_yaml(temp_s3_config_file):
