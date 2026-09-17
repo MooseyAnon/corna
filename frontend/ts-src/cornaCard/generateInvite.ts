@@ -4,6 +4,7 @@ import {
     RequestReturnType as RRT,
     handleNetworkError,
     request,
+    serviceUrl,
 } from "./../lib/network.js";
 
 import {
@@ -17,7 +18,7 @@ interface InviteResponse {
 }
 
 
-const INVITE_BASE_URL = "https://mycorna.com";
+const INVITE_BASE_URL = serviceUrl().origin;
 
 
 function setStatus(

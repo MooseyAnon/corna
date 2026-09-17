@@ -10,11 +10,11 @@ from typing import Any, Dict, List, Literal, Optional, TypeVar
 from markupsafe import Markup
 from sqlalchemy.orm.scoping import scoped_session as Session
 
-from corna import enums
+from corna import config, enums
 from corna.controls import theme_control
 from corna.db import models
 from corna.middleware import alchemy, check
-from corna.utils import errors, image_proc, utils
+from corna.utils import errors, image_proc
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,8 @@ class Post:
         :returns: fully resolved client ready URL for a post
         :rtype: str
         """
-        return f"https://{subdomain}.mycorna.com/p/{url_extension}"
+        hostname: str = config.get_config().app.hostname
+        return f"https://{subdomain}.{hostname}/p/{url_extension}"
 
     @classmethod
     def _post_title(cls, post: models.PostTable) -> Optional[str]:
@@ -272,7 +273,8 @@ class Media:
         :returns: fully resolved client ready HREF for a media asset.
         :rtype: str
         """
-        return f"{utils.UNVERSIONED_API_URL}/v1/media/download/{url_extension}"
+        api_url: str = config.get_config().app.api_url
+        return f"{api_url}/v1/media/download/{url_extension}"
 
     @classmethod
     def _media_dimensions(
@@ -809,8 +811,8 @@ def about(
 
     if (avatar_url := user_avatar(session, corna.user)):
         # create the full url
-        avatar_url = \
-            f"{utils.UNVERSIONED_API_URL}/v1/media/download/{avatar_url}"
+        api_url: str = config.get_config().app.api_url
+        avatar_url = f"{api_url}/v1/media/download/{avatar_url}"
 
     return AboutDTO(
         owner=owner,
