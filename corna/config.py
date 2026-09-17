@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlparse
 
 from pydantic import (
     BaseModel, ConfigDict, Field, field_validator, model_validator)
@@ -240,7 +241,7 @@ class AppConfig(BaseModel):
     debug: bool
     port: int
     upload_tmp_dir: Path
-    api_base_url: str
+    service_url: str
 
     sqlalchemy_echo: bool = False
     max_file_size: int = 20 * 1024 * 1024  # 20BM
@@ -326,6 +327,63 @@ class AppConfig(BaseModel):
             raise ValueError("allowed_extensions must not be empty")
 
         return extensions
+
+    @field_validator("service_url")
+    @classmethod
+    def validate_service_url(cls, service_url: str) -> str:
+        """Validate the configured service URL.
+
+        The service URL must be an absolute HTTP(S) URL containing a valid
+        hostname. Derived configuration such as the public API URL relies on
+        these components being present.
+
+        :param service_url: Configured public service URL.
+        :returns: The validated service URL.
+        :rtype: str
+        :raises ValueError: If the service URL is invalid.
+        """
+        parsed = urlparse(service_url)
+        # make this as tight as possible
+        is_valid = bool(
+            parsed.scheme
+            and parsed.hostname
+            and not parsed.username
+            and not parsed.password
+            and not parsed.path
+            and not parsed.params
+            and not parsed.query
+            and not parsed.fragment
+        )
+
+        if not is_valid or parsed.scheme not in {"http", "https"}:
+            raise ValueError(
+                "service_url must contain only an HTTP(S) scheme and hostname"
+            )
+
+        return service_url
+
+    @property
+    def api_url(self) -> str:
+        """Build the public API URL derived from the config service URL.
+
+        Note: the URL returned is the _unversioned_ API meaning callers
+        have to add the correct API versioning before making a call.
+
+        :returns: service API URL
+        :rtype: str
+        """
+        parsed = urlparse(self.service_url)
+        return f"{parsed.scheme}://api.{parsed.hostname}"
+
+    @property
+    def hostname(self) -> str:
+        """Service hostname.
+
+        :return: the service hostname
+        :rtype: str
+        """
+        parsed = urlparse(self.service_url)
+        return parsed.hostname
 
 
 class Config(BaseModel):

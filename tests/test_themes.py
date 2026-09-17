@@ -408,7 +408,7 @@ def test_anon_user_update_status(client):
     assert resp.json["message"] == "Login required for this action"
 
 
-def test_get_theme_list(client, mocker, login):
+def test_get_theme_list(client, mocker, login, local_config):
 
     mocker.patch(
         "corna.utils.utils.get_uuid",
@@ -421,12 +421,17 @@ def test_get_theme_list(client, mocker, login):
     thumbnail = _upload_thumbnail(client)
     create_theme_helper(client, path=dir_name, thumbnail=thumbnail)
 
+    # API urls are dynamically created by the config. This specific instance
+    # is derived from the test config defined in conftests. Its largely an
+    # arbitrary choice but designed to illustrate how the functionality works
+    expected_thumbnail_url = "http://api.localhost/v1/media/download/abcdef"
+
     expected = {"themes": [
         {
             "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
             "name": "new fancy theme",
             "creator": "john_snow",
-            "thumbnail": "https://api.mycorna.com/v1/media/download/abcdef",
+            "thumbnail": expected_thumbnail_url,
             "description": "This theme does super cool theme stuff.",
         }
     ]}

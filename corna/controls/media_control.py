@@ -18,6 +18,7 @@ from typing_extensions import TypedDict
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
+from corna import config
 from corna.db import models
 from corna.enums import MediaTypes
 from corna.middleware import alchemy
@@ -300,8 +301,8 @@ def random_avatar(session: Session) -> Avatar:
     )
     avatar: models.Media = random.choice(avatars)
 
-    url: str = \
-        f"{utils.UNVERSIONED_API_URL}/v1/media/download/{avatar.url_extension}"
+    api_url: str = config.get_config().app.api_url
+    url: str = f"{api_url}/v1/media/download/{avatar.url_extension}"
 
     return {"url": url, "slug": avatar.url_extension}
 

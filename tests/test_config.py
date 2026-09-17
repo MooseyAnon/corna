@@ -58,7 +58,7 @@ def _mock_config(
                 "mp4",
                 "mov",
             ],
-            "api_base_url": "http://localhost:5000",
+            "service_url": "http://localhost:5000",
         },
     }
 
@@ -151,7 +151,8 @@ def test_config_loads_local_backend_from_yaml(tmp_path, temp_config_file):
         "mp4",
         "mov",
     ]
-    assert test_config.app.api_base_url == "http://localhost:5000"
+    assert test_config.app.service_url == "http://localhost:5000"
+    assert test_config.app.api_url == "http://api.localhost"
 
     assert test_config.media.backend == "local"
     assert test_config.media.local is not None
@@ -409,6 +410,26 @@ def test_unknown_configuration_field_is_rejected(tmp_path):
     with pytest.raises(
         ValidationError,
         match="sqlalchemy_ecoh",
+    ):
+        config.load_config(config_path)
+
+
+def test_invalid_service_url_raises(tmp_path):
+    config_data = _mock_config(
+        local_root=str(tmp_path / "media"),
+        upload_dir=str(tmp_path / "uploads"),
+    )
+    config_data["app"]["service_url"] = "some-random-ass-isshhh"
+
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(config_data),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="service_url",
     ):
         config.load_config(config_path)
 

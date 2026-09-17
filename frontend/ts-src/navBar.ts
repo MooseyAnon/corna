@@ -26,6 +26,7 @@ import {
     RequestReturnType as RRT,
     handleNetworkError,
     request,
+    serviceUrl,
 } from "./lib/network.js";
 
 import { handlePromise } from "./lib/utils.js";
@@ -639,12 +640,13 @@ function isHostMessage(data: unknown): data is HostMessage {
 function isValidCornaOrigin(origin: string): boolean {
     try {
         const url = new URL(origin);
+        const service = serviceUrl();
 
         return (
-            url.protocol === "https:"
+            url.protocol === service.protocol
             && (
-                url.hostname === "mycorna.com"
-                || url.hostname.endsWith(".mycorna.com")
+                url.hostname === service.hostname
+                || url.hostname.endsWith(`.${service.hostname}`)
             )
         );
     } catch {

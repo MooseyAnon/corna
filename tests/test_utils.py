@@ -95,7 +95,9 @@ def test_expiry_2(date, expected):
 
     # img tags must only contain our API url
     ('<img src="https://example.com/img.png">', '<img>'),
-    ('<img src="https://api.mycorna.com">', '<img src="https://api.mycorna.com">'),
+    # this from testing config in conftest. We're using it to verify the
+    # behaviour but in prod this will be replaced with the legit url
+    ('<img src="http://api.localhost">', '<img src="http://api.localhost">'),
 
     # Invalid but allowed tag+attribute - should strip attribute
     ('<img src="invalid-url">', '<img>'),
@@ -108,9 +110,8 @@ def test_expiry_2(date, expected):
     ('<video src="x.mp4"></video>', ''),
     ('<iframe src="https://evil.com"></iframe>', ''),
 ])
-def test_clean_html(dirty_html, expected_fragment):
+def test_clean_html(dirty_html, expected_fragment, local_config):
     cleaned = utils.clean_html(dirty_html)
-    print(expected_fragment, "===", cleaned)
     assert expected_fragment == cleaned
 
 
