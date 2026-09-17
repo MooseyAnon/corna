@@ -25,7 +25,7 @@ import validators
 from werkzeug.datastructures import FileStorage
 from werkzeug.local import LocalProxy
 
-from corna import enums
+from corna import config, enums
 from corna.controls.marshmallow_control import BaseSchema
 from corna.db import models
 from corna.utils import secure
@@ -48,8 +48,6 @@ ALLOWED_HTML_TAGS = {
 # to generate "unique-ish" short strings to use for URL extentions
 ALPHABET: str = string.ascii_lowercase + string.digits
 CORNA_ROOT: pathlib.Path = pathlib.Path(__file__).parent.parent.parent
-# Base API url for clients to call
-UNVERSIONED_API_URL = "https://api.mycorna.com"
 
 
 def respond_json_error(message: str, code: int) -> None:
@@ -385,7 +383,7 @@ def clean_html(html: str) -> str:
             # such that, the image will first be uploaded to the server and
             # then the upload link will be used in the image tag.
             if tag == "img" and attr == "src":
-                if not value.startswith(UNVERSIONED_API_URL):
+                if not value.startswith(config.get_config().app.api_url):
                     logger.warning("Invalid image src URL: '%s'", value)
                     return None
         return value

@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Tuple, Union
 from sqlalchemy.orm.scoping import scoped_session as Session
 from typing_extensions import TypedDict
 
+from corna import config
 from corna.db import models
 from corna.enums import ContentType
 from corna.middleware import alchemy, check
@@ -392,6 +393,6 @@ def build_url(extension: str, domain_name: str, type_: str) -> str:
     :returns: full url
     :rtype: str
     """
-    base: str = "https://api.mycorna.com/v1/posts"
+    base: str = f"{config.get_config().app.api_url}/v1/posts"
     url: str = f"{base}/{domain_name}/{type_}/{extension}"
     return url

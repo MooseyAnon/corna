@@ -11,6 +11,7 @@ from dateutil.parser import parse
 from sqlalchemy import exists
 from werkzeug.local import LocalProxy
 
+from corna import config
 from corna.utils import encodings, future, get_utc_now, vault_item
 from corna.utils.encodings import EncodingError
 
@@ -138,27 +139,32 @@ def secure_headers(request) -> Dict[str, str]:
     :rtype: dict[str, str]
     """
     headers: Dict[str, str] = {}
+
+    app_conf = config.get_config().app
+    service_url: str = app_conf.service_url
+    hostname: str = app_conf.hostname
+
     # default security headers
     headers['Content-Security-Policy'] = (
         # default-src
         "default-src 'self' "
         "http://*.localhost http://localhost "
-        "https://mycorna.com https://*.mycorna.com "
+        f"{service_url} https://*.{hostname} "
         "https://*.googleapis.com https://*.gstatic.com "
         "https://cdnjs.cloudflare.com https://unpkg.com;"
         # frame-ancestors
-        "frame-ancestors 'self' https://mycorna.com https://*.mycorna.com/;"
+        f"frame-ancestors 'self' {service_url} https://*.{hostname};"
         # script-src
-        "script-src 'self' https://mycorna.com https://cdnjs.cloudflare.com "
+        f"script-src 'self' {service_url} https://cdnjs.cloudflare.com "
         "https://unpkg.com https://cdn.tailwindcss.com;"
         # style-src
-        "style-src 'self' 'unsafe-inline' https://mycorna.com "
-        "https://*.mycorna.com https://*.googleapis.com https://*.gstatic.com "
+        f"style-src 'self' 'unsafe-inline' {service_url} "
+        f"https://*.{hostname} https://*.googleapis.com https://*.gstatic.com "
         "https://unpkg.com https://cdn.tailwindcss.com;"
     )
     headers['Strict-Transport-Security'] = "max-age=31536000; includeSubDomains"
     headers['X-Content-Type-Options'] = "nosniff"
-    headers['X-Frame-Options'] = "allow-from https://mycorna.com/"
+    headers['X-Frame-Options'] = f"allow-from {service_url}"
     headers['X-XSS-Protection'] = "1; mode=block"
 
     # add cors stuff
@@ -203,10 +209,13 @@ def origin(request):
     # back and forth, CORs blocks it without us specifically accepting the
     # origin.
     headers = {}
-    headers["Access-Control-Allow-Origin"] = "https://mycorna.com"
+    headers["Access-Control-Allow-Origin"] = \
+        config.get_config().app.service_url
+
+    hostname = config.get_config().app.hostname
 
     orig = request.headers.get("Origin")
-    if orig and "mycorna.com" in orig:
+    if orig and hostname in orig:
         headers["Access-Control-Allow-Origin"] = orig
 
     return headers

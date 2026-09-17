@@ -13,6 +13,7 @@ from typing_extensions import TypedDict
 from werkzeug.local import LocalProxy
 import yaml
 
+from corna import config
 from corna.db import models
 from corna.enums import ThemeReviewState
 from corna.middleware import alchemy
@@ -324,7 +325,7 @@ def thumbnail_url(session: LocalProxy, uuid: str) -> str:
         return ""
 
     url: str = (
-        f"{utils.UNVERSIONED_API_URL}"
+        f"{config.get_config().app.api_url}"
         f"/v1/media/download/{media.url_extension}"
     )
     return url
