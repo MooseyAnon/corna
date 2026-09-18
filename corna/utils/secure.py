@@ -181,8 +181,9 @@ def cors_headers() -> Dict[str, str]:
     """
     headers: Dict[str, str] = {}
     headers["Access-Control-Allow-Credentials"] = "true"
-    headers["Access-Control-Allow-Headers"] = ACCESS_CONTROL_ALLOWED_HEADERS
-    headers["Access-Control-Allow-Methods"] = ["GET", "POST", "PUT", "DELETE"]
+    headers["Access-Control-Allow-Headers"] = ", ".join(
+        ACCESS_CONTROL_ALLOWED_HEADERS)
+    headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE"
 
     return headers
 
