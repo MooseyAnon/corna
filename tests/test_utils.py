@@ -4,12 +4,38 @@ import pathlib
 from freezegun import freeze_time
 import pytest
 
-from corna.utils import encodings, future, image_proc, mkdir, secure, utils
+from corna.utils import encodings, future, image_proc, mkdir, secure, utils, vault_item
+from corna.utils.vault_manager import VaultError
 from tests import shared_data
 
 FROZEN_TIME = "2023-04-05T03:21:34"
 
 
+@freeze_time(FROZEN_TIME)
+def test_signing_end_to_end():
+    message = "aaaaaaaaa"
+    signed = secure.sign(message)
+
+    assert secure.is_valid(signed)
+
+
+@freeze_time(FROZEN_TIME)
+def test_tampering_with_expiry_date_fails_signature():
+    message = "aaaaaaaaa"
+
+    signed = secure.sign(message)
+    _, _, sig = secure.unsign(signed)
+
+    # create fake payload by tampering with expiry
+    tampered = "2023-04-06T03:21:34||aaaaaaaaa"
+    assert not secure.verify(tampered, sig)
+
+    # check legit payload just to make sure happy path works
+    legit = "2023-04-19T03:21:34+00:00||aaaaaaaaa"
+    assert secure.verify(legit, sig)
+
+
+@freeze_time(FROZEN_TIME)
 def test_signing_similar_messages():
 
     m1 = "aaaaaaaaa"
@@ -21,11 +47,13 @@ def test_signing_similar_messages():
     _, _, s1_sig = secure.unsign(s1)
     _, _, s2_sig = secure.unsign(s2)
 
-    assert secure.verify(m1, s1_sig)
-    assert secure.verify(m2, s2_sig)
+    # the message changes when being signed, we append the expiry to it
+    # Note: future() currently adds 14 days to "todays" date
+    assert secure.verify(b"2023-04-19T03:21:34+00:00||aaaaaaaaa", s1_sig)
+    assert secure.verify(b"2023-04-19T03:21:34+00:00||aaaaaaaab", s2_sig)
 
-    assert not secure.verify(m1, s2_sig)
-    assert not secure.verify(m2, s1_sig)
+    assert not secure.verify(b"2023-04-19T03:21:34+00:00||aaaaaaaaa", s2_sig)
+    assert not secure.verify(b"2023-04-19T03:21:34+00:00||aaaaaaaab", s1_sig)
 
 
 @freeze_time(FROZEN_TIME)
@@ -95,7 +123,9 @@ def test_expiry_2(date, expected):
 
     # img tags must only contain our API url
     ('<img src="https://example.com/img.png">', '<img>'),
-    ('<img src="https://api.mycorna.com">', '<img src="https://api.mycorna.com">'),
+    # this from testing config in conftest. We're using it to verify the
+    # behaviour but in prod this will be replaced with the legit url
+    ('<img src="http://api.localhost">', '<img src="http://api.localhost">'),
 
     # Invalid but allowed tag+attribute - should strip attribute
     ('<img src="invalid-url">', '<img>'),
@@ -108,9 +138,8 @@ def test_expiry_2(date, expected):
     ('<video src="x.mp4"></video>', ''),
     ('<iframe src="https://evil.com"></iframe>', ''),
 ])
-def test_clean_html(dirty_html, expected_fragment):
+def test_clean_html(dirty_html, expected_fragment, local_config):
     cleaned = utils.clean_html(dirty_html)
-    print(expected_fragment, "===", cleaned)
     assert expected_fragment == cleaned
 
 
@@ -161,3 +190,76 @@ def test_get_video_dimension():
 ])
 def test_get_aspect_ratio(height, width, expected):
     assert image_proc.aspect_ratio(height, width) == expected
+
+
+# -- vault tests --
+
+@pytest.fixture
+def mock_vault_data():
+    return {
+        "vault": {
+            "database": {
+                "password": "super-secret",
+            },
+            "service": {
+                "token": "abc123",
+            },
+        }
+    }
+
+
+def test_vault_item(mocker, mock_vault_data):
+    mocker.patch(
+        "corna.utils.vault_manager.get_decrypted_data",
+        return_value=mock_vault_data,
+    )
+    
+    assert vault_item("database.password") == "super-secret"
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "",
+        "   ",
+        ".database",
+        "database.",
+        "database..password",
+    ],
+)
+def test_vault_item_rejects_invalid_key(mocker, key, mock_vault_data):
+    mocker.patch(
+        "corna.utils.vault_manager.get_decrypted_data",
+        return_value=mock_vault_data,
+    )
+
+    with pytest.raises(VaultError):
+        vault_item(key)
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "missing",
+        "missing.password",
+        "database.missing",
+    ],
+)
+def test_vault_item_rejects_missing_key(mocker, key, mock_vault_data):
+    mocker.patch(
+        "corna.utils.vault_manager.get_decrypted_data",
+        return_value=mock_vault_data,
+    )
+
+    with pytest.raises(VaultError, match=repr(key)):
+        vault_item(key)
+
+
+def test_get_item_rejects_traversal_below_value(mocker, mock_vault_data):
+    mocker.patch(
+        "corna.utils.vault_manager.get_decrypted_data",
+        return_value=mock_vault_data,
+    )
+
+    with pytest.raises(VaultError):
+        vault_item("database.password.foo")

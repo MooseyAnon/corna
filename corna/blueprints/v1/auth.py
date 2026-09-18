@@ -12,7 +12,7 @@ import flask
 from flask_apispec import doc, marshal_with, use_kwargs
 from marshmallow import Schema, fields, validate, validates
 
-from corna import enums
+from corna import config, enums
 from corna.controls import auth_control
 from corna.middleware.alchemy import NoMediaError
 from corna.oss.flask_sqlalchemy_session import current_session as session
@@ -232,7 +232,7 @@ def set_cookie(
 
     testing = app.config.get("TESTING")
     if not testing:
-        cookie_attrs.update({"domain": "mycorna.com"})
+        cookie_attrs.update({"domain": config.get_config().app.hostname})
     if kwargs:
         cookie_attrs.update(**kwargs)
     response.set_cookie(**cookie_attrs)

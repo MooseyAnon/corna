@@ -618,7 +618,7 @@ def test_hash_gif():
 
 
 @pytest.mark.nostubs
-def test_random_avatar_gen(client, session, login):
+def test_random_avatar_gen(client, session, login, local_config):
     # upload avatars and one extra image to make sure it does not
     # get selected
     image = (shared_data.ASSET_DIR / "anders-jilden.jpg").open("rb")

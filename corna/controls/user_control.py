@@ -8,9 +8,9 @@ from typing import Dict, List, Optional
 from sqlalchemy.orm.scoping import scoped_session as Session
 from typing_extensions import TypedDict
 
+from corna import config
 from corna.db import models
 from corna.middleware import alchemy
-from corna.utils import utils
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ def build_avatar_url(session: Session, uuid: str) -> str:
     :returns: complete download URL for an avatar
     :rtype: str
     """
-    download_url: str = f"{utils.UNVERSIONED_API_URL}/v1/media/download"
+    download_url: str = f"{config.get_config().app.api_url}/v1/media/download"
     avatar: models.Media = alchemy.media_from_uuid(session, uuid)
     return f"{download_url}/{avatar.url_extension}"
 

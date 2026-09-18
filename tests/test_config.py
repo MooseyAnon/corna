@@ -58,7 +58,7 @@ def _mock_config(
                 "mp4",
                 "mov",
             ],
-            "api_base_url": "http://localhost:5000",
+            "service_url": "http://localhost:5000",
         },
     }
 
@@ -76,8 +76,6 @@ def _mock_config(
                 "bucket": "corna-test-media",
                 "region": "eu-west-2",
                 "endpoint_url": None,
-                "access_key": "test-access-key",
-                "secret_key": "test-secret-key",
                 "use_signed_urls": False,
                 "signed_url_ttl": 300,
             },
@@ -139,6 +137,8 @@ def test_config_loads_local_backend_from_yaml(tmp_path, temp_config_file):
     assert test_config.app.port == 5000
     assert test_config.app.sqlalchemy_echo is True
     assert test_config.app.upload_tmp_dir == expected_workdir
+    # ensure there are no side effects from config validation
+    assert not test_config.app.upload_tmp_dir.exists()
     assert test_config.app.max_file_size == 10_485_760
     assert test_config.app.allowed_extensions == [
         "gif",
@@ -149,16 +149,21 @@ def test_config_loads_local_backend_from_yaml(tmp_path, temp_config_file):
         "mp4",
         "mov",
     ]
-    assert test_config.app.api_base_url == "http://localhost:5000"
+    assert test_config.app.service_url == "http://localhost:5000"
+    assert test_config.app.api_url == "http://api.localhost"
 
     assert test_config.media.backend == "local"
     assert test_config.media.local is not None
     assert test_config.media.s3 is None
     assert test_config.media.local.root == temp_config_file.parent / "media"
-    assert test_config.media.local.root.is_dir()
+    # ensure there are no side effects from config validation
+    assert not test_config.media.local.root.exists()
 
 
-def test_config_loads_s3_backend_from_yaml(temp_s3_config_file):
+def test_config_loads_s3_backend_from_yaml(mocker, temp_s3_config_file):
+    # vault also makes a call to config which can mess up the test
+    mocker.patch("corna.utils.vault_item", return_value="fake-s3-token")
+
     test_config = config.load_config(temp_s3_config_file)
 
     assert test_config.media.backend == "s3"
@@ -168,8 +173,8 @@ def test_config_loads_s3_backend_from_yaml(temp_s3_config_file):
     assert test_config.media.s3.bucket == "corna-test-media"
     assert test_config.media.s3.region == "eu-west-2"
     assert test_config.media.s3.endpoint_url is None
-    assert test_config.media.s3.access_key == "test-access-key"
-    assert test_config.media.s3.secret_key == "test-secret-key"
+    assert test_config.media.s3.access_key == "fake-s3-token"
+    assert test_config.media.s3.secret_key == "fake-s3-token"
     assert test_config.media.s3.use_signed_urls is False
     assert test_config.media.s3.signed_url_ttl == 300
 
@@ -328,8 +333,6 @@ def test_local_backend_rejects_s3_config(tmp_path):
     config_data["media"]["s3"] = {
         "bucket": "unexpected",
         "region": "eu-west-2",
-        "access_key": "key",
-        "secret_key": "secret",
     }
 
     config_path = tmp_path / "config.yaml"
@@ -369,8 +372,6 @@ def test_s3_backend_rejects_local_config(tmp_path):
     [
         "bucket",
         "region",
-        "access_key",
-        "secret_key",
     ],
 )
 def test_s3_backend_requires_mandatory_fields(
@@ -406,6 +407,26 @@ def test_unknown_configuration_field_is_rejected(tmp_path):
     with pytest.raises(
         ValidationError,
         match="sqlalchemy_ecoh",
+    ):
+        config.load_config(config_path)
+
+
+def test_invalid_service_url_raises(tmp_path):
+    config_data = _mock_config(
+        local_root=str(tmp_path / "media"),
+        upload_dir=str(tmp_path / "uploads"),
+    )
+    config_data["app"]["service_url"] = "some-random-ass-isshhh"
+
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(config_data),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="service_url",
     ):
         config.load_config(config_path)
 

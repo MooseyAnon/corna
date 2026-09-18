@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlparse
 
 from pydantic import (
     BaseModel, ConfigDict, Field, field_validator, model_validator)
@@ -112,18 +113,6 @@ class LocalMediaConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    @field_validator("root")
-    @classmethod
-    def ensure_root_exists(cls, root: Path) -> Path:
-        """Create the configured media root when it does not exist.
-
-        :param root: Configured local media root directory.
-        :returns: The original root path after ensuring it exists.
-        :rtype: Path
-        """
-        root.mkdir(parents=True, exist_ok=True)
-        return root
-
 
 class S3MediaConfig(BaseModel):
     """S3-compatible media storage settings.
@@ -139,8 +128,6 @@ class S3MediaConfig(BaseModel):
 
     bucket: str
     region: str
-    access_key: str
-    secret_key: str
     endpoint_url: str | None = None
     use_signed_urls: bool = False
     signed_url_ttl: int = 300
@@ -150,8 +137,6 @@ class S3MediaConfig(BaseModel):
     @field_validator(
         "bucket",
         "region",
-        "access_key",
-        "secret_key",
     )
     @classmethod
     def must_not_be_empty(cls, value: str) -> str:
@@ -183,6 +168,40 @@ class S3MediaConfig(BaseModel):
             raise ValueError("signed_url_ttl must be greater than zero")
 
         return value
+
+    @property
+    def access_key(self) -> str:
+        """Get S3 access key.
+
+        :returns: the S3 access key
+        :rtype: str
+        """
+        # Import lazily to avoid the config <-> vault module import cycle.
+        # This is safe because vault access happens only after configuration
+        # loading has completed.
+        #
+        # C0415=import-outside-toplevel
+        from corna.utils import vault_item  # pylint: disable=C0415
+
+        key: str = vault_item("s3.access_key")
+        return key
+
+    @property
+    def secret_key(self) -> str:
+        """Get S3 secret key.
+
+        :returns: the S3 secret key.
+        :rtype: str
+        """
+        # Import lazily to avoid the config <-> vault module import cycle.
+        # This is safe because vault access happens only after configuration
+        # loading has completed.
+        #
+        # C0415=import-outside-toplevel
+        from corna.utils import vault_item  # pylint: disable=C0415
+
+        key: str = vault_item("s3.secret_key")
+        return key
 
 
 class MediaConfig(BaseModel):
@@ -252,7 +271,7 @@ class AppConfig(BaseModel):
     debug: bool
     port: int
     upload_tmp_dir: Path
-    api_base_url: str
+    service_url: str
 
     sqlalchemy_echo: bool = False
     max_file_size: int = 20 * 1024 * 1024  # 20BM
@@ -339,17 +358,62 @@ class AppConfig(BaseModel):
 
         return extensions
 
-    @field_validator("upload_tmp_dir")
+    @field_validator("service_url")
     @classmethod
-    def ensure_upload_dir_exists(cls, root: Path) -> Path:
-        """Create the configured upload directory when it does not exist.
+    def validate_service_url(cls, service_url: str) -> str:
+        """Validate the configured service URL.
 
-        :param root: Configured upload temporary directory.
-        :returns: The original path after ensuring it exists.
-        :rtype: Path
+        The service URL must be an absolute HTTP(S) URL containing a valid
+        hostname. Derived configuration such as the public API URL relies on
+        these components being present.
+
+        :param service_url: Configured public service URL.
+        :returns: The validated service URL.
+        :rtype: str
+        :raises ValueError: If the service URL is invalid.
         """
-        root.mkdir(parents=True, exist_ok=True)
-        return root
+        parsed = urlparse(service_url)
+        # make this as tight as possible
+        is_valid = bool(
+            parsed.scheme
+            and parsed.hostname
+            and not parsed.username
+            and not parsed.password
+            and not parsed.path
+            and not parsed.params
+            and not parsed.query
+            and not parsed.fragment
+        )
+
+        if not is_valid or parsed.scheme not in {"http", "https"}:
+            raise ValueError(
+                "service_url must contain only an HTTP(S) scheme and hostname"
+            )
+
+        return service_url
+
+    @property
+    def api_url(self) -> str:
+        """Build the public API URL derived from the config service URL.
+
+        Note: the URL returned is the _unversioned_ API meaning callers
+        have to add the correct API versioning before making a call.
+
+        :returns: service API URL
+        :rtype: str
+        """
+        parsed = urlparse(self.service_url)
+        return f"{parsed.scheme}://api.{parsed.hostname}"
+
+    @property
+    def hostname(self) -> str:
+        """Service hostname.
+
+        :return: the service hostname
+        :rtype: str
+        """
+        parsed = urlparse(self.service_url)
+        return parsed.hostname
 
 
 class Config(BaseModel):
