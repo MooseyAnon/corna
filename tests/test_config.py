@@ -76,8 +76,6 @@ def _mock_config(
                 "bucket": "corna-test-media",
                 "region": "eu-west-2",
                 "endpoint_url": None,
-                "access_key": "test-access-key",
-                "secret_key": "test-secret-key",
                 "use_signed_urls": False,
                 "signed_url_ttl": 300,
             },
@@ -162,7 +160,10 @@ def test_config_loads_local_backend_from_yaml(tmp_path, temp_config_file):
     assert not test_config.media.local.root.exists()
 
 
-def test_config_loads_s3_backend_from_yaml(temp_s3_config_file):
+def test_config_loads_s3_backend_from_yaml(mocker, temp_s3_config_file):
+    # vault also makes a call to config which can mess up the test
+    mocker.patch("corna.utils.vault_item", return_value="fake-s3-token")
+
     test_config = config.load_config(temp_s3_config_file)
 
     assert test_config.media.backend == "s3"
@@ -172,8 +173,8 @@ def test_config_loads_s3_backend_from_yaml(temp_s3_config_file):
     assert test_config.media.s3.bucket == "corna-test-media"
     assert test_config.media.s3.region == "eu-west-2"
     assert test_config.media.s3.endpoint_url is None
-    assert test_config.media.s3.access_key == "test-access-key"
-    assert test_config.media.s3.secret_key == "test-secret-key"
+    assert test_config.media.s3.access_key == "fake-s3-token"
+    assert test_config.media.s3.secret_key == "fake-s3-token"
     assert test_config.media.s3.use_signed_urls is False
     assert test_config.media.s3.signed_url_ttl == 300
 
@@ -332,8 +333,6 @@ def test_local_backend_rejects_s3_config(tmp_path):
     config_data["media"]["s3"] = {
         "bucket": "unexpected",
         "region": "eu-west-2",
-        "access_key": "key",
-        "secret_key": "secret",
     }
 
     config_path = tmp_path / "config.yaml"
@@ -373,8 +372,6 @@ def test_s3_backend_rejects_local_config(tmp_path):
     [
         "bucket",
         "region",
-        "access_key",
-        "secret_key",
     ],
 )
 def test_s3_backend_requires_mandatory_fields(

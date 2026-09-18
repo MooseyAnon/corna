@@ -128,8 +128,6 @@ class S3MediaConfig(BaseModel):
 
     bucket: str
     region: str
-    access_key: str
-    secret_key: str
     endpoint_url: str | None = None
     use_signed_urls: bool = False
     signed_url_ttl: int = 300
@@ -139,8 +137,6 @@ class S3MediaConfig(BaseModel):
     @field_validator(
         "bucket",
         "region",
-        "access_key",
-        "secret_key",
     )
     @classmethod
     def must_not_be_empty(cls, value: str) -> str:
@@ -172,6 +168,40 @@ class S3MediaConfig(BaseModel):
             raise ValueError("signed_url_ttl must be greater than zero")
 
         return value
+
+    @property
+    def access_key(self) -> str:
+        """Get S3 access key.
+
+        :returns: the S3 access key
+        :rtype: str
+        """
+        # Import lazily to avoid the config <-> vault module import cycle.
+        # This is safe because vault access happens only after configuration
+        # loading has completed.
+        #
+        # C0415=import-outside-toplevel
+        from corna.utils import vault_item  # pylint: disable=C0415
+
+        key: str = vault_item("s3.access_key")
+        return key
+
+    @property
+    def secret_key(self) -> str:
+        """Get S3 secret key.
+
+        :returns: the S3 secret key.
+        :rtype: str
+        """
+        # Import lazily to avoid the config <-> vault module import cycle.
+        # This is safe because vault access happens only after configuration
+        # loading has completed.
+        #
+        # C0415=import-outside-toplevel
+        from corna.utils import vault_item  # pylint: disable=C0415
+
+        key: str = vault_item("s3.secret_key")
+        return key
 
 
 class MediaConfig(BaseModel):
