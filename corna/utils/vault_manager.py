@@ -17,6 +17,10 @@ _VAULT_DATA: Optional[Dict[str, Any]] = None
 logger = logging.getLogger(__name__)
 
 
+class VaultError(Exception):
+    """Raised when an item cannot be retrieved from the vault."""
+
+
 def decrypt_data(password: str, encrypted_data: bytes) -> Dict[str, Any]:
     """decrypt data in the vault.
 
@@ -87,21 +91,39 @@ def get_decrypted_data() -> Dict[str, Any]:
     return _VAULT_DATA
 
 
-def get_item(key: Optional[str] = None) -> Any:
+def get_item(key: str) -> Any:
     """Get an item from the vault.
 
     If the vault hasn't yet been decrypted, this will be done first.
-    If no key is given, the entire vault (under the 'vault' key) is returned.
 
-    :param str key: the path to the item in the vault, e.g. `'service.password'`
-    :returns: the value of the given vault item pointed at by ``key``
-    :rtype: <any>
-    :raises KeyError: if the key doesn't exist
+    :param str key: the path to the item in the vault, e.g. 'service.password'
+    :returns: the value of the given vault item
+    :rtype: Any
+    :raises VaultError: if the key is invalid or doesn't exist
     """
-    keys = ['vault'] + (key.split('.') if key else [])
-    data = get_decrypted_data()
-    for crumb in keys:
-        data = data[crumb]
+    if not isinstance(key, str) or not key.strip():
+        raise VaultError("vault key must be a non-empty string")
+
+    crumbs = key.split(".")
+
+    if any(not crumb for crumb in crumbs):
+        raise VaultError(f"invalid vault key: {key!r}")
+
+    try:
+        data = get_decrypted_data()["vault"]
+
+        for crumb in crumbs:
+            if not isinstance(data, dict):
+                raise VaultError(
+                    f"cannot traverse vault key {key!r}: "
+                    f"{crumb!r} is below a non-mapping value"
+                )
+
+            data = data[crumb]
+
+    except KeyError as exc:
+        raise VaultError(f"vault key does not exist: {key!r}") from exc
+
     return data
 
 

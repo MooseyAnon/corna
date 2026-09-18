@@ -4,7 +4,8 @@ import pathlib
 from freezegun import freeze_time
 import pytest
 
-from corna.utils import encodings, future, image_proc, mkdir, secure, utils
+from corna.utils import encodings, future, image_proc, mkdir, secure, utils, vault_item
+from corna.utils.vault_manager import VaultError
 from tests import shared_data
 
 FROZEN_TIME = "2023-04-05T03:21:34"
@@ -189,3 +190,76 @@ def test_get_video_dimension():
 ])
 def test_get_aspect_ratio(height, width, expected):
     assert image_proc.aspect_ratio(height, width) == expected
+
+
+# -- vault tests --
+
+@pytest.fixture
+def mock_vault_data():
+    return {
+        "vault": {
+            "database": {
+                "password": "super-secret",
+            },
+            "service": {
+                "token": "abc123",
+            },
+        }
+    }
+
+
+def test_vault_item(mocker, mock_vault_data):
+    mocker.patch(
+        "corna.utils.vault_manager.get_decrypted_data",
+        return_value=mock_vault_data,
+    )
+    
+    assert vault_item("database.password") == "super-secret"
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "",
+        "   ",
+        ".database",
+        "database.",
+        "database..password",
+    ],
+)
+def test_vault_item_rejects_invalid_key(mocker, key, mock_vault_data):
+    mocker.patch(
+        "corna.utils.vault_manager.get_decrypted_data",
+        return_value=mock_vault_data,
+    )
+
+    with pytest.raises(VaultError):
+        vault_item(key)
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "missing",
+        "missing.password",
+        "database.missing",
+    ],
+)
+def test_vault_item_rejects_missing_key(mocker, key, mock_vault_data):
+    mocker.patch(
+        "corna.utils.vault_manager.get_decrypted_data",
+        return_value=mock_vault_data,
+    )
+
+    with pytest.raises(VaultError, match=repr(key)):
+        vault_item(key)
+
+
+def test_get_item_rejects_traversal_below_value(mocker, mock_vault_data):
+    mocker.patch(
+        "corna.utils.vault_manager.get_decrypted_data",
+        return_value=mock_vault_data,
+    )
+
+    with pytest.raises(VaultError):
+        vault_item("database.password.foo")
