@@ -10,6 +10,31 @@ from tests import shared_data
 FROZEN_TIME = "2023-04-05T03:21:34"
 
 
+@freeze_time(FROZEN_TIME)
+def test_signing_end_to_end():
+    message = "aaaaaaaaa"
+    signed = secure.sign(message)
+
+    assert secure.is_valid(signed)
+
+
+@freeze_time(FROZEN_TIME)
+def test_tampering_with_expiry_date_fails_signature():
+    message = "aaaaaaaaa"
+
+    signed = secure.sign(message)
+    _, _, sig = secure.unsign(signed)
+
+    # create fake payload by tampering with expiry
+    tampered = "2023-04-06T03:21:34||aaaaaaaaa"
+    assert not secure.verify(tampered, sig)
+
+    # check legit payload just to make sure happy path works
+    legit = "2023-04-19T03:21:34+00:00||aaaaaaaaa"
+    assert secure.verify(legit, sig)
+
+
+@freeze_time(FROZEN_TIME)
 def test_signing_similar_messages():
 
     m1 = "aaaaaaaaa"
@@ -21,11 +46,13 @@ def test_signing_similar_messages():
     _, _, s1_sig = secure.unsign(s1)
     _, _, s2_sig = secure.unsign(s2)
 
-    assert secure.verify(m1, s1_sig)
-    assert secure.verify(m2, s2_sig)
+    # the message changes when being signed, we append the expiry to it
+    # Note: future() currently adds 14 days to "todays" date
+    assert secure.verify(b"2023-04-19T03:21:34+00:00||aaaaaaaaa", s1_sig)
+    assert secure.verify(b"2023-04-19T03:21:34+00:00||aaaaaaaab", s2_sig)
 
-    assert not secure.verify(m1, s2_sig)
-    assert not secure.verify(m2, s1_sig)
+    assert not secure.verify(b"2023-04-19T03:21:34+00:00||aaaaaaaaa", s2_sig)
+    assert not secure.verify(b"2023-04-19T03:21:34+00:00||aaaaaaaab", s1_sig)
 
 
 @freeze_time(FROZEN_TIME)
