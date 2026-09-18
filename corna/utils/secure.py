@@ -278,15 +278,13 @@ def sign(message: Union[bytes, str]) -> bytes:
     expiry_date: bytes = encodings.to_bytes(future().isoformat())
 
     key: bytes = get_signed_key()
-    message: bytes = encodings.to_bytes(message)
+    payload: bytes = expiry_date + SPLITTR + encodings.to_bytes(message)
 
-    mac: bytes = _sign(key, message=message).digest()
+    mac: bytes = _sign(key, message=payload).digest()
     encoded_mac: bytes = encodings.base64_encode(mac)
 
     encoded_signature: bytes = encodings.base64_encode(
-        expiry_date
-        + SPLITTR
-        + message
+        payload
         + SPLITTR
         + encoded_mac
     )
@@ -375,7 +373,9 @@ def is_valid(signature: Union[bytes, str]) -> bool:
 
     try:
         expiry_date, message, hash_value = unsign(signature)
-        valid = verify(message, hash_value) and not expired(expiry_date)
+        # recreate the original payload
+        payload = expiry_date + SPLITTR + message
+        valid = verify(payload, hash_value) and not expired(expiry_date)
 
     except BadSignature as e:
         logger.error(e)
