@@ -296,8 +296,6 @@ def _mock_config(
                 "bucket": "corna-test-media",
                 "region": "eu-west-2",
                 "endpoint_url": None,
-                "access_key": "test-access-key",
-                "secret_key": "test-secret-key",
                 "use_signed_urls": False,
                 "signed_url_ttl": 300,
             },
