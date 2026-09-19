@@ -155,8 +155,9 @@ def secure_headers(request) -> Dict[str, str]:
         # frame-ancestors
         f"frame-ancestors 'self' {service_url} https://*.{hostname};"
         # script-src
-        f"script-src 'self' {service_url} https://cdnjs.cloudflare.com "
-        "https://unpkg.com https://cdn.tailwindcss.com;"
+        f"script-src 'self' {service_url}  https://*.{hostname} "
+        "https://cdnjs.cloudflare.com https://unpkg.com "
+        "https://cdn.tailwindcss.com;"
         # style-src
         f"style-src 'self' 'unsafe-inline' {service_url} "
         f"https://*.{hostname} https://*.googleapis.com https://*.gstatic.com "
