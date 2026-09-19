@@ -17,19 +17,42 @@ import { handlePromise } from "./utils.js";
 export type RequestReturnType = [(AxiosError | undefined), (AxiosResponse | undefined)]
 
 
+/**
+ * Return the Corna service URL derived from the current window location.
+ *
+ * This relies on an application invariant: Corna application code runs either
+ * on the root service domain or inside an iframe served from that domain.
+ *
+ * Do not use this function directly from a themed Corna page. In that context,
+ * `window.location` points to the Corna's subdomain rather than the root
+ * service domain.
+ *
+ * @returns { URL } The root Corna service URL.
+ */
+export function serviceUrl(): URL {
+    // for more details on URL object: https://id.javascript.info/url
+    return new URL(window.location.origin);
+}
+
+
+/**
+ * Return the Corna API URL derived from the current service URL.
+ *
+ * This relies on the same invariant as `serviceUrl()`: the current window must
+ * belong to the root Corna service domain. The API is always expected to be
+ * available at the `api` subdomain of that service.
+ *
+ * For example:
+ *   https://testingcorna.test -> https://api.testingcorna.test
+ *   https://mycorna.com       -> https://api.mycorna.com
+ *
+ * Do not use this function directly from a themed Corna page.
+ *
+ * @returns { string } The Corna API URL.
+ */
 export function getApiUrl(): string {
-    /* Get the correct API URL.
-    *
-    * This is here to make local development easier.
-    * @returns { string }
-    */
-    const currUrl: string = window.location.hostname;
-    const apiUrl: string = (
-        (currUrl === "localhost" || currUrl === "127.0.0.1")
-        ? "http://api.localhost"
-        : "https://api.mycorna.com"
-    )
-    return apiUrl;
+    const baseServiceUrl = serviceUrl();
+    return `${baseServiceUrl.protocol}//api.${baseServiceUrl.hostname}`;
 }
 
 

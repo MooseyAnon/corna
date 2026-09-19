@@ -11,10 +11,11 @@ navBar.js is as follows:
     nav bar's behaviour and actions. It also has an accompanying navBar.css
 */
 
+import { serviceUrl } from "./lib/network.js";
 import { createMessage, MESSAGE_VERSION, ToolbarMessage } from "./lib/messages.js";
 import { createDivElement, createIframeElement } from "./lib/utils.js";
 
-const NAV_ORIGIN = "https://mycorna.com";
+const NAV_ORIGIN = serviceUrl().origin;
 const NAV_FRAME_SRC = `${NAV_ORIGIN}/nav?mode=fragment`;
 const ENLARGED_CLASS = "enlargeIframe";
 /**
@@ -220,7 +221,7 @@ function isValidDomainName(domainName: string): boolean {
 function navigateToCorna(domainName: string): void {
     if (!isValidDomainName(domainName)) { return; }
 
-    const targetHostname = `${domainName}.mycorna.com`;
+    const targetHostname = `${domainName}.${serviceUrl().hostname}`;
 
     if (window.location.hostname === targetHostname) { return; }
 
