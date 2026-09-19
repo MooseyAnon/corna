@@ -46,11 +46,11 @@ def test_db_engine():
         # later versions of mac it might be (this is were brew puts it):
         # '/usr/local/opt/postgresql@10/bin'
         postgresql_path = Path(
-            "/Applications/Postgres.app/Contents/Versions/13/bin")
-    elif Path('/usr/lib/postgresql/13/bin').exists():
-        postgresql_path = Path('/usr/lib/postgresql/13/bin')
+            "/Applications/Postgres.app/Contents/Versions/17/bin")
+    elif Path('/usr/lib/postgresql/17/bin').exists():
+        postgresql_path = Path('/usr/lib/postgresql/17/bin')
     else:
-        postgresql_path = Path('/usr/pgsql-13/bin')
+        postgresql_path = Path('/usr/pgsql-17/bin')
 
     initdb_path = postgresql_path / 'initdb'
     postgres_path = postgresql_path / 'postgres'
@@ -237,6 +237,95 @@ def _local_persistent_storage(tmp_path, mocker):
     yield persistent_root
 
     storage.get_storage.cache_clear()
+
+
+# We may need to delete the fixture above if we have this here but we'll keep
+# them both running at the same time and then remove the above at some point
+def _mock_config(
+    *,
+    upload_dir: str,
+    backend: str = "local",
+    with_placeholder: bool = False,
+    local_root: str = "./tmp-assets",
+) -> dict:
+    """Return valid example configuration data."""
+    database_name = "${DB_NAME}" if with_placeholder else "corna_dev"
+
+    config_data = {
+        "database": {
+            "address": "localhost",
+            "user": "cornauser",
+            "port": 5432,
+            "name": database_name,
+            "ssl_mode": None,
+        },
+        "vault": {
+            "path": "~/vault",
+            "password_file": "~/.vault-password",
+        },
+        "app": {
+            "debug": True,
+            "port": 5000,
+            "sqlalchemy_echo": True,
+            "upload_tmp_dir": upload_dir,
+            "max_file_size": 10_485_760,
+            "allowed_extensions": [
+                "gif",
+                "jpg",
+                "jpeg",
+                "png",
+                "webp",
+                "mp4",
+                "mov",
+            ],
+            "service_url": "http://localhost:5000",
+        },
+    }
+
+    if backend == "local":
+        config_data["media"] = {
+            "backend": "local",
+            "local": {
+                "root": local_root,
+            },
+        }
+    elif backend == "s3":
+        config_data["media"] = {
+            "backend": "s3",
+            "s3": {
+                "bucket": "corna-test-media",
+                "region": "eu-west-2",
+                "endpoint_url": None,
+                "use_signed_urls": False,
+                "signed_url_ttl": 300,
+            },
+        }
+    else:
+        raise ValueError(f"Unsupported test backend: {backend}")
+
+    return config_data
+
+
+@pytest.fixture(name="local_config")
+def temp_config_file(monkeypatch, tmp_path):
+    import yaml
+
+    config_path = tmp_path / "config.yaml"
+    upload_dir = tmp_path / "uploads"
+    config_path.write_text(
+        yaml.safe_dump(
+            _mock_config(
+                local_root=str(tmp_path / "media"),
+                upload_dir=str(upload_dir)
+            ),
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    # set envvar
+    monkeypatch.setenv("CONFIG_FILE_PATH", str(config_path))
+    return config_path
 
 
 class FlaskSqlProfiler:

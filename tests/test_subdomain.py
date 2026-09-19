@@ -271,7 +271,7 @@ def test_build_page_returns_empty_listing_contract(session, client, login):
 
 @pytest.mark.nostubs
 def test_build_page_text_post_includes_cover_media(
-    monkeypatch, tmpdir, session, client, login):
+    monkeypatch, tmpdir, session, client, login, local_config):
     """Build page payloads should include parsed cover media in the listing."""
 
     create_corna(client, session)
@@ -324,7 +324,7 @@ def test_build_page_text_post_includes_cover_media(
 
 @pytest.mark.nostubs
 def test_single_post_image_parses_media_metadata(
-    monkeypatch, tmpdir, session, client, login):
+    monkeypatch, tmpdir, session, client, login, local_config):
     """Image posts should expose parsed media metadata."""
 
     create_corna(client, session)
@@ -372,7 +372,7 @@ def test_single_post_image_parses_media_metadata(
 
 @pytest.mark.nostubs
 def test_single_post_video_parses_media_metadata(
-    monkeypatch, tmpdir, session, client, login):
+    monkeypatch, tmpdir, session, client, login, local_config):
     """Video posts should expose parsed media metadata."""
 
     create_corna(client, session)
@@ -441,7 +441,8 @@ def test_single_post_text_only_has_no_media(session, client, login):
 
 
 @pytest.mark.nostubs
-def test_image_only_post(monkeypatch, tmpdir, session, client, login):
+def test_image_only_post(
+    monkeypatch, tmpdir, session, client, login, local_config):
     """Image posts should expose parsed media metadata."""
 
     create_corna(client, session)

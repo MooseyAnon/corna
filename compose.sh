@@ -1,203 +1,365 @@
 #!/usr/bin/env bash
 
-set -o pipefail
+# Local Docker Compose runner for Corna.
+#
+# This script exists exclusively for local development. Production deployment
+# uses Docker Swarm and has a separate build/deployment process.
+#
+# Local runtime state is kept under:
+#
+#   .tmp-compose/
+#   ├── .env
+#   ├── certs/
+#   │   ├── cert.pem
+#   │   └── key.pem
+#   ├── runtime-assets/
+#   └── invite-processor/
+#
+# The runtime directory intentionally survives `docker compose down`.
+#
+# In particular:
+#
+# - mkcert certificates are reusable development certificates and do not need
+#   to be regenerated for every run.
+# - runtime-assets contains locally uploaded media and should survive container
+#   restarts. It can be manually deleted when resetting the development DB.
+# - invite-processor contains the local approval queue and similarly survives
+#   container restarts.
+#
+# The generated .env file is only used for Docker Compose interpolation.
+# Application configuration belongs in development.yml and should not be
+# duplicated here.
+#
+# Usage:
+#
+#   ./compose.sh -c up
+#   ./compose.sh -c down
+#   ./compose.sh -c logs
+#   ./compose.sh -c status
+#
+#   ./compose.sh -b nginx
+#   ./compose.sh -b corna
+#   ./compose.sh -b invite_processor
+#   ./compose.sh -b all
+
+set -euo pipefail
+
+
+PROJECT_ROOT="$(
+    cd "$(dirname "${BASH_SOURCE[0]}")"
+    pwd
+)"
+
+RUNTIME_DIR="${PROJECT_ROOT}/.tmp-compose"
+CERT_DIR="${RUNTIME_DIR}/certs"
+ASSET_DIR="${RUNTIME_DIR}/runtime-assets"
+INVITE_PROCESSOR_DIR="${RUNTIME_DIR}/invite-processor"
+COMPOSE_ENV="${RUNTIME_DIR}/.env"
+
+LOCAL_DOMAIN="testingcorna.test"
+
 
 help() {
-    # Display Help
-    echo "Interact with docker compose in order to run Corna."
-    echo "This script wraps all the necessary env variables to make "
-    echo "running corna simple."
+    echo "Run the local Corna Docker Compose stack."
     echo
-    echo "Syntax: run-local-docker.sh [-h|b|c]"
-    echo "options:"
-    echo "-h     Print this Help."
-    echo "-b     Rebuild one or all of the containers must be one of: nginx | corna | both."
-    echo "-c     Run docker compose commands, must be one of: up | down | logs."
-    echo "-i     Run CI, this is a flag."
+    echo "Syntax:"
+    echo "  compose.sh -c <command>"
+    echo "  compose.sh -b <service>"
     echo
+    echo "Compose commands:"
+    echo "  up"
+    echo "  down"
+    echo "  logs"
+    echo "  status"
+    echo
+    echo "Build targets:"
+    echo "  nginx"
+    echo "  corna"
+    echo "  invite_processor"
+    echo "  all"
 }
 
 
-remove_certs() {
-    # get rid of the certs during clean up, this prevents leaking
-    for file in "fullchain" "private"; do
-        local full_name="tmp_${file}.pem"
-        if [ -f "${full_name}" ]; then
-            rm "${full_name}"
-        fi
-    done
-}
+copy_vault_password() {
+    # Copy the host vault password into the Compose runtime directory so it
+    # can be included in local-only container builds.
+    local destination="${RUNTIME_DIR}/.vault-password"
 
-
-ensure_venv() {
-    # create a venv with the correct version of python, if not already existing
-    if [ ! -d "${PROJECT_ROOT}/venv" ]; then
-        "${PYTHON}" -m venv venv
-        "${PROJECT_ROOT}/venv/bin/python" -m pip install --upgrade pip &> /dev/null
-    fi
-}
-
-
-tmp_cert() {
-    # we want to have a temp copy for the ssl certs for local development
-
-    # filename to save cert to
-    local filename="${PROJECT_ROOT}/tmp_${1}.pem"
-
-    # file does not already exist so we need to create it
-    if [ ! -f "${filename}" ]; then
-
-       vault_item "vault.keys.ssl-certs.${1}" > "${filename}"
-    fi
-
-    if [[ ! $? -eq 0 ]]; then
-        echo "Error running vault for ${1} key"
+    if [[ -z "${ANSIBLE_VAULT_PASSWORD_FILE:-}" ]]; then
+        echo "ANSIBLE_VAULT_PASSWORD_FILE is not set." >&2
         exit 1
     fi
 
-    chmod 600 "${filename}"
-}
-
-
-vault_item() {
-    local key="$1"
-
-    .venv/bin/ansible-vault view \
-        --vault-password-file "${ANSIBLE_VAULT_PASSWORD_FILE}" \
-        "${PROJECT_ROOT}/corna/utils/vault" |
-        .venv/bin/python -c "
-import sys
-import yaml
-
-data = yaml.safe_load(sys.stdin)
-keys = '${key}'.split('.')
-for k in keys:
-    data = data[k]
-print(data)
-"
-}
-
-compose() {
-    local opt="${1}"
-    if [[ "${opt}" = "up" ]]; then
-        # run docker compose and detach container (-d).
-        # Wait till all containers are healthy (--wait)
-        docker compose up -d --wait
-    elif [[ "${opt}" = "logs" ]]; then
-        docker compose logs
-    elif [[ "${opt}" = "down" ]]; then
-        docker compose down
-    elif [[ "${opt}" = "status" ]]; then
-        docker compose ps
+    if [[ ! -f "${ANSIBLE_VAULT_PASSWORD_FILE}" ]]; then
+        echo "Vault password file does not exist: ${ANSIBLE_VAULT_PASSWORD_FILE}" >&2
+        exit 1
     fi
+
+    cp "${ANSIBLE_VAULT_PASSWORD_FILE}" "${destination}"
+    chmod 600 "${destination}"
 }
 
 
-build() {
-    local opt="${1}"
-
-    # create tmp certs
-    tmp_cert "fullchain"
-    tmp_cert "private"
-
-    make clean-macos
-    if [[ "${opt}" = "both" ]]; then
-        docker compose up -d --build
-    else
-        echo "Building ${opt} container..."
-        # this command rebuilds the container (or pulls it)
-        # and then replaces the current running container once
-        # the build is complete.
-        # more info: https://stackoverflow.com/q/42529211
-        docker compose up -d --no-deps --build "${opt}"
-    fi
+delete_vault_password() {
+    echo "Deleting vault password"
+    # The copied password only needs to exist while Docker is building the
+    # local image. Never leave the additional copy behind.
+    rm -f "${RUNTIME_DIR}/.vault-password"
 }
 
 
 my_ip() {
-    # we want to dynampically get our local host IP address to
-    # connect to postgres from inside the container. The reason
-    # for this is because "localhost" inside the container and
-    # on the host are different, so trying to conntect to localhost
-    # from our service wont work.
-    # taken from here: https://stackoverflow.com/q/13322485
-    INTERFACE=${1:-"en0"}
-    ifconfig $INTERFACE | sed -En \
-        's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'
+    # Return the host IP used by containers to connect back to services
+    # running directly on the development machine, such as PostgreSQL.
+    local interface="${1:-en0}"
+
+    ifconfig "${interface}" |
+        sed -En \
+            's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'
+}
+
+
+ensure_runtime_dir() {
+    # Keep all Compose-owned local state together rather than scattering
+    # generated files throughout the repository root.
+    mkdir -p \
+        "${CERT_DIR}" \
+        "${ASSET_DIR}" \
+        "${INVITE_PROCESSOR_DIR}"
+}
+
+
+ensure_mkcert() {
+    if ! command -v mkcert >/dev/null 2>&1; then
+        echo "mkcert is required for local TLS." >&2
+        echo "Install mkcert before running the Corna Compose stack." >&2
+        exit 1
+    fi
+}
+
+
+ensure_certs() {
+    local cert="${CERT_DIR}/cert.pem"
+    local key="${CERT_DIR}/key.pem"
+
+    if [[ -f "${cert}" && -f "${key}" ]]; then
+        return 0
+    fi
+
+    ensure_mkcert
+
+    echo "Generating local TLS certificates for ${LOCAL_DOMAIN}..."
+
+    # Corna derives the API hostname from the main service URL, so include
+    # both the application domain and its API subdomain in the certificate.
+    mkcert \
+        -cert-file "${cert}" \
+        -key-file "${key}" \
+        "${LOCAL_DOMAIN}" \
+        "api.${LOCAL_DOMAIN}"
+
+    chmod 600 "${cert}" "${key}"
+}
+
+
+write_compose_env() {
+    local host_ip
+    host_ip="$(my_ip)"
+
+    if [[ -z "${host_ip}" ]]; then
+        echo "Unable to determine local host IP." >&2
+        exit 1
+    fi
+
+    # This file is intentionally limited to values Docker Compose itself needs
+    # for interpolation. Corna application configuration remains in
+    # development.yml.
+    cat > "${COMPOSE_ENV}" <<EOF
+DB_ADDRESS=${host_ip}
+CORNA_RUNTIME_ASSET_DIR=${ASSET_DIR}
+CORNA_INVITE_APPROVAL_DIR=${INVITE_PROCESSOR_DIR}
+CORNA_SSL_CERT_DIR=${CERT_DIR}
+CONFIG_FILE_PATH=/home/corna-user/workspace/dev-conf.yml
+EOF
+
+    chmod 600 "${COMPOSE_ENV}"
+}
+
+
+prepare_runtime() {
+    ensure_runtime_dir
+    ensure_certs
+    write_compose_env
+}
+
+
+docker_compose() {
+    # Always use the generated Compose environment explicitly. This avoids
+    # relying on or creating a repository-root .env file.
+    docker compose \
+        --env-file "${COMPOSE_ENV}" \
+        "$@"
+}
+
+
+compose_up() {
+    prepare_runtime
+
+    docker_compose up \
+        -d \
+        --wait
+}
+
+
+compose_down() {
+    # Runtime state deliberately survives `down`. Uploaded media, certificates
+    # and pending invite-processor state should only disappear when the
+    # developer explicitly resets the local environment.
+    if [[ ! -f "${COMPOSE_ENV}" ]]; then
+        prepare_runtime
+    fi
+
+    docker_compose down
+}
+
+
+compose_logs() {
+    if [[ ! -f "${COMPOSE_ENV}" ]]; then
+        prepare_runtime
+    fi
+
+    docker_compose logs
+}
+
+
+compose_status() {
+    if [[ ! -f "${COMPOSE_ENV}" ]]; then
+        prepare_runtime
+    fi
+
+    docker_compose ps
+}
+
+
+compose_command() {
+    local command="${1}"
+
+    case "${command}" in
+        up)
+            compose_up
+            ;;
+        down)
+            compose_down
+            ;;
+        logs)
+            compose_logs
+            ;;
+        status)
+            compose_status
+            ;;
+        *)
+            echo "Unknown Compose command: ${command}" >&2
+            exit 1
+            ;;
+    esac
+}
+
+
+build() {
+    local service="${1}"
+
+    prepare_runtime
+
+    make clean-macos
+
+    copy_vault_password
+
+    case "${service}" in
+        nginx|corna|invite_processor)
+            echo "Building ${service}..."
+
+            docker_compose up \
+                -d \
+                --no-deps \
+                --build \
+                "${service}"
+            ;;
+
+        all)
+            echo "Building all local services..."
+
+            docker_compose up \
+                -d \
+                --build
+            ;;
+
+        *)
+            echo "Unknown build target: ${service}" >&2
+            exit 1
+            ;;
+    esac
 }
 
 
 run() {
-    # run compose
-    if [[ -n "${BUILD}" ]] && [[ -n "${COMPOSE}" ]]; then
-        echo "You can not both build and run other compose commands"
+    if [[ -n "${BUILD:-}" && -n "${COMPOSE_COMMAND:-}" ]]; then
+        echo "Build and Compose commands cannot be used together." >&2
         exit 1
     fi
 
-    # if [[ -n "${RUN_CI}" ]]; then ci; fi
-    if [[ -n "${BUILD}" ]]; then build "${BUILD}"; fi
-    if [[ -n "${COMPOSE}" ]]; then compose "${COMPOSE}"; fi
+    if [[ -n "${BUILD:-}" ]]; then
+        build "${BUILD}"
+        return
+    fi
+
+    if [[ -n "${COMPOSE_COMMAND:-}" ]]; then
+        compose_command "${COMPOSE_COMMAND}"
+        return
+    fi
+
+    help
 }
 
 
-cleanup() {
-
-    for file in .env .vault-password; do
-        if [ -f $file ]; then
-            rm $file
-        fi
-    done
-
-    remove_certs
-}
-
-trap cleanup SIGINT
-
-# Get the options
-while getopts ":ihb:c:" option; do
-   case $option in
-        h) # display Help
-           help
-           exit
-           ;;
-        b) # build
-            BUILD=$OPTARG
-            [[ ! $BUILD =~ ^("nginx"|"corna"|"both")$ ]] && {
-                echo "Error Invalid option: -b $BUILD"
-                exit 1
-            }
+while getopts ":hb:c:" option; do
+    case "${option}" in
+        h)
+            help
+            exit 0
             ;;
-        c) # compose
-            COMPOSE=$OPTARG
-            [[ ! $COMPOSE =~ ^("up"|"down"|"logs"|"status")$ ]] && {
-                echo "Error Invalid option: -c $COMPOSE"
+
+        b)
+            BUILD="${OPTARG}"
+
+            if [[ ! "${BUILD}" =~ ^(nginx|corna|invite_processor|all)$ ]]; then
+                echo "Invalid build target: ${BUILD}" >&2
                 exit 1
-            }
+            fi
             ;;
-        i) # CI
-            RUN_CI="true" ;;
-        \?) # Invalid option
-            echo "Error: Invalid option"
-            exit;;
-   esac
+
+        c)
+            COMPOSE_COMMAND="${OPTARG}"
+
+            if [[ ! "${COMPOSE_COMMAND}" =~ ^(up|down|logs|status)$ ]]; then
+                echo "Invalid Compose command: ${COMPOSE_COMMAND}" >&2
+                exit 1
+            fi
+            ;;
+
+        :)
+            echo "Option -${OPTARG} requires an argument." >&2
+            exit 1
+            ;;
+
+        \?)
+            echo "Unknown option: -${OPTARG}" >&2
+            exit 1
+            ;;
+    esac
 done
 
 
-cat <<EOT>> .env
-CONFIG_FILE_PATH=/home/corna-user/workspace/development.yml
-DB_ADDRESS=$(my_ip)
-UPLOAD_TMP_DIR=$(pwd)/tmp-assets
-CORNA_INVITE_APPROVAL_DIR=$(pwd)/tmp-assets
-EOT
-
-
-cp "$ANSIBLE_VAULT_PASSWORD_FILE" .vault-password
-chmod 600 .vault-password
-
-# pin current version python we are using
-PYTHON=python3.12
+# always delete vault password
+trap delete_vault_password EXIT
 
 run
-# clean up
-cleanup
-echo "docker compose up complete"

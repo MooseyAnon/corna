@@ -123,7 +123,8 @@ def create_role_helper(client, name="fake role", permissions=[]):
     assert resp.status_code == 201
 
 
-def test_get_user_details__logged_in(session, mocker, client, login):
+def test_get_user_details__logged_in(
+    session, mocker, client, login, local_config):
     mocker.patch("random.uniform", return_value=10)
     # ensure user has avatar
     give_user_avatar(session, upload_avatar(session))
@@ -132,11 +133,16 @@ def test_get_user_details__logged_in(session, mocker, client, login):
     resp = client.get("/api/v1/user")
     assert resp.status_code == 200
 
+    # API urls are dynamically created by the config. This specific instance
+    # is derived from the test config defined in conftests. Its largely an
+    # arbitrary choice but designed to illustrate how the functionality works
+    expected_avatar_url = f"http://api.localhost/v1/media/download/{fake_url_slug}"
+
     expected = {
         "username": "john_snow",
         "cred": 10,
         "role": "adventurer",
-        "avatar": f"https://api.mycorna.com/v1/media/download/{fake_url_slug}",
+        "avatar": expected_avatar_url,
     }
 
     assert resp.json == expected
