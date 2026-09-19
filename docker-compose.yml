@@ -89,8 +89,6 @@ services:
     command: python -m bin.invite_processor
     volumes:
       - "${CORNA_INVITE_APPROVAL_DIR}:/home/corna-user/workspace/approvals:rw"
-      # this is needed for the config startup
-      - "${UPLOAD_TMP_DIR}:/var/www/assets:rw"
     networks:
       - backend-network
     restart: always
