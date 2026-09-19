@@ -51,6 +51,9 @@ services:
       - "80:80"
     expose:
       - "80"
+    volumes:
+      - "${CORNA_SSL_CERT_DIR}/cert.pem:/etc/nginx/cert.pem:ro"
+      - "${CORNA_SSL_CERT_DIR}/key.pem:/etc/nginx/key.pem:ro"
     networks:
       - backend-network
     restart: always
