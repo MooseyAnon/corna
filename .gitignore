@@ -24,6 +24,7 @@ node_modules/
 frontend/public/scripts/*
 # dont capture anything starting with tmp, only needed for local dev
 tmp*
+.tmp*
 # used for setting up local dev
 .localenv
 

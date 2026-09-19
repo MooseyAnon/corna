@@ -23,7 +23,7 @@ services:
       - "CONFIG_FILE_PATH=${CONFIG_FILE_PATH}"
     command: gunicorn --worker-tmp-dir=/tmp --config=gunicorn_conf.py corna.wsgi:app
     volumes:
-      - "${UPLOAD_TMP_DIR}:/var/www/assets:rw"
+      - "${CORNA_RUNTIME_ASSET_DIR}:/var/www/assets:rw"
     networks:
       - backend-network
     restart: always
