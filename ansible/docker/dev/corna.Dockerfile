@@ -53,7 +53,7 @@ ENV UV_PROJECT_ENVIRONMENT=/venv
 # from source, the path to pg_config location is not added to the file path.
 # pg_config is a required executable to install psycopg2, so we need to manually
 # pass the path as part of our pip install step. We set the argument here.
-ARG PG_PATH=/usr/pgsql-16/bin/
+ARG PG_PATH=/usr/pgsql-17/bin/
 
 COPY pyproject.toml uv.lock ./
 
@@ -100,7 +100,7 @@ RUN groupadd -g "${GID}" corna-user && \
 COPY \
     --chown=corna-user:corna-user \
     --chmod=0400 \
-    .vault-password \
+    .tmp-compose/.vault-password \
     /run/secrets/vault_password
 
 ARG TARGETARCH
@@ -154,9 +154,9 @@ COPY --chown=corna-user:corna-user \
     themes /home/corna-user/workspace/themes
 
 COPY --chown=corna-user:corna-user \
+    .tmp-compose/dev-conf.yml \
     gunicorn_conf.py \
     gunicorn.logging.ini \
-    production.yml \
     /home/corna-user/workspace/
 
 WORKDIR /home/corna-user/workspace

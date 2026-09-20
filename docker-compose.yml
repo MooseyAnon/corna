@@ -4,7 +4,7 @@ services:
   corna:
     build:
       context: .
-      dockerfile: dockerfiles/Dockerfile-corna
+      dockerfile: ansible/docker/dev/corna.Dockerfile
     image: registry.digitalocean.com/corna-docker-reg/corna:0.0.1
     ports:
       # host-port:container-port
@@ -41,7 +41,7 @@ services:
       - corna
     build:
       context: .
-      dockerfile: dockerfiles/Dockerfile-nginx
+      dockerfile: ansible/docker/dev/nginx.Dockerfile
     image: registry.digitalocean.com/corna-docker-reg/corna-nginx:0.0.1
     ports:
       # we only want ports for nginx and the rest of the containers
@@ -72,7 +72,7 @@ services:
         condition: service_healthy
     build:
       context: .
-      dockerfile: dockerfiles/tmp-corna
+      dockerfile: ansible/docker/dev/corna.Dockerfile
     image: registry.digitalocean.com/corna-docker-reg/corna-invite-processor:0.0.1
     deploy:
       # this will create name-service_name-number
