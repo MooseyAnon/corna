@@ -43,13 +43,13 @@ services:
       # we only want ports for nginx and the rest of the containers
       # will be private
       # host-port:container-port
-      - "443:443"
+      - "443:8443"
       - "80:80"
     expose:
       - "80"
     volumes:
-      - "${CORNA_SSL_CERT_DIR}/cert.pem:/etc/nginx/cert.pem:ro"
-      - "${CORNA_SSL_CERT_DIR}/key.pem:/etc/nginx/key.pem:ro"
+      - "${CORNA_SSL_CERT_DIR}/cert.pem:/run/secrets/tls_cert:ro"
+      - "${CORNA_SSL_CERT_DIR}/key.pem:/run/secrets/tls_key:ro"
     networks:
       - backend-network
     restart: always
