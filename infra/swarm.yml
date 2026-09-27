@@ -1,0 +1,162 @@
+version: "3.9"
+
+services:
+  corna:
+    image: ${REGISTRY}/corna:${CORNA_VERSION}
+
+    environment:
+      - "DB_ADDRESS=${DB_ADDRESS}"
+      - "CONFIG_FILE_PATH=${CONFIG_FILE_PATH}"
+
+    command: gunicorn --worker-tmp-dir=/tmp --config=gunicorn_conf.py corna.wsgi:app
+
+    volumes:
+      # Internal alpha assumes a single-node Swarm.
+      #
+      # Corna replicas currently rely on host-local shared runtime storage for
+      # upload chunk coordination. Do not schedule these replicas across
+      # multiple nodes until that coordination mechanism has been redesigned.
+      - "${CORNA_RUNTIME_ASSET_DIR}:/var/www/assets:rw"
+
+    secrets:
+      - source: vault_password
+        target: vault_password
+        uid: "1000"
+        gid: "1000"
+        mode: 0400
+
+    networks:
+      - backend-network
+
+    deploy:
+      replicas: 3
+
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+
+      rollback_config:
+        parallelism: 1
+        order: start-first
+
+    healthcheck:
+      # Temporary until the dedicated /health endpoint is available.
+      test: ["CMD-SHELL", "curl --fail localhost:5001/frontend || exit 1"]
+      interval: 60s
+      retries: 5
+      start_period: 20s
+      timeout: 10s
+
+
+  nginx:
+    image: ${REGISTRY}/corna-nginx:${CORNA_VERSION}
+
+    ports:
+      - "443:8443"
+      - "80:80"
+
+    secrets:
+      - source: tls_cert
+        target: tls_cert
+      - source: tls_key
+        target: tls_key
+
+    networks:
+      - backend-network
+
+    deploy:
+      replicas: 1
+
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+
+      rollback_config:
+        parallelism: 1
+        order: start-first
+
+    healthcheck:
+      # Temporary until the dedicated /health endpoint is available.
+      test: ["CMD-SHELL", "curl --fail corna:5001/frontend || exit 1"]
+      interval: 60s
+      retries: 5
+      start_period: 20s
+      timeout: 10s
+
+
+  invite_processor:
+    image: ${REGISTRY}/corna-invite-processor:${CORNA_VERSION}
+
+    environment:
+      - "CORNA_INVITE_APPROVAL_FILE=/home/corna-user/workspace/approvals/invites.json"
+      - "CORNA_INVITE_PROCESSOR_INTERVAL=60"
+      - "DB_ADDRESS=${DB_ADDRESS}"
+      - "CONFIG_FILE_PATH=${CONFIG_FILE_PATH}"
+
+    command: python -m bin.invite_processor
+
+    volumes:
+      # Temporary internal-alpha mechanism. This will be replaced before
+      # external alpha when invite approvals move to email.
+      - "${CORNA_INVITE_APPROVAL_DIR}:/home/corna-user/workspace/approvals:rw"
+
+    secrets:
+      - source: vault_password
+        target: vault_password
+        uid: "1000"
+        gid: "1000"
+        mode: 0400
+
+    networks:
+      - backend-network
+
+    deploy:
+      replicas: 1
+
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+
+      rollback_config:
+        parallelism: 1
+        order: start-first
+
+
+networks:
+  backend-network:
+    driver: overlay
+
+
+secrets:
+  tls_cert:
+    external: true
+    name: ${TLS_CERT_SECRET}
+
+  tls_key:
+    external: true
+    name: ${TLS_KEY_SECRET}
+
+  vault_password:
+    external: true
+    name: ${VAULT_PASSWORD_SECRET}
