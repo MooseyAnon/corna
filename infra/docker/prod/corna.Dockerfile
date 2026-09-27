@@ -1,0 +1,138 @@
+FROM rockylinux:9 AS python-builder
+
+# Print commands as they are executed
+SHELL ["bash", "-xc"]
+
+# We're seeing issues with installing postgresql-devel as it is dependant
+# on a package called perl-IPC-Run which is annoyingly not available in
+# either of the epel or extra rocky repos. On top of that, the base container
+# does not come with dnf/yum config-manager so we have to install it directly
+# here because our yum install step is what does the postgresql-devel install
+# more info:
+#   https://fluca1978.github.io/2024/02/08/PostgreSQL16DevPerlIPCRun.html
+RUN yum --enablerepo=crb install -y perl-IPC-Run && \
+    yum clean all
+
+# Install the PostgreSQL repository for the target architecture.
+ARG TARGETARCH
+RUN case "${TARGETARCH}" in \
+        amd64) PGDG_ARCH="x86_64" ;; \
+        arm64) PGDG_ARCH="aarch64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    yum install -y \
+        "https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-${PGDG_ARCH}/pgdg-redhat-repo-latest.noarch.rpm" && \
+    yum clean all
+
+# This is temporary, for some reason the rocky9.3 (latest image at the time of
+# writing) pulls a deprecated GPG. This should be fixed it an upcoming verion.
+# In the meantime we simply disable the repo GPG check as its generally a
+# trusted repo.
+# More info: https://yum.postgresql.org/news/pgdg-rpm-repo-gpg-key-update/
+#
+# Note: This is exclusively a workaround for arm64 native builds, x86 works fine
+RUN if [ "${TARGETARCH}" = "arm64" ]; then \
+        sed -i 's/repo_gpgcheck = 1/repo_gpgcheck = 0/g' /etc/yum.repos.d/pgdg-redhat-all.repo && \
+        sed -i 's/gpgcheck=1/gpgcheck=0/g' /etc/yum.repos.d/pgdg-redhat-all.repo; \
+    fi
+
+RUN yum install -y \
+        gcc \
+        postgresql17-devel \
+        python3.12 \
+        python3.12-devel && \
+    yum clean all && \
+    rm -rf /var/cache/yum /var/cache/dnf
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:0.12.3 /uv /uvx /bin/
+
+ENV UV_PROJECT_ENVIRONMENT=/venv
+
+# After installing postgresql-devel, which is a requirement to build psycopg2
+# from source, the path to pg_config location is not added to the file path.
+# pg_config is a required executable to install psycopg2, so we need to manually
+# pass the path as part of our pip install step. We set the argument here.
+ARG PG_PATH=/usr/pgsql-17/bin/
+
+COPY pyproject.toml uv.lock ./
+
+RUN PATH="${PATH}:${PG_PATH}" \
+    uv sync \
+        --locked \
+        --no-dev \
+        --no-install-project \
+        --python /usr/bin/python3.12 \
+        --no-managed-python
+
+
+FROM rockylinux:9-minimal AS runtime
+
+SHELL ["bash", "-xc"]
+
+# Create the unprivileged runtime user.
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g "${GID}" corna-user && \
+    useradd -u "${UID}" -g "${GID}" corna-user
+
+ARG TARGETARCH
+# Add the architecture-specific PostgreSQL repository.
+#
+# For this to work we have to manually download and install the rpm repo because
+# rocky-minimal does not come with yum or dnf.
+# The main benefit of using minimal is that it does not come with python
+# installed (which is required by dnf), hence you have to use `microdnf` which is
+# a lightweight dnf implementation which does not require python.
+RUN case "${TARGETARCH}" in \
+        amd64) PGDG_ARCH="x86_64" ;; \
+        arm64) PGDG_ARCH="aarch64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    curl -fsSL \
+        "https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-${PGDG_ARCH}/pgdg-redhat-repo-latest.noarch.rpm" \
+        -o /tmp/pgdg.rpm && \
+    rpm -i /tmp/pgdg.rpm && \
+    rm /tmp/pgdg.rpm && \
+    if [ "${TARGETARCH}" = "arm64" ]; then \
+        sed -i \
+            's/repo_gpgcheck = 1/repo_gpgcheck = 0/g' \
+            /etc/yum.repos.d/pgdg-redhat-all.repo && \
+        sed -i \
+            's/gpgcheck=1/gpgcheck=0/g' \
+            /etc/yum.repos.d/pgdg-redhat-all.repo; \
+    fi
+
+# Install only the application runtime dependencies.
+RUN microdnf install -y \
+        python3.12 \
+        postgresql17-libs && \
+    microdnf clean all
+
+COPY --from=python-builder /venv /venv
+
+ENV PATH="/venv/bin:${PATH}"
+
+# copy over source and set permissions
+COPY --chown=corna-user:corna-user \
+    corna /home/corna-user/workspace/corna
+
+COPY --chown=corna-user:corna-user \
+    bin /home/corna-user/workspace/bin
+
+COPY --chown=corna-user:corna-user \
+    frontend/public /home/corna-user/workspace/frontend/public
+
+COPY --chown=corna-user:corna-user \
+    themes /home/corna-user/workspace/themes
+
+COPY --chown=corna-user:corna-user \
+    .tmp-compose/dev-conf.yml \
+    gunicorn_conf.py \
+    gunicorn.logging.ini \
+    /home/corna-user/workspace/
+
+WORKDIR /home/corna-user/workspace
+
+# Run as unprivileged user
+USER corna-user
