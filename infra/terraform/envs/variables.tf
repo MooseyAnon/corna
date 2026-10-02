@@ -140,6 +140,11 @@ variable "registry_tier" {
   default = "basic"
 }
 
+variable "registry_region" {
+  type    = string
+  default = "lon1"
+}
+
 # S3
 variable "enable_spaces" {
   type    = bool
