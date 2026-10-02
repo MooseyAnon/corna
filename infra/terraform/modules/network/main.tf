@@ -13,10 +13,10 @@ terraform {
 
 # Create-only path
 resource "digitalocean_vpc" "this" {
-  count      = var.create_vpc ? 1 : 0
-  name       = var.vpc_name != "" ? var.vpc_name : "${var.project_name}-vpc"
-  region     = var.region
-  ip_range   = var.vpc_cidr
+  count       = var.create_vpc ? 1 : 0
+  name        = var.vpc_name != "" ? var.vpc_name : "${var.project_name}-vpc"
+  region      = var.region
+  ip_range    = var.vpc_cidr
   description = var.description
 }
 

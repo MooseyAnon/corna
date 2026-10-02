@@ -10,35 +10,35 @@ module "network" {
 
 # --- Compute (new module)
 module "compute" {
-  source            = "../modules/compute"
-  project_name      = var.project_name
-  region            = var.region
-  vpc_id            = module.network.vpc_id
-  droplet_name      = var.droplet_name
-  droplet_size      = var.droplet_size
-  droplet_image     = var.droplet_image
-  admin_username    = var.admin_username
-  ssh_pub_key_path  = var.ssh_pub_key_path
-  tags              = var.tags
+  source           = "../modules/compute"
+  project_name     = var.project_name
+  region           = var.region
+  vpc_id           = module.network.vpc_id
+  droplet_name     = var.droplet_name
+  droplet_size     = var.droplet_size
+  droplet_image    = var.droplet_image
+  admin_username   = var.admin_username
+  ssh_pub_key_path = var.ssh_pub_key_path
+  tags             = var.tags
 }
 
 # --- Database (Managed Postgres with VPC + firewall)
 module "database" {
-  source          = "../modules/database"
-  count           = var.enable_db ? 1 : 0
-  project_name    = var.project_name
-  region          = var.region
-  vpc_id          = module.network.vpc_id
+  source       = "../modules/database"
+  count        = var.enable_db ? 1 : 0
+  project_name = var.project_name
+  region       = var.region
+  vpc_id       = module.network.vpc_id
 
-  engine          = var.db_engine
-  engine_version  = var.db_version
-  size            = var.db_size
-  name            = var.db_name
-  node_count      = var.db_node_count
-  tags            = var.tags
+  engine         = var.db_engine
+  engine_version = var.db_version
+  size           = var.db_size
+  name           = var.db_name
+  node_count     = var.db_node_count
+  tags           = var.tags
 
-  allow_tag       = var.db_allow_tag
-  allow_cidrs     = var.db_allow_cidrs
+  allow_tag   = var.db_allow_tag
+  allow_cidrs = var.db_allow_cidrs
 }
 
 moved {
@@ -48,10 +48,10 @@ moved {
 
 # --- Registry (optional)
 module "registry" {
-  source                = "../modules/registry"
-  count                 = var.enable_registry ? 1 : 0
-  project_name          = var.project_name
-  registry_name         = var.registry_name
+  source                 = "../modules/registry"
+  count                  = var.enable_registry ? 1 : 0
+  project_name           = var.project_name
+  registry_name          = var.registry_name
   subscription_tier_slug = var.registry_tier
   region                 = var.registry_region
 }
@@ -78,10 +78,10 @@ locals {
 }
 
 module "project" {
-  source            = "../modules/project"
-  project_name      = var.project_name
-  description       = var.project_description
-  purpose           = var.project_purpose
-  environment       = var.project_environment
-  resource_urns     = local.project_resource_urns
+  source        = "../modules/project"
+  project_name  = var.project_name
+  description   = var.project_description
+  purpose       = var.project_purpose
+  environment   = var.project_environment
+  resource_urns = local.project_resource_urns
 }

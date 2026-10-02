@@ -49,27 +49,27 @@ variable "vpc_description" {
 }
 
 # Compute inputs
-variable "droplet_name"  {
+variable "droplet_name" {
   description = "The name of the droplet."
-  type        = string 
+  type        = string
   default     = "corna-host"
 }
 
-variable "droplet_size"  {
+variable "droplet_size" {
   description = "Size of the droplet."
-  type        = string 
+  type        = string
   default     = "s-1vcpu-2gb"
 }
 
-variable "droplet_image"  {
+variable "droplet_image" {
   description = "The image to use for the droplet."
-  type        = string 
+  type        = string
   default     = "rockylinux-9-x64"
 }
 
-variable "admin_username"  {
+variable "admin_username" {
   description = "The username of the admin user."
-  type        = string 
+  type        = string
   default     = "admin"
 }
 
@@ -80,7 +80,7 @@ variable "ssh_pub_key_path" {
 
 variable "tags" {
   type    = list(string)
-  default = ["corna","managed","public-edge"]
+  default = ["corna", "managed", "public-edge"]
 }
 
 # Database
