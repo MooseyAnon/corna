@@ -28,18 +28,15 @@ resource "digitalocean_droplet" "this" {
   tags       = distinct(concat(var.tags, ["public-edge"]))
 
   # Minimal cloud-init; Ansible will handle the rest
-  user_data = <<-EOT
-  #cloud-config
-  package_update: true
-  package_upgrade: true
-  users:
-    - name: ${var.admin_username}
-      sudo: ALL=(ALL) NOPASSWD:ALL
-      groups: sudo
-      shell: /bin/bash
-      ssh-authorized-keys:
-        - ${trimspace(file(pathexpand(var.ssh_pub_key_path)))}
-  EOT
+  user_data = templatefile(
+    "${path.module}/cloud-init.yml",
+    {
+      admin_username = var.admin_username
+      ssh_public_key = trimspace(
+        file(pathexpand(var.ssh_pub_key_path))
+      )
+    }
+  )
 }
 
 # 3) Tag-based Cloud Firewall at DO edge

@@ -1,0 +1,130 @@
+#cloud-config
+
+# -----------------------------------------------------------------------------
+# Package updates
+# -----------------------------------------------------------------------------
+
+package_update: true
+package_upgrade: true
+
+
+# -----------------------------------------------------------------------------
+# Users
+#
+# Both users authenticate using the same SSH public key.
+#
+# admin user:
+#   - passwordless sudo
+#   - Docker access
+#
+# cornauser:
+#   - no sudo
+#   - Docker access for routine deployment operations
+#
+# Password-based SSH authentication is disabled globally below.
+# -----------------------------------------------------------------------------
+
+users:
+  - name: ${admin_username}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups:
+      - wheel
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+  - name: cornauser
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+
+# -----------------------------------------------------------------------------
+# Base packages
+#
+# Keep the host deliberately small. Application dependencies belong inside
+# containers rather than on the VM.
+# -----------------------------------------------------------------------------
+
+packages:
+  - curl
+  - dnf-plugins-core
+  - firewalld
+
+
+# -----------------------------------------------------------------------------
+# SSH hardening
+#
+# Use an sshd drop-in instead of modifying the distribution-owned main config.
+# The configuration is validated before sshd is reloaded.
+# -----------------------------------------------------------------------------
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-corna.conf
+    owner: root:root
+    permissions: "0644"
+    content: |
+      PasswordAuthentication no
+      PermitRootLogin no
+
+
+# -----------------------------------------------------------------------------
+# Host configuration
+# -----------------------------------------------------------------------------
+
+runcmd:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 17 client
+  #
+  # Install the PGDG repository and client tools only. No PostgreSQL server is
+  # installed or started on this host.
+  # ---------------------------------------------------------------------------
+
+  - dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+  - dnf install -y postgresql17
+
+  # ---------------------------------------------------------------------------
+  # Docker
+  #
+  # Install Docker Engine from Docker's official RHEL repository.
+  # Docker creates the `docker` group during installation.
+  # ---------------------------------------------------------------------------
+
+  - dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+
+  - dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  - systemctl enable --now docker
+
+  # Both accounts may interact with the Docker daemon.
+  - usermod -aG docker ${admin_username}
+  - usermod -aG docker cornauser
+
+  # ---------------------------------------------------------------------------
+  # Firewall
+  #
+  # Public ingress is limited to SSH, HTTP and HTTPS.
+  # Outbound traffic remains unrestricted.
+  #
+  # Internal application ports, PostgreSQL and Swarm ports are not exposed.
+  # DigitalOcean's edge firewall provides an additional outer boundary.
+  # ---------------------------------------------------------------------------
+
+  - systemctl enable --now firewalld
+
+  - firewall-cmd --permanent --add-service=ssh
+  - firewall-cmd --permanent --add-service=http
+  - firewall-cmd --permanent --add-service=https
+
+  - firewall-cmd --reload
+
+  # ---------------------------------------------------------------------------
+  # SSH validation
+  #
+  # Validate the resulting configuration before reloading sshd so a malformed
+  # drop-in cannot silently replace a working SSH configuration.
+  # ---------------------------------------------------------------------------
+
+  - sshd -t
+  - systemctl reload sshd
