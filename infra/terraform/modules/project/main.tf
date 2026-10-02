@@ -18,6 +18,6 @@ resource "digitalocean_project" "this" {
 # Only create the attachment resource if we actually have something to attach.
 resource "digitalocean_project_resources" "attachments" {
   # count    = length(var.resource_urns) > 0 ? 1 : 0
-  project  = digitalocean_project.this.id
+  project   = digitalocean_project.this.id
   resources = var.resource_urns
 }

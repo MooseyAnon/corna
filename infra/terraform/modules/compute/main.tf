@@ -16,11 +16,11 @@ resource "digitalocean_ssh_key" "this" {
 
 # 2) Droplet in the provided VPC
 resource "digitalocean_droplet" "this" {
-  name       = var.droplet_name
-  region     = var.region
-  size       = var.droplet_size
-  image      = var.droplet_image
-  vpc_uuid   = var.vpc_id
+  name     = var.droplet_name
+  region   = var.region
+  size     = var.droplet_size
+  image    = var.droplet_image
+  vpc_uuid = var.vpc_id
 
   ssh_keys   = [digitalocean_ssh_key.this.fingerprint]
   ipv6       = true

@@ -3,9 +3,9 @@ output "project_id" {
   description = "DigitalOcean Project ID (dev)."
 }
 
-output "vpc_id"        { value = module.network.vpc_id }
-output "droplet_ipv4"  { value = module.compute.droplet_ipv4 }
-output "droplet_user"  { value = module.compute.admin_username }
+output "vpc_id" { value = module.network.vpc_id }
+output "droplet_ipv4" { value = module.compute.droplet_ipv4 }
+output "droplet_user" { value = module.compute.admin_username }
 
 # SAFE DB outputs
 output "db_host" { value = try(module.database[0].db_host, null) }

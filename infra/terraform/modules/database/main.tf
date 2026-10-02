@@ -10,14 +10,14 @@ terraform {
 
 # 1) Managed DB cluster
 resource "digitalocean_database_cluster" "this" {
-  name                  = var.name
-  engine                = var.engine
-  version               = var.engine_version
-  size                  = var.size
-  region                = var.region
-  node_count            = var.node_count
-  private_network_uuid  = var.vpc_id
-  tags                  = var.tags
+  name                 = var.name
+  engine               = var.engine
+  version              = var.engine_version
+  size                 = var.size
+  region               = var.region
+  node_count           = var.node_count
+  private_network_uuid = var.vpc_id
+  tags                 = var.tags
 }
 
 # 2) Database firewall: trust only droplets with allow_tag, plus optional CIDRs.
