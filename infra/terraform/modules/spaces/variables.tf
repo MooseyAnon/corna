@@ -5,8 +5,8 @@ variable "bucket_name" {
 
 variable "region" {
   type        = string
-  description = "Spaces region code (e.g., lon, ams3, nyc3)."
-  default     = "lon"
+  description = "Spaces region code (e.g., lon1, ams3, nyc3)."
+  default     = "lon1"
 }
 
 variable "project_name" {

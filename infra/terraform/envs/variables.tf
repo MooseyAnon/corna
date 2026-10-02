@@ -158,5 +158,5 @@ variable "spaces_bucket" {
 
 variable "spaces_region" {
   type    = string
-  default = "lon"
+  default = "lon1"
 }
