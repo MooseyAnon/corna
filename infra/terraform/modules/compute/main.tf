@@ -10,7 +10,7 @@ terraform {
 
 # 1) Import your SSH public key into DO
 resource "digitalocean_ssh_key" "this" {
-  name       = "${var.project_name}-ssh"
+  name       = "${var.admin_username}-ssh"
   public_key = file(pathexpand(var.ssh_pub_key_path))
 }
 
