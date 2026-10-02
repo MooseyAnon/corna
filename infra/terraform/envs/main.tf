@@ -53,6 +53,7 @@ module "registry" {
   project_name          = var.project_name
   registry_name         = var.registry_name
   subscription_tier_slug = var.registry_tier
+  region                 = var.registry_region
 }
 
 # --- Spaces (optional)

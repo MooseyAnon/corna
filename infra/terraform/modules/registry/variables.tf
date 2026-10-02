@@ -14,3 +14,9 @@ variable "project_name" {
   description = "Logical project name for tagging/naming help."
   default     = "corna"
 }
+
+variable "region" {
+  type        = string
+  description = "Registry region code (e.g., lon1, ams3, nyc3)."
+  default     = "lon1"
+}

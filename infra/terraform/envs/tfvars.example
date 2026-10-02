@@ -27,6 +27,7 @@ db_allow_cidrs  = []
 enable_registry = true
 registry_name   = "corna-registry"
 registry_tier   = "basic"
+registry_region = "lon1"
 
 enable_spaces   = true
 spaces_bucket   = "corna-assets"
