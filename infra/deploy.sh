@@ -487,7 +487,13 @@ deploy_stack() {
     echo "Deploying ${TAG}..."
 
     ssh "${DEPLOY_HOST}" \
-        "CORNA_VERSION='${TAG}' \
+        "CONFIG_FILE_PATH='${CONFIG_FILE_PATH}' \
+         CORNA_INVITE_APPROVAL_DIR='${CORNA_INVITE_APPROVAL_DIR}' \
+         CORNA_RUNTIME_ASSET_DIR='${CORNA_RUNTIME_ASSET_DIR}' \
+         DB_ADDRESS='${DB_ADDRESS}' \
+         CORNA_VERSION='${TAG}' \
+         REGISTRY='${REGISTRY}' \
+         TAG='${TAG}' \
          TLS_CERT_SECRET='${TLS_CERT_SECRET}' \
          TLS_KEY_SECRET='${TLS_KEY_SECRET}' \
          VAULT_PASSWORD_SECRET='${VAULT_PASSWORD_SECRET}' \
