@@ -385,6 +385,8 @@ build_nginx_image() {
 
 
 record_build() {
+    echo "Updating release file..."
+
     local tmp_file
 
     tmp_file="$(mktemp)"
