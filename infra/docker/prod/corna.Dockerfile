@@ -131,7 +131,7 @@ COPY --chown=corna-user:corna-user \
     themes /home/corna-user/workspace/themes
 
 COPY --chown=corna-user:corna-user \
-    .tmp-compose/dev-conf.yml \
+    infra/docker/prod/production.yml \
     gunicorn_conf.py \
     gunicorn.logging.ini \
     /home/corna-user/workspace/
