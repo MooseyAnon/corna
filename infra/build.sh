@@ -247,8 +247,8 @@ set -euo pipefail
 RELEASE_FILE="${PROJECT_ROOT}/infra/release.env"
 
 DEV_CORNA_DOCKERFILE="${PROJECT_ROOT}/docker/dev/corna.Dockerfile"
-PROD_CORNA_DOCKERFILE="${PROJECT_ROOT}/docker/prod/corna.Dockerfile"
-PROD_NGINX_DOCKERFILE="${PROJECT_ROOT}/docker/prod/nginx.Dockerfile"
+PROD_CORNA_DOCKERFILE="${PROJECT_ROOT}/infra/docker/prod/corna.Dockerfile"
+PROD_NGINX_DOCKERFILE="${PROJECT_ROOT}/infra/docker/prod/nginx.Dockerfile"
 
 
 get_release_tag() {
