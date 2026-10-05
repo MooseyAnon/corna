@@ -150,3 +150,23 @@ jobs:
 
       - name: Run eslint
         run: make check-eslint
+
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+
+      - name: Terraform Format Check
+        run: terraform -chdir=infra/terraform/ fmt -check -recursive
+
+      - name: Terraform Validate
+        run: terraform -chdir=infra/terraform/ validate
