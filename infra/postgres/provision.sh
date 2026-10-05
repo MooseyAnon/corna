@@ -129,6 +129,9 @@ PROVISION_FILE="${SCRIPT_DIR}/provision.sql"
 LOCAL_DB_PORT=5432
 LOCAL_TUNNEL_PORT=55432
 
+# the default name remote clusters are given by the provider
+REMOTE_BOOTSTRAP_DB="defaultdb"
+
 SSH_PID=""
 
 
@@ -259,8 +262,12 @@ run_psql() {
         -U "${user}"
     )
 
+    # A host is only supplied for remote provisioning. Connect to the
+    # managed cluster's bootstrap database rather than defaulting to
+    # a database matching BOOTSTRAP_DB_USER.
     if [[ -n "${host}" ]]; then
         connection_args+=(-h "${host}")
+        connection_args+=(-d "${REMOTE_BOOTSTRAP_DB}")
     fi
 
     # remote path
