@@ -338,6 +338,13 @@ compile_typescript() {
 
 
 build_corna_image() {
+    echo "Checking for existing Corna production image..."
+
+    if docker image inspect "${REGISTRY}/corna:${TAG}" &>/dev/null; then
+        echo "Found existing image, skipping build"
+        return 0
+    fi
+
     echo "Building Corna production image..."
 
     docker buildx build \
@@ -359,6 +366,13 @@ tag_invite_processor_image() {
 
 
 build_nginx_image() {
+    echo "Checking for existing nginx production image..."
+
+    if docker image inspect "${REGISTRY}/corna-nginx:${TAG}" &>/dev/null; then
+        echo "Found existing nginx image, skipping build"
+        return 0
+    fi
+
     echo "Building nginx production image..."
 
     docker buildx build \
