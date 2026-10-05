@@ -153,7 +153,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/.env-psql"
-REMOTE_ENV_FILE="${SCRIPT_DIR}/.remote-env"
+REMOTE_ENV_FILE="${SCRIPT_DIR}/.env-remote"
 
 LOCAL_DB_ADDRESS="localhost"
 LOCAL_DB_PORT=5432
