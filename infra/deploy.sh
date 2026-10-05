@@ -393,7 +393,7 @@ get_release_tag() {
         exit 1
     fi
 
-    if [[ ! "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    if [[ ! "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$ ]]; then
         echo "ERROR: Invalid release tag: ${tag}" >&2
         echo "Expected format: v<major>.<minor>.<patch>" >&2
         exit 1
