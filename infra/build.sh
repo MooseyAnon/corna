@@ -246,7 +246,6 @@ set -euo pipefail
 
 RELEASE_FILE="${PROJECT_ROOT}/infra/release.env"
 
-DEV_CORNA_DOCKERFILE="${PROJECT_ROOT}/docker/dev/corna.Dockerfile"
 PROD_CORNA_DOCKERFILE="${PROJECT_ROOT}/infra/docker/prod/corna.Dockerfile"
 PROD_NGINX_DOCKERFILE="${PROJECT_ROOT}/infra/docker/prod/nginx.Dockerfile"
 
@@ -300,35 +299,27 @@ validate_build() {
 }
 
 
-build_test_image() {
-    echo "Building test image..."
+run_checks() {
+    echo "Running CI checks..."
 
-    docker buildx build \
-        --load \
-        --file "${DEV_CORNA_DOCKERFILE}" \
-        --tag "corna-test:${TAG}" \
-        "${PROJECT_ROOT}"
-}
+    # start with linting checks as they're quicker than tests
+    make check-coding-standards
 
-
-run_tests() {
-    echo "Running test suite..."
-
-    docker run \
-        --rm \
-        "corna-test:${TAG}" \
-        make check
-}
-
-
-run_eslint() {
-    echo "Running eslint..."
-
-    if [[ ! -d "${PROJECT_ROOT}/frontend/node_modules" ]]; then
-        npm install --prefix "${PROJECT_ROOT}/frontend"
-    fi
-
-    npm run lint --prefix "${PROJECT_ROOT}/frontend"
+    # We opt to run tests locally instead of running them inside the development
+    # or production containers.
+    # This is because many of our tests require a "lightweight" pg integration,
+    # and creating the appropriate environment in a container turns out to be a
+    # lot more work than its worth.
+    #
+    # We already have:
+    #     - GHA's checks which run on x86 (same as remote servers)
+    #     - Full ability to run the test suite locally
+    # There is absolutely no reason to bend over backwards just to run the tests
+    # on an environment which is no longer identical to the production environment.
+    # You get a all the overhead, without any of the guarantees. It makes more
+    # sense to treate these checks as santiy checks locally (along with GHA's)
+    # and the run a series of smoke tests when the code lands in production.
+    make check-tests
 }
 
 
@@ -339,7 +330,9 @@ compile_typescript() {
         npm install --prefix "${PROJECT_ROOT}/frontend"
     fi
 
-    run_eslint
+    echo "Running eslint..."
+    make check-eslint
+
     npm run build --prefix "${PROJECT_ROOT}/frontend"
 }
 
@@ -405,9 +398,7 @@ record_build() {
 
 build() {
     validate_build
-
-    build_test_image
-    run_tests
+    run_checks
 
     compile_typescript
 
