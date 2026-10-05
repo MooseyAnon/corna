@@ -1,4 +1,4 @@
-FROM rockylinux:9 AS python-builder
+FROM rockylinux/rockylinux:9 AS python-builder
 
 # Print commands as they are executed
 SHELL ["bash", "-xc"]
@@ -24,6 +24,10 @@ RUN case "${TARGETARCH}" in \
         "https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-${PGDG_ARCH}/pgdg-redhat-repo-latest.noarch.rpm" && \
     yum clean all
 
+# NOTE: this comment is now out of date since moving to the rockylinux maintained
+# namespace. Investigating if this hack is still needed is work that will be done
+# at some point in the future.
+#
 # This is temporary, for some reason the rocky9.3 (latest image at the time of
 # writing) pulls a deprecated GPG. This should be fixed it an upcoming verion.
 # In the meantime we simply disable the repo GPG check as its generally a
@@ -66,7 +70,7 @@ RUN PATH="${PATH}:${PG_PATH}" \
         --no-managed-python
 
 
-FROM rockylinux:9-minimal AS runtime
+FROM rockylinux/rockylinux:9-minimal AS runtime
 
 SHELL ["bash", "-xc"]
 
