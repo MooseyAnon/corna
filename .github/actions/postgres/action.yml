@@ -1,0 +1,29 @@
+name: Setup PostgreSQL
+description: Install PostgreSQL and contrib packages on an Ubuntu runner
+
+inputs:
+  version:
+    description: PostgreSQL major version
+    required: false
+    default: "17"
+
+runs:
+  using: composite
+
+  steps:
+    - name: Add PostgreSQL repository
+      shell: bash
+      run: |
+        sudo sh -c \
+          'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+
+        wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+          | sudo apt-key add -
+
+    - name: Install PostgreSQL
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          postgresql-${{ inputs.version }} \
+          postgresql-contrib
