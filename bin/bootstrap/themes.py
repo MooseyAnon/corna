@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 # Directory names relative to the configured themes directory.
 SYSTEM_THEMES = (
     "pinterested-in-men",
+    "the-news-wire",
 )
 
 
