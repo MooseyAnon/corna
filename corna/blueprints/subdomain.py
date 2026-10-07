@@ -137,7 +137,7 @@ def single_post_page(domain, url_ext):
     signed_cookie: Optional[str] = get_cookie()
 
     try:
-        post, theme = control.single_post(
+        pageDTO = control.single_post(
             session,
             url_ext,
             domain,
@@ -170,10 +170,11 @@ def single_post_page(domain, url_ext):
         return render_system_error(msg), 500
 
     return flask.render_template(
-        str(theme),
+        str(pageDTO.theme_path),
         # I dont like this design might change it
         success=True,
-        post=post,
+        post=pageDTO.current_post,
+        next_posts=pageDTO.next_posts,
     )
 
 

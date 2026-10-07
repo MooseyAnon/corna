@@ -344,12 +344,15 @@ def test_single_post_image_parses_media_metadata(
     cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is not None
 
-    post, theme = control.single_post(
+    pageDTO = control.single_post(
         session,
         post_url,
         shared_data.corna_info["domain_name"],
         cookie=cookie.value,
     )
+
+    post = pageDTO.current_post
+    theme = pageDTO.theme_path
 
     assert post.creator == "john_snow"
     assert len(post.media) == 1
@@ -392,12 +395,15 @@ def test_single_post_video_parses_media_metadata(
     cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is not None
 
-    post, _ = control.single_post(
+    pageDTO = control.single_post(
         session,
         post_url,
         shared_data.corna_info["domain_name"],
         cookie=cookie.value,
     )
+
+    post = pageDTO.current_post
+    theme = pageDTO.theme_path
 
     assert post.creator == "john_snow"
     assert len(post.media) == 1
@@ -434,12 +440,14 @@ def test_single_post_text_only_has_no_media(session, client, login):
     cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is not None
 
-    post, _ = control.single_post(
+    pageDTO = control.single_post(
         session,
         post_url,
         shared_data.corna_info["domain_name"],
         cookie=cookie.value,
     )
+
+    post = pageDTO.current_post
 
     assert post.media == []
 
@@ -463,12 +471,15 @@ def test_image_only_post(
     cookie = client.get_cookie(enums.SessionNames.SESSION.value)
     assert cookie is not None
 
-    post, theme = control.single_post(
+    pageDTO = control.single_post(
         session,
         post_url,
         shared_data.corna_info["domain_name"],
         cookie=cookie.value,
     )
+
+    post = pageDTO.current_post
+    theme = pageDTO.theme_path
 
     assert post.type == "picture"
     assert post.text_html == None
