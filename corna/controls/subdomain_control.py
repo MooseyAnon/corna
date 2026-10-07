@@ -1,4 +1,5 @@
 """Control code for a users Corna client experience."""
+# pylint: disable=(too-many-lines)
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -610,10 +611,12 @@ class SinglePostPage:
     """Aggregate dataclass that encapsulates the assembly of a single post page.
 
     :ivar Post current_post: The post currently being viewed.
+    :ivar List[Post] next_posts: Up to five posts older than the current post.
     :ivar str theme_path: Path to the theme post-page template.
     """
 
     current_post: Post
+    next_posts: List[Post]
     theme_path: str
 
     @classmethod
@@ -635,6 +638,43 @@ class SinglePostPage:
             raise ValueError("Corna has no theme")
 
         return resolve_theme_page(session, curr_corna.theme, "post_page")
+
+    @classmethod
+    def _next_posts(
+        cls,
+        session: SessionT,
+        curr_corna: models.CornaTable,
+        # this is iso format
+        current_post_timestamp: str,
+        subdomain: str,
+    ) -> List[Post]:
+        """Get up to five posts older than the current post.
+
+        :param SessionT session: connection to the db.
+        :param CornaTable curr_corna: the current Corna.
+        :param Post current_post: the post currently being viewed.
+        :param str subdomain: Corna the posts belong to.
+        :returns: up to five parsed posts older than the current post.
+        :rtype: List[Post]
+        """
+        created: datetime = datetime.fromisoformat(current_post_timestamp)
+        posts: List[models.PostTable] = (
+            session
+            .query(models.PostTable)
+            .filter(models.PostTable.corna_uuid == curr_corna.uuid)
+            .filter(models.PostTable.deleted == False)  # pylint: disable=C0121
+            # This assumes post creation timestamps are unique enough to provide
+            # stable ordering. If two posts have the exact same timestamp, one
+            # may be skipped when navigating from the other. If this becomes a
+            # real issue, use a secondary deterministic key such as UUID in
+            # both the filter and ordering to break timestamp ties.
+            .filter(models.PostTable.created < created)
+            .order_by(models.PostTable.created.desc())
+            .limit(5)
+            .all()
+        )
+
+        return [Post.from_model(post, subdomain) for post in posts]
 
     @classmethod
     def _current_post(
@@ -704,9 +744,16 @@ class SinglePostPage:
             url_extension,
             subdomain,
         )
+        next_posts = cls._next_posts(
+            session,
+            curr_corna,
+            current_post.created,
+            subdomain,
+        )
 
         return cls(
             current_post=current_post,
+            next_posts=next_posts,
             theme_path=theme_path,
         )
 
