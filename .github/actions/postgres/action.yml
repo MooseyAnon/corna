@@ -11,19 +11,48 @@ runs:
   using: composite
 
   steps:
-    - name: Add PostgreSQL repository
+    - name: Configure PostgreSQL APT repository
       shell: bash
       run: |
-        sudo sh -c \
-          'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+        sudo apt-get update
+        sudo apt-get install -y curl ca-certificates
 
-        wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-          | sudo apt-key add -
+        # PostgreSQL's current installation instructions store the repository
+        # signing key here and reference it explicitly from the APT source.
+        sudo install -d /usr/share/postgresql-common/pgdg
+
+        sudo curl \
+          --fail \
+          --silent \
+          --show-error \
+          --location \
+          --output /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+          https://www.postgresql.org/media/keys/ACCC4CF8.asc
+
+        # Load the runner's distro metadata into the current shell.
+        # VERSION_CODENAME will be something like "noble" or "jammy".
+        . /etc/os-release
+
+        # Configure PostgreSQL's official APT repository using the runner's
+        # Ubuntu codename and CPU architecture.
+        #
+        # Signed-By restricts this repository to the PostgreSQL signing key
+        # above rather than trusting the key globally.
+        sudo tee /etc/apt/sources.list.d/pgdg.sources > /dev/null <<EOF
+        Types: deb
+        URIs: https://apt.postgresql.org/pub/repos/apt
+        Suites: ${VERSION_CODENAME}-pgdg
+        Architectures: $(dpkg --print-architecture)
+        Components: main
+        Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+        EOF
 
     - name: Install PostgreSQL
       shell: bash
       run: |
+        # Refresh package metadata now that the PostgreSQL repository exists.
         sudo apt-get update
+
         sudo apt-get install -y \
           postgresql-${{ inputs.version }} \
           postgresql-contrib
