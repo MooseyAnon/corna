@@ -1,0 +1,11 @@
+# metadata for Pinterested-in-Men
+name: "The News Wire"
+creator: "themebot"
+description: "A single page bulletin theme best suited to posts that reference other websites."
+thumbnail: "news-wire.png"
+
+pages:
+  homepage: index.html
+
+error_pages:
+  default: 404.html

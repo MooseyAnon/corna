@@ -1,0 +1,413 @@
+{% set posts = listing.items %}
+{% set dispatch_count = posts | length %}
+{% set author_count = posts | map(attribute="creator") | unique | list | length %}
+{% set categories = [
+    {"name": "WORLD", "colour": "blue"},
+    {"name": "UK", "colour": "blue"},
+    {"name": "POLITICS", "colour": "violet"},
+    {"name": "BUSINESS", "colour": "gold"},
+    {"name": "TECHNOLOGY", "colour": "violet"},
+    {"name": "SCIENCE", "colour": "green"},
+    {"name": "CULTURE", "colour": "gold"},
+    {"name": "SPORT", "colour": "green"}
+] %}
+{% set category_count = categories | length %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% if title %}{{ title }} — {% endif %}The News Wire</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Libre+Caslon+Display&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/the-news-wire/news-wire.css">
+</head>
+<body>
+<main class="nw-page">
+<header class="nw-system-bar">
+    <div class="nw-system-bar__brand">WIRE://CORNA</div>
+    <div class="nw-system-bar__readout">
+        <span class="nw-system-bar__item"><span class="nw-live-dot" aria-hidden="true"></span>LIVE</span>
+        <span class="nw-system-bar__item">NETWORK <strong id="nw-network">ONLINE</strong></span>
+        <span class="nw-system-bar__item">SESSION <strong id="nw-session">00:00:00</strong></span>
+    </div>
+</header>
+
+<section class="nw-masthead">
+    <div class="nw-masthead__date">
+        <span id="nw-weekday">—</span>
+        <span id="nw-date">—</span>
+    </div>
+    <div class="nw-masthead__center">
+        <div class="nw-masthead__kicker">AUTOMATED NEWS DISPATCH SERVICE</div>
+        <h1>THE NEWS WIRE</h1>
+        <p>NEWS DISPATCHES FROM AROUND THE WORLD</p>
+    </div>
+    <div class="nw-masthead__clock">
+        <span id="nw-local-time">--:--:--</span>
+        <span id="nw-local-zone">—</span>
+    </div>
+</section>
+
+<nav class="nw-nav" aria-label="News sections">
+    <a class="nw-nav__item nw-nav__item--active" href="#"><span>ALL</span></a>
+    {% for category in categories %}
+    <a class="nw-nav__item" href="#">{{ category.name }}</a>
+    {% endfor %}
+</nav>
+
+<div class="nw-content-grid">
+<section class="nw-feed" aria-label="Latest dispatches">
+{% if listing.has_items %}
+    {% for post in posts %}
+        {% set category = categories[loop.index0 % category_count] %}
+        {% set image_media = post.media | selectattr("type", "equalto", "image") | first %}
+<article
+    class="nw-story"
+    data-created="{{ post.created }}"
+    data-author="{{ post.creator }}"
+    data-section="{{ category.name }}"
+>
+    <div class="nw-story__meta">
+        <div class="nw-story__meta-left">
+            <time datetime="{{ post.created }}">{{ post.created[11:16] }}</time>
+            <span class="nw-meta-chip nw-meta-chip--{{ category.colour }}">{{ category.name }}</span>
+            <span class="nw-meta-chip nw-meta-chip--green">{{ post.creator }}</span>
+        </div>
+        <span class="nw-story__wire-id">WIRE/{{ post.uuid[:7] | upper }}</span>
+    </div>
+
+    <div class="nw-story__body">
+        <div class="nw-story__copy">
+            {% if post.title %}
+            <h2>{{ post.title }}</h2>
+            {% endif %}
+
+            {% if post.type == "text" and post.text_html %}
+                {{ post.text_html }}
+            {% elif post.caption_html %}
+                {{ post.caption_html }}
+            {% endif %}
+        </div>
+
+        {% if image_media %}
+            {% set image_src = image_media.thumbnails.href if image_media.thumbnails else image_media.href %}
+        <div class="nw-story__image-wrap">
+            <img
+                class="nw-story__image"
+                src="{{ image_src }}"
+                alt=""
+                loading="lazy"
+            >
+        </div>
+        {% endif %}
+    </div>
+</article>
+    {% endfor %}
+{% else %}
+<article class="nw-story">
+    <div class="nw-story__copy">
+        <h2>No dispatches on the wire.</h2>
+        <p>New dispatches will appear here when they arrive.</p>
+    </div>
+</article>
+{% endif %}
+</section>
+
+<aside class="nw-terminal" aria-label="Wire instrumentation" data-mobile-open="false">
+    <button
+        class="nw-terminal__mobile-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="nw-terminal-panels"
+    >
+        <span>WIRE://MONITOR</span>
+        <span class="nw-terminal__mobile-toggle-state" aria-hidden="true">[OPEN]</span>
+    </button>
+
+    <div class="nw-terminal__panels" id="nw-terminal-panels">
+        <section class="nw-terminal__panel nw-terminal__panel--status">
+            <div class="nw-terminal__heading">
+                <span class="nw-terminal__heading-block"></span>
+                WIRE STATUS
+            </div>
+            <dl class="nw-terminal__list">
+                <div><dt>STATUS</dt><dd class="nw-terminal__good">NOMINAL</dd></div>
+                <div><dt>DISPATCHES</dt><dd>{{ "%03d" | format(dispatch_count) }}</dd></div>
+                <div><dt>TODAY</dt><dd id="nw-today">000</dd></div>
+                <div><dt>AUTHORS</dt><dd>{{ "%03d" | format(author_count) }}</dd></div>
+                <div>
+                    <dt>LAST DISPATCH</dt>
+                    <dd>{% if posts %}{{ posts[0].created[11:16] }}{% else %}—{% endif %}</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="nw-terminal__panel nw-terminal__panel--desks">
+            <div class="nw-terminal__heading">
+                <span class="nw-terminal__heading-block"></span>
+                WORLD DESKS
+            </div>
+            <div class="nw-desk">
+                <div><strong>LONDON</strong><span id="nw-time-london">--:--:--</span></div>
+                <div class="nw-desk__market">
+                    <span class="nw-market-dot" id="nw-london-dot"></span>
+                    <span id="nw-market-london">CLOSED</span>
+                </div>
+            </div>
+            <div class="nw-desk">
+                <div><strong>NEW YORK</strong><span id="nw-time-new-york">--:--:--</span></div>
+                <div class="nw-desk__market">
+                    <span class="nw-market-dot" id="nw-new-york-dot"></span>
+                    <span id="nw-market-new-york">CLOSED</span>
+                </div>
+            </div>
+            <div class="nw-desk">
+                <div><strong>TOKYO</strong><span id="nw-time-tokyo">--:--:--</span></div>
+                <div class="nw-desk__market">
+                    <span class="nw-market-dot" id="nw-tokyo-dot"></span>
+                    <span id="nw-market-tokyo">CLOSED</span>
+                </div>
+            </div>
+            <p class="nw-terminal__note">
+                Scheduled trading hours only. Exchange holidays and exceptional closures are not included.
+            </p>
+        </section>
+
+        <section class="nw-terminal__panel nw-terminal__panel--categories">
+            <div class="nw-terminal__heading">
+                <span class="nw-terminal__heading-block"></span>
+                CATEGORY LOAD
+            </div>
+            <dl class="nw-terminal__list">
+                {% set base_category_load = dispatch_count // category_count %}
+                {% set category_remainder = dispatch_count % category_count %}
+                {% for category in categories %}
+                    {% set load = base_category_load + (1 if loop.index0 < category_remainder else 0) %}
+                <div>
+                    <dt>{{ category.name }}</dt>
+                    <dd>{{ "%02d" | format(load) }}</dd>
+                </div>
+                {% endfor %}
+            </dl>
+        </section>
+
+        <section class="nw-terminal__panel nw-terminal__panel--client">
+            <div class="nw-terminal__heading">
+                <span class="nw-terminal__heading-block"></span>
+                TERMINAL
+            </div>
+            <dl class="nw-terminal__list">
+                <div><dt>NETWORK</dt><dd id="nw-terminal-network">ONLINE</dd></div>
+                <div><dt>STATE</dt><dd id="nw-page-state">ACTIVE</dd></div>
+                <div><dt>VIEWPORT</dt><dd id="nw-viewport">—</dd></div>
+                <div><dt>TIMEZONE</dt><dd id="nw-timezone">—</dd></div>
+            </dl>
+        </section>
+    </div>
+</aside>
+</div>
+
+<footer class="nw-footer">
+    <span>THE NEWS WIRE</span>
+    <span>AUTOMATED DISPATCH SERVICE</span>
+</footer>
+</main>
+
+<script>
+(() => {
+  const sessionStarted = Date.now();
+
+  const setText = (id, value) => {
+    const node = document.getElementById(id);
+    if (node) node.textContent = value;
+  };
+
+  const formatTime = (timeZone) => new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+
+  const getZoneParts = (date, timeZone) => Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone,
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23'
+    })
+      .formatToParts(date)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value])
+  );
+
+  const isScheduledOpen = (date, timeZone, sessions) => {
+    const parts = getZoneParts(date, timeZone);
+    if (['Sat', 'Sun'].includes(parts.weekday)) return false;
+
+    const minutes = (Number(parts.hour) * 60) + Number(parts.minute);
+    return sessions.some(([startHour, startMinute, endHour, endMinute]) => {
+      const start = (startHour * 60) + startMinute;
+      const end = (endHour * 60) + endMinute;
+      return minutes >= start && minutes < end;
+    });
+  };
+
+  const updateMarket = (labelId, dotId, open) => {
+    setText(labelId, open ? 'SCHEDULED OPEN' : 'CLOSED');
+
+    const dot = document.getElementById(dotId);
+    if (!dot) return;
+
+    dot.classList.toggle('nw-market-dot--open', open);
+    dot.classList.toggle('nw-market-dot--closed', !open);
+  };
+
+  const updateTime = () => {
+    const now = new Date();
+    const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    setText(
+      'nw-weekday',
+      new Intl.DateTimeFormat('en-GB', { weekday: 'long' }).format(now).toUpperCase()
+    );
+    setText(
+      'nw-date',
+      new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }).format(now).toUpperCase()
+    );
+    setText('nw-local-time', formatTime(localZone).format(now));
+    setText('nw-local-zone', localZone.toUpperCase());
+    setText('nw-time-london', formatTime('Europe/London').format(now));
+    setText('nw-time-new-york', formatTime('America/New_York').format(now));
+    setText('nw-time-tokyo', formatTime('Asia/Tokyo').format(now));
+
+    updateMarket(
+      'nw-market-london',
+      'nw-london-dot',
+      isScheduledOpen(now, 'Europe/London', [[8, 0, 16, 30]])
+    );
+    updateMarket(
+      'nw-market-new-york',
+      'nw-new-york-dot',
+      isScheduledOpen(now, 'America/New_York', [[9, 30, 16, 0]])
+    );
+    updateMarket(
+      'nw-market-tokyo',
+      'nw-tokyo-dot',
+      isScheduledOpen(now, 'Asia/Tokyo', [[9, 0, 11, 30], [12, 30, 15, 30]])
+    );
+  };
+
+  const updateToday = () => {
+    const now = new Date();
+    let count = 0;
+
+    for (const story of document.querySelectorAll('.nw-story[data-created]')) {
+      const created = new Date(story.dataset.created);
+      if (
+        created.getFullYear() !== now.getFullYear()
+        || created.getMonth() !== now.getMonth()
+        || created.getDate() !== now.getDate()
+      ) {
+        break;
+      }
+
+      count += 1;
+    }
+
+    setText('nw-today', String(count).padStart(3, '0'));
+  };
+
+  const updateSession = () => {
+    const elapsed = Math.floor((Date.now() - sessionStarted) / 1000);
+    const hours = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+    const minutes = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+    const seconds = String(elapsed % 60).padStart(2, '0');
+
+    setText('nw-session', `${hours}:${minutes}:${seconds}`);
+  };
+
+  const updateNetwork = () => {
+    const state = navigator.onLine ? 'ONLINE' : 'OFFLINE';
+    setText('nw-network', state);
+    setText('nw-terminal-network', state);
+  };
+
+  const updateViewport = () => {
+    setText('nw-viewport', `${window.innerWidth}×${window.innerHeight}`);
+  };
+
+  const updatePageState = () => {
+    setText('nw-page-state', document.hidden ? 'BACKGROUND' : 'ACTIVE');
+  };
+
+  const terminal = document.querySelector('.nw-terminal');
+  const terminalToggle = document.querySelector('.nw-terminal__mobile-toggle');
+  const mobileTerminal = window.matchMedia('(max-width: 860px)');
+
+  const setTerminalOpen = (open) => {
+    if (!terminal || !terminalToggle) return;
+
+    terminal.dataset.mobileOpen = String(open);
+    terminalToggle.setAttribute('aria-expanded', String(open));
+
+    const state = terminalToggle.querySelector('.nw-terminal__mobile-toggle-state');
+    if (state) state.textContent = open ? '[CLOSE]' : '[OPEN]';
+  };
+
+  const syncTerminal = () => {
+    setTerminalOpen(!mobileTerminal.matches);
+  };
+
+  if (terminalToggle) {
+    terminalToggle.addEventListener('click', () => {
+      setTerminalOpen(terminal?.dataset.mobileOpen !== 'true');
+    });
+  }
+
+  mobileTerminal.addEventListener('change', syncTerminal);
+  syncTerminal();
+
+  setText(
+    'nw-timezone',
+    Intl.DateTimeFormat().resolvedOptions().timeZone.toUpperCase()
+  );
+
+  const styleExternalLinks = () => {
+    document.querySelectorAll('.nw-story__copy a[href]').forEach((link) => {
+      const url = new URL(link.href, window.location.href);
+  
+      if (url.origin === window.location.origin) return;
+  
+      link.classList.add('read-original-link');
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    });
+  };
+
+  updateTime();
+  updateToday();
+  updateSession();
+  updateNetwork();
+  updateViewport();
+  updatePageState();
+  styleExternalLinks();
+
+  window.setInterval(updateTime, 1000);
+  window.setInterval(updateSession, 1000);
+  window.addEventListener('online', updateNetwork);
+  window.addEventListener('offline', updateNetwork);
+  window.addEventListener('resize', updateViewport);
+  document.addEventListener('visibilitychange', updatePageState);
+})();
+</script>
+</body>
+</html>
