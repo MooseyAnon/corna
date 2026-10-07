@@ -606,6 +606,112 @@ class CornaPage:
 
 
 @dataclass(frozen=True)
+class SinglePostPage:
+    """Aggregate dataclass that encapsulates the assembly of a single post page.
+
+    :ivar Post current_post: The post currently being viewed.
+    :ivar str theme_path: Path to the theme post-page template.
+    """
+
+    current_post: Post
+    theme_path: str
+
+    @classmethod
+    def _theme(
+        cls,
+        session: SessionT,
+        curr_corna: models.CornaTable,
+    ) -> pathlib.Path:
+        """Get the post page theme path for the current Corna.
+
+        :param SessionT session: connection to the db.
+        :param CornaTable curr_corna: the current Corna.
+        :returns: the full path to the chosen post page theme.
+        :rtype: pathlib.Path
+        :raises ValueError: if Corna has no theme or does not support the
+            expected page.
+        """
+        if not curr_corna.theme:
+            raise ValueError("Corna has no theme")
+
+        return resolve_theme_page(session, curr_corna.theme, "post_page")
+
+    @classmethod
+    def _current_post(
+        cls,
+        session: SessionT,
+        curr_corna: models.CornaTable,
+        url_extension: str,
+        subdomain: str,
+    ) -> Post:
+        """Get and parse the current post for the single post page.
+
+        :param SessionT session: connection to the db.
+        :param CornaTable curr_corna: the current Corna.
+        :param str url_extension: URL extension of the current post.
+        :param str subdomain: Corna the post belongs to.
+        :returns: parsed current post.
+        :rtype: Post
+        :raises PostNotFoundError: if the post does not exist, has been
+            deleted, or does not belong to the current Corna.
+        """
+        post: Optional[models.PostTable] = (
+            session
+            .query(models.PostTable)
+            .filter(models.PostTable.url_extension == url_extension)
+            .one_or_none()
+        )
+
+        if not (
+            post or post.deleted is True
+            or post.corna_uuid != curr_corna.uuid
+        ):
+            logger.warning(
+                "post with extension %s does not exist on corna with domain %s",
+                url_extension,
+                subdomain,
+            )
+            raise PostNotFoundError("Post does not exist.")
+
+        return Post.from_model(post, subdomain)
+
+    @classmethod
+    def load(
+        cls,
+        session: SessionT,
+        url_extension: str,
+        subdomain: str,
+        cookie: Optional[str] = None,
+    ) -> SinglePostPage:
+        """Load the details required to render a single post page.
+
+        :param SessionT session: connection to the db.
+        :param str url_extension: URL extension of the current post.
+        :param str subdomain: Corna the post belongs to.
+        :param Optional[str] cookie: current user cookie.
+        :returns: dataclass representation of a single post page.
+        :rtype: SinglePostPage
+        """
+        curr_corna = _current_corna(session, subdomain)
+
+        if not can_read(session, subdomain, cookie):
+            raise errors.UnauthorizedActionError("User not allowed to read")
+
+        theme_path = cls._theme(session, curr_corna)
+        current_post = cls._current_post(
+            session,
+            curr_corna,
+            url_extension,
+            subdomain,
+        )
+
+        return cls(
+            current_post=current_post,
+            theme_path=theme_path,
+        )
+
+
+@dataclass(frozen=True)
 class AboutDTO:
     """Simple data transfer object for the about page.
 
@@ -694,31 +800,13 @@ def single_post(
     :raises ValueError: if corna has no theme or does not support the
         expected page
     """
-    if not can_read(session, subdomain, cookie):
-        raise errors.UnauthorizedActionError("User not allowed to read")
-
-    corna: models.CornaTable = _current_corna(session, subdomain)
-    post: Optional[models.PostTable] = (
-        session
-        .query(models.PostTable)
-        .filter(models.PostTable.url_extension == url_extension)
-        .one_or_none()
+    page = SinglePostPage.load(
+        cookie=cookie,
+        session=session,
+        subdomain=subdomain,
+        url_extension=url_extension,
     )
-
-    if not corna.theme:
-        raise ValueError("Corna has no theme")
-
-    post_page = resolve_theme_page(session, corna.theme, "post_page")
-
-    if not post or post.deleted is True or post.corna_uuid != corna.uuid:
-        logger.warning(
-            "post with extension %s does not exist on corna with domain %s",
-            url_extension,
-            subdomain,
-        )
-        raise PostNotFoundError("Post does not exist.")
-
-    return Post.from_model(post, subdomain), post_page
+    return page
 
 
 def build_page(
