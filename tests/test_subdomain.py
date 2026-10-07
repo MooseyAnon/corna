@@ -489,6 +489,96 @@ def test_image_only_post(
     assert len(post.media) == 1
 
 
+@pytest.mark.nostubs
+def test_single_post__next_posts__expect_5_posts(
+    monkeypatch, tmpdir, session, client, login, local_config):
+    create_corna(client, session, ["read"])
+
+    post_urls = []
+
+    # create 10 posts
+    for _ in range(10):
+        media_slug = _upload_media(client, "anders-jilden.jpg", "image")
+        post_url = create_post(
+            session,
+            client,
+            type_="text",
+            uploaded_images=[media_slug],
+        )
+
+        post_urls.append(post_url)
+
+    # use the most recent post
+    pageDTO = control.single_post(
+        session,
+        post_urls[-1],
+        shared_data.corna_info["domain_name"],
+    )
+
+    np = pageDTO.next_posts
+    assert len(np) == 5
+
+
+@pytest.mark.nostubs
+def test_single_post__next_posts__expect_0_posts(
+    monkeypatch, tmpdir, session, client, login, local_config):
+    create_corna(client, session, ["read"])
+
+    post_urls = []
+
+    # create 10 posts
+    for _ in range(10):
+        media_slug = _upload_media(client, "anders-jilden.jpg", "image")
+        post_url = create_post(
+            session,
+            client,
+            type_="text",
+            uploaded_images=[media_slug],
+        )
+
+        post_urls.append(post_url)
+
+    # use the post first url
+    pageDTO = control.single_post(
+        session,
+        post_urls[0],
+        shared_data.corna_info["domain_name"],
+    )
+
+    np = pageDTO.next_posts
+    assert len(np) == 0
+
+
+@pytest.mark.nostubs
+def test_single_post__next_posts__expect_3_posts(
+    monkeypatch, tmpdir, session, client, login, local_config):
+    create_corna(client, session, ["read"])
+
+    post_urls = []
+
+    # create 10 posts
+    for _ in range(10):
+        media_slug = _upload_media(client, "anders-jilden.jpg", "image")
+        post_url = create_post(
+            session,
+            client,
+            type_="text",
+            uploaded_images=[media_slug],
+        )
+
+        post_urls.append(post_url)
+
+    # use the post 6th oldest url
+    pageDTO = control.single_post(
+        session,
+        post_urls[3],
+        shared_data.corna_info["domain_name"],
+    )
+
+    np = pageDTO.next_posts
+    assert len(np) == 3
+
+
 def test_get_error_page(session, client, login):
     # create private corna
     create_corna(client, session)
