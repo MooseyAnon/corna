@@ -14,7 +14,7 @@ from bin.bootstrap import bootstrap
 
 from .blueprints import frontend, subdomain
 from .blueprints.v1 import (
-    auth, corna, dummy, media, posts, roles, themes, user)
+    auth, corna, dummy, health, media, posts, roles, themes, user)
 from .oss.flask_sqlalchemy_session import flask_scoped_session
 
 logger = logging.getLogger(__name__)
@@ -72,6 +72,8 @@ def create_app(session_class):
         api_spec, corna, "corna", url_prefix="/api/v1")
     register_blueprint_with_docs(
         api_spec, dummy, "dummy", url_prefix="/api/v1")
+    register_blueprint_with_docs(
+        api_spec, health, "health", url_prefix="/api/v1")
     register_blueprint_with_docs(
         api_spec, media, "media", url_prefix="/api/v1")
     register_blueprint_with_docs(
