@@ -9,7 +9,7 @@ import logging
 import pathlib
 from typing import Union
 
-logger = logging.Logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def get_utc_now() -> datetime.datetime:

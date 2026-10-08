@@ -14,7 +14,7 @@ from corna.utils import get_utc_now, secure, utils
 from corna.utils.errors import UnauthorizedActionError
 from corna.utils.utils import current_user
 
-logger = logging.Logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 POST_TYPES: Tuple[str, ...] = tuple(

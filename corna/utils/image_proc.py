@@ -18,7 +18,7 @@ from corna import config, enums
 from corna.middleware import storage
 from corna.utils import utils
 
-logger = logging.Logger(__name__)
+logger = logging.getLogger(__name__)
 
 IMAGE_EXTENSIONS: Set[str] = {"gif", "jpg", "jpeg", "png", "webp"}
 VIDEO_EXTENSIONS: Set[str] = {"avi", "flv", "mkv", "mp4", "mov", "wmv"}
