@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from email.utils import format_datetime
 import logging
 import pathlib
 from typing import Any, Dict, List, Literal, Optional, TypeVar
@@ -1052,3 +1053,234 @@ def get_error_page(
         return None
 
     return error_page
+
+
+@dataclass(frozen=True)
+class RSSItem:
+    """Representation of a post exposed through an RSS feed.
+
+    :ivar str title: RSS-safe post title, including a content-type prefix
+        for non-text posts.
+    :ivar str link: Canonical URL for the post.
+    :ivar str guid: Stable identifier for the RSS item.
+    :ivar str pub_date: Publication timestamp formatted for RSS.
+    :ivar str creator: Username of the user who created the post.
+    :ivar Optional[str] description: Plain-text post content, if available.
+    """
+
+    title: str
+    link: str
+    guid: str
+    pub_date: str
+    creator: str
+    description: Optional[str]
+
+    @classmethod
+    def _post_href(cls, subdomain: str, url_extension: str) -> str:
+        """Return the canonical URL for a post.
+
+        :param str subdomain: the corna subdomain
+        :param str url_extension: the post url extension
+        :returns: the full post url including scheme, protocol etc
+        :rtype: str
+        """
+        hostname: str = config.get_config().app.hostname
+        return f"https://{subdomain}.{hostname}/p/{url_extension}"
+
+    @classmethod
+    def _title(cls, post: models.PostTable) -> str:
+        """Return the RSS display title.
+
+        For non-text based article posts, we include a media-type prefix.
+
+        :param PostTable post: the post to be published
+        :returns: the display title.
+        :rtype: str
+        :raises ValueError: if no title is present
+        """
+        if not post.text or not post.text.title:
+            raise ValueError("RSS items require a title")
+
+        title: str = post.text.title
+        post_type: str = str(post.type)
+
+        if post_type == enums.ContentType.TEXT.value:
+            return title
+
+        return f"[{post_type}] {title}"
+
+    @classmethod
+    def from_model(
+        cls,
+        post: models.PostTable,
+        subdomain: str,
+    ) -> RSSItem:
+        """Create an RSS item from a post model.
+
+        :param PostTable post: post to be displayed
+        :param str subdomain: the corna domain the post lives on
+        :returns: an RSS ready item
+        :rtype: RSSItem
+        """
+        href = cls._post_href(subdomain, post.url_extension)
+
+        return cls(
+            title=cls._title(post),
+            link=href,
+            guid=href,
+            pub_date=format_datetime(post.created),
+            creator=post.user.username,
+            description=(
+                post.text.content
+                if post.text and post.text.content
+                else None
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class RSSFeed:
+    """Representation of a Corna RSS feed.
+
+    :ivar str title: Stable title for the RSS feed.
+    :ivar str description: Feed description derived from the Corna about text,
+        title, or a generic fallback.
+    :ivar str link: Canonical URL for the Corna.
+    :ivar List[RSSItem] items: Newest RSS-eligible posts included in the feed.
+    """
+
+    title: str
+    description: str
+    link: str
+    items: List[RSSItem]
+
+    MAX_ITEMS = 20
+
+    @classmethod
+    def _feed_title(cls, subdomain: str) -> str:
+        """Return the stable RSS feed title.
+
+        :param str subdomain: the corna subdomain
+        :returns: feed tile
+        :rtype: str
+        """
+        return f"RSS feed from @{subdomain}"
+
+    @classmethod
+    def _feed_link(cls, subdomain: str) -> str:
+        """Return the canonical URL for a Corna.
+
+        :param str subdomain: the corna subdomain
+        :returns: the corna url
+        :rtype: str
+        """
+        hostname: str = config.get_config().app.hostname
+        return f"https://{subdomain}.{hostname}"
+
+    @classmethod
+    def _description(
+        cls,
+        curr_corna: models.CornaTable,
+        subdomain: str,
+    ) -> str:
+        """Return the best available description for the RSS feed.
+
+        We try use the about section for the feed description, if thats
+        unavailable we try to use the corna title. If neither are set then
+        we use a generic fallback.
+
+        :param CornaTable curr_corna: the corna the feed is being generated for
+        :param str subdomain: the corna domain name - for fallback
+        :returns: the feed description
+        :rtype: str
+        """
+        if curr_corna.about:
+            return curr_corna.about
+
+        if curr_corna.title:
+            return curr_corna.title
+
+        return f"Posts from @{subdomain}"
+
+    @classmethod
+    def _items(
+        cls,
+        session: SessionT,
+        curr_corna: models.CornaTable,
+    ) -> list[RSSItem]:
+        """Return the newest RSS-eligible posts for a Corna.
+
+        :param SessionT session: db connection
+        :param CornaTable curr_corna: the corna requesting the RSS feed
+        :returns: a list of eligible RSS feed items
+        :rtype: list[RSSItem]
+        """
+        posts: List[models.PostTable] = (
+            session
+            .query(models.PostTable)
+            .filter(models.PostTable.corna_uuid == curr_corna.uuid)
+            .filter(models.PostTable.deleted == False)  # pylint: disable=C0121
+            .order_by(models.PostTable.created.desc())
+            .all()
+        )
+
+        items: list[RSSItem] = []
+
+        for post in posts:
+            # Titles are currently optional for Corna posts. Untitled posts are
+            # deliberately excluded from RSS rather than inventing a feed title.
+            if not post.text or not post.text.title:
+                continue
+
+            items.append(RSSItem.from_model(post, curr_corna.domain_name))
+
+            if len(items) == cls.MAX_ITEMS:
+                break
+
+        return items
+
+    @classmethod
+    def load(
+        cls,
+        session: SessionT,
+        subdomain: str,
+    ) -> RSSFeed:
+        """Build the RSS feed for a public Corna.
+
+        :param SessionT session: a db connection
+        :param str subdomain: the corna domain
+        :returns: a formatted RSS feed
+        :rtype: RSSFeed
+        """
+        curr_corna = _current_corna(session, subdomain)
+
+        # RSS v1 is public only. There is deliberately no authenticated/private
+        # feed support.
+        if not can_read(session, subdomain):
+            raise errors.UnauthorizedActionError("Corna does not expose RSS")
+
+        return cls(
+            title=cls._feed_title(subdomain),
+            description=cls._description(curr_corna, subdomain),
+            link=cls._feed_link(subdomain),
+            items=cls._items(session, curr_corna),
+        )
+
+
+def rss_feed(
+    session: SessionT,
+    subdomain: str,
+) -> RSSFeed:
+    """Create RSS feed.
+
+    :param SessionT session: a db session
+    :param str subdomain: the Corna the post lives on
+
+    :returns: a simple RSS feed
+    :rype: RSSFeed
+    """
+    feed = RSSFeed.load(
+        session=session,
+        subdomain=subdomain,
+    )
+    return feed

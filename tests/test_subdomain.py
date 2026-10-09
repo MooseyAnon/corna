@@ -651,3 +651,38 @@ def test_get_page__no_page(session, client, login):
         assert False
     except ValueError as err:
         assert str(err) == "Theme does not define page: about"
+
+
+@pytest.mark.nostubs
+def test_rss_page_renders_correctly(
+    monkeypatch, tmpdir, session, client, login, local_config):
+    create_corna(client, session, ["read"])
+
+    post_urls = []
+
+    # create 10 posts
+    for _ in range(10):
+        media_slug = _upload_media(client, "anders-jilden.jpg", "image")
+        post_url = create_post(
+            session,
+            client,
+            type_="text",
+            uploaded_images=[media_slug],
+        )
+
+        post_urls.append(post_url)
+
+    # use the post 6th oldest url
+    rssDTO = control.rss_feed(
+        session,
+        shared_data.corna_info["domain_name"],
+    )
+
+    assert len(rssDTO.items) == 10
+    assert rssDTO.title == "RSS feed from @some-fake-domain"
+
+    for item in rssDTO.items:
+        assert item.title
+        assert item.link
+        assert item.pub_date
+        assert item.creator

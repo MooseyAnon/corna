@@ -222,6 +222,41 @@ def about_page(domain):
     )
 
 
+@subdomain.route("/subdomain/<domain>/rss", methods=["GET"])
+def rss_page(domain):
+    """Render the RSS page for a corna."""
+
+    try:
+        feed = control.rss_feed(session, domain)
+
+    except errors.UnauthorizedActionError:
+        msg = "You do not have permission to see this page, sorry."
+        return render_theme_error(domain, msg, page="about"), 403
+    # this means this is not a valid domain name. Thus there is no chance
+    # of finding a valid theme error, so we need to fall back onto the system
+    # error page
+    except control.CornaNotFoundError:
+        msg = "Oops, seems like there is nothing here :("
+        return render_system_error(msg), 400
+    # value error is raised if there is no theme for the corna. This means
+    # we need to fallback onto the system error.
+    except ValueError:
+        msg = "Excuse us, something went horribly wrong!"
+        return render_system_error(msg), 500
+    # catchall fallback as we never want users to see the basic flask error
+    # page
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.exception("Caught unexpected error: %s", e)
+        msg = "Excuse us, something went horribly wrong!"
+        return render_system_error(msg), 500
+
+    return (
+        flask.render_template("rss.xml", feed=feed),
+        # set custom content type header for rss
+        200, {"Content-Type": "application/rss+xml; charset=utf-8"},
+    )
+
+
 @subdomain.route("/subdomain/<dom_name>/fragment/<url_ext>", methods=["GET"])
 def get_fragment(dom_name, url_ext):
     """Serve a single post as HTML fragment."""
