@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+     xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>{{ feed.title }}</title>
+    <description>{{ feed.description }}</description>
+    <link>{{ feed.link }}</link>
+    <ttl>60</ttl>
+    <generator>Corna - https://mycorna.com</generator>
+
+    {% for item in feed.items %}
+    <item>
+      <title>{{ item.title }}</title>
+      <link>{{ item.link }}</link>
+      <guid isPermaLink="true">{{ item.guid }}</guid>
+      <pubDate>{{ item.pub_date }}</pubDate>
+      <dc:creator>{{ item.creator }}</dc:creator>
+      {% if item.description %}
+      <description>{{ item.description }}</description>
+      {% endif %}
+    </item>
+    {% endfor %}
+  </channel>
+</rss>
