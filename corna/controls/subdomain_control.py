@@ -833,7 +833,7 @@ def single_post(
     url_extension: str,
     subdomain: str,
     cookie: Optional[str] = None,
-) -> tuple[Post, str]:
+) -> SinglePostPage:
     """Get a single post.
 
     :param SessionT session: a db session
@@ -842,7 +842,7 @@ def single_post(
     :param Optional[str] cookie: user cookie
 
     :returns: a parsed post and post theme
-    :rype: tuple[Post, str]
+    :rype: SinglePostPage
     :raises errors.UnauthorizedActionError: if user is not allowed to read
     :raises PostNotFoundError: if no post is found
     :raises ValueError: if corna has no theme or does not support the
