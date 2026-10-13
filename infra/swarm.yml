@@ -89,12 +89,12 @@ services:
 
       update_config:
         parallelism: 1
-        order: start-first
+        order: stop-first
         failure_action: rollback
 
       rollback_config:
         parallelism: 1
-        order: start-first
+        order: stop-first
 
     healthcheck:
       # Temporary until the dedicated /health endpoint is available.
